@@ -11,10 +11,13 @@ import {
   useGetStorefrontConfig,
   useCreateStoreOrder,
   useConfirmStoreOrder,
+  useGetRates,
+  useCreateGroupOrder,
 } from "@workspace/api-client-react";
 import type {
   StorefrontConfig,
   StorefrontCatalogItem,
+  GroupOrderCreated,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -33,6 +36,9 @@ import {
   Gift,
   Minus,
   Plus,
+  Copy,
+  Trash2,
+  Link as LinkIcon,
 } from "lucide-react";
 
 type Selection =
@@ -455,22 +461,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           )}
         </div>
 
-        <div className="mt-12 rounded-xl border border-border bg-muted/30 p-5 flex items-start gap-3">
-          <Users className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-primary">Buying for a group?</p>
-            <p className="text-sm text-muted-foreground">
-              Set up a group order and send everyone their own payment link.{" "}
-              <Link
-                href="/group-order"
-                className="text-primary underline underline-offset-2"
-              >
-                Create a group order
-              </Link>
-              .
-            </p>
-          </div>
-        </div>
+        <GroupLinksSection />
 
         <p className="text-[12.5px] text-muted-foreground mt-6">
           Offer open 29 June &ndash; 30 September 2026, while allocation lasts.
@@ -629,6 +620,313 @@ function CheckoutView({
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function absoluteUrl(relative: string) {
+  return (
+    window.location.origin +
+    import.meta.env.BASE_URL.replace(/\/$/, "") +
+    relative
+  );
+}
+
+function GroupLinksSection() {
+  const { toast } = useToast();
+  const { data: rates } = useGetRates();
+  const createGroupOrder = useCreateGroupOrder();
+
+  const [expanded, setExpanded] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [organiserEmail, setOrganiserEmail] = useState("");
+  const [participants, setParticipants] = useState<string[]>(["", ""]);
+  const [result, setResult] = useState<GroupOrderCreated | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const currency = rates?.currency?.toUpperCase() ?? "SCR";
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied((c) => (c === text ? null : c)), 2000);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  const setParticipant = (index: number, value: string) =>
+    setParticipants((prev) => prev.map((p, i) => (i === index ? value : p)));
+  const addParticipant = () => setParticipants((prev) => [...prev, ""]);
+  const removeParticipant = (index: number) =>
+    setParticipants((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
+    );
+
+  const reset = () => {
+    setResult(null);
+    setAmount("");
+    setOrganiserEmail("");
+    setParticipants(["", ""]);
+  };
+
+  const submit = () => {
+    if (!rates) return;
+    const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const amountMajor = parseFloat(amount);
+    if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
+      toast({
+        title: "Enter an amount per person",
+        description: `Please enter a positive ${currency} amount.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!emailRe.test(organiserEmail.trim())) {
+      toast({
+        title: "Organiser email required",
+        description: "Please enter a valid organiser email.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const emails = participants.map((p) => p.trim()).filter(Boolean);
+    if (emails.length === 0 || !emails.every((e) => emailRe.test(e))) {
+      toast({
+        title: "Check participant emails",
+        description: "Add at least one valid participant email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createGroupOrder.mutate(
+      {
+        data: {
+          mode: "flat",
+          organiser_email: organiserEmail.trim(),
+          per_person_minor: Math.round(amountMajor * rates.minor_per_major),
+          lines: emails.map((email) => ({ payer_email: email })),
+        },
+      },
+      {
+        onSuccess: (data) => setResult(data),
+        onError: (err: unknown) => {
+          const message =
+            err && typeof err === "object" && "error" in err
+              ? String((err as { error: unknown }).error)
+              : "Please try again.";
+          toast({
+            title: "Couldn't create payment links",
+            description: message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  if (result) {
+    const dashboardUrl = absoluteUrl(result.organiser_url);
+    const perPerson = result.lines[0]?.amount_minor;
+    return (
+      <div className="mt-12 rounded-xl border border-primary/20 bg-primary/5 p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="flex items-center gap-2 mb-1">
+          <Check className="w-5 h-5 text-primary" />
+          <p className="font-medium text-primary">Payment links are ready</p>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Share each link below — everyone gets their own voucher once they pay.
+        </p>
+
+        <div className="mb-6">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-2">
+            <LinkIcon className="w-3.5 h-3.5" /> Organiser dashboard
+          </Label>
+          <div className="flex items-center gap-2 bg-background rounded-md border border-border p-1.5">
+            <Input
+              readOnly
+              value={dashboardUrl}
+              className="border-none font-mono text-xs focus-visible:ring-0 h-8"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              onClick={() => copy(dashboardUrl)}
+            >
+              {copied === dashboardUrl ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
+          Participant payment links
+          {perPerson != null && rates && (
+            <span className="ml-1 normal-case tracking-normal">
+              · {currency}{" "}
+              {(perPerson / rates.minor_per_major).toLocaleString("en-US")} each
+            </span>
+          )}
+        </Label>
+        <div className="space-y-2">
+          {result.lines.map((line) => {
+            const payUrl = absoluteUrl(line.pay_link);
+            return (
+              <div
+                key={line.id}
+                className="flex items-center gap-2 bg-background rounded-md border border-border p-2"
+              >
+                <span className="text-sm text-foreground truncate min-w-0 flex-1 pl-1">
+                  {line.payer_email}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => copy(payUrl)}
+                >
+                  {copied === payUrl ? (
+                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  {copied === payUrl ? "Copied" : "Copy link"}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={reset}
+          className="text-sm text-primary underline underline-offset-2 mt-5"
+        >
+          Create another set of links
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-12 rounded-xl border border-border bg-muted/30 p-5">
+      <div className="flex items-start gap-3">
+        <Users className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="font-medium text-primary">Buying for a group?</p>
+          <p className="text-sm text-muted-foreground">
+            Send everyone their own payment link for the same amount each.
+            {!expanded && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="text-primary underline underline-offset-2"
+                >
+                  Set up group payment links
+                </button>
+                .
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-5 space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="group-amount">Amount per person ({currency})</Label>
+              <Input
+                id="group-amount"
+                type="number"
+                min="1"
+                step="0.01"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g. 2300"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="group-organiser">Your email (organiser)</Label>
+              <Input
+                id="group-organiser"
+                type="email"
+                value={organiserEmail}
+                onChange={(e) => setOrganiserEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Participant emails</Label>
+            <div className="space-y-2 mt-1.5">
+              {participants.map((email, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setParticipant(index, e.target.value)}
+                    placeholder="name@example.com"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground"
+                    disabled={participants.length <= 1}
+                    onClick={() => removeParticipant(index)}
+                    aria-label="Remove participant"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={addParticipant}
+            >
+              <Plus className="w-4 h-4 mr-1.5" /> Add participant
+            </Button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={createGroupOrder.isPending}
+            >
+              {createGroupOrder.isPending
+                ? "Generating links…"
+                : "Generate payment links"}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Need apartment types or split costs?{" "}
+              <Link
+                href="/group-order"
+                className="text-primary underline underline-offset-2"
+              >
+                Use the full group order page
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

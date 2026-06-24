@@ -7,9 +7,11 @@ description: Seaboards Golden Jubilee group-voucher app — modes, pricing, Stri
 
 Resort group-voucher offer for Seychelles, currency SCR. Lives in `artifacts/group-vouchers` (web, root path) + `artifacts/api-server` (Express) + `lib/db` schema (`groupOrders`, `voucherLines`).
 
-## Two order modes
+## Order modes
 - **independent** — each payer buys their own voucher; each paid line gets its own `voucherCode`. Order becomes `complete` when all lines paid.
 - **split** — all-or-nothing shared voucher. Shares are equal-split (remainder on first line) OR explicit `share_minor` that must each be positive and sum to room total. Order `complete` (with a single `splitVoucherCode`) only when every line is paid.
+- **flat** — simple per-person links: one `per_person_minor` applied to every line, no apartment/nights. Behaves exactly like independent for payment/voucher/completion/sweep (the server branches on `mode === "split"`, so flat falls into the independent path). Created from the inline storefront "Buying for a group?" section.
+- **Names are optional:** `organiser_name`/`payer_name` are nullable in the API; server falls back to the email (`organiser_name || organiser_email`, `l.payer_name || l.payer_email`). The flat storefront form only collects emails + amount.
 
 ## Pricing
 Rates major units: `one_bedroom=2300`, `two_bedroom=3750` per night. `MINOR_PER_MAJOR=100`. Amount stored in minor units. `amount = rate * nights * 100`.

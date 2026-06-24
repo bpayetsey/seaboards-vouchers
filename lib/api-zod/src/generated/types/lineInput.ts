@@ -8,8 +8,11 @@
 import type { LineInputApartmentType } from './lineInputApartmentType';
 
 export interface LineInput {
-  /** @minLength 1 */
-  payer_name: string;
+  /**
+     * Optional; defaults to the payer email (e.g. flat mode)
+     * @nullable
+     */
+  payer_name?: string | null;
   /** @minLength 1 */
   payer_email: string;
   /**

@@ -41,19 +41,18 @@ export const GetRatesResponse = zod.object({
 
 
 
-
-
 export const CreateGroupOrderBody = zod.object({
-  "mode": zod.enum(['independent', 'split']),
-  "organiser_name": zod.string().min(1),
+  "mode": zod.enum(['independent', 'split', 'flat']),
+  "organiser_name": zod.string().nullish().describe('Optional; defaults to the organiser email (e.g. flat mode)'),
   "organiser_email": zod.string().min(1),
   "due_by": zod.string().nullish().describe('ISO 8601 pay-by deadline'),
+  "per_person_minor": zod.number().nullish().describe('Per-person amount in minor units; required for flat mode'),
   "split": zod.union([zod.object({
   "apartment_type": zod.enum(['one_bedroom', 'two_bedroom']),
   "nights": zod.number().min(1)
 }),zod.null()]).optional(),
   "lines": zod.array(zod.object({
-  "payer_name": zod.string().min(1),
+  "payer_name": zod.string().nullish().describe('Optional; defaults to the payer email (e.g. flat mode)'),
   "payer_email": zod.string().min(1),
   "apartment_type": zod.union([zod.literal('one_bedroom'),zod.literal('two_bedroom'),zod.literal(null)]).nullish().describe('Required in independent mode'),
   "nights": zod.number().nullish().describe('Required in independent mode'),

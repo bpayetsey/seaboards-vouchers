@@ -344,20 +344,23 @@ components:
               type: integer
     GroupOrderInput:
       type: object
-      required: [mode, organiser_name, organiser_email, lines]
+      required: [mode, organiser_email, lines]
       properties:
         mode:
           type: string
-          enum: [independent, split]
+          enum: [independent, split, flat]
         organiser_name:
-          type: string
-          minLength: 1
+          type: ["string", "null"]
+          description: Optional; defaults to the organiser email (e.g. flat mode)
         organiser_email:
           type: string
           minLength: 1
         due_by:
           type: ["string", "null"]
           description: ISO 8601 pay-by deadline
+        per_person_minor:
+          type: ["integer", "null"]
+          description: Per-person amount in minor units; required for flat mode
         split:
           anyOf:
             - $ref: "#/components/schemas/SplitConfig"
@@ -378,11 +381,11 @@ components:
           minimum: 1
     LineInput:
       type: object
-      required: [payer_name, payer_email]
+      required: [payer_email]
       properties:
         payer_name:
-          type: string
-          minLength: 1
+          type: ["string", "null"]
+          description: Optional; defaults to the payer email (e.g. flat mode)
         payer_email:
           type: string
           minLength: 1

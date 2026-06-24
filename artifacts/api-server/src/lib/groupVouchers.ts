@@ -30,7 +30,7 @@ export function lineAmountMinor(
 }
 
 interface LineInput {
-  payer_name: string;
+  payer_name?: string | null;
   payer_email: string;
   apartment_type?: string | null;
   nights?: number | null;
@@ -38,10 +38,11 @@ interface LineInput {
 }
 
 interface CreateGroupOrderInput {
-  mode: "independent" | "split";
-  organiser_name: string;
+  mode: "independent" | "split" | "flat";
+  organiser_name?: string | null;
   organiser_email: string;
   due_by?: string | null;
+  per_person_minor?: number | null;
   split?: { apartment_type: string; nights: number } | null;
   lines: LineInput[];
 }
@@ -57,22 +58,37 @@ interface PreparedLine {
 export async function createGroupOrder(input: CreateGroupOrderInput) {
   const { mode, organiser_name, organiser_email, lines, split, due_by } = input;
 
-  if (!["independent", "split"].includes(mode)) throw new Error("invalid mode");
-  if (!organiser_name || !organiser_email)
-    throw new Error("organiser details required");
+  if (!["independent", "split", "flat"].includes(mode))
+    throw new Error("invalid mode");
+  if (!organiser_email) throw new Error("organiser email required");
   if (!Array.isArray(lines) || lines.length === 0)
     throw new Error("at least one payer required");
+
+  const organiserName = organiser_name || organiser_email;
 
   let splitApt: string | null = null;
   let splitNights: number | null = null;
   let prepared: PreparedLine[];
 
-  if (mode === "independent") {
+  if (mode === "flat") {
+    const perPerson = input.per_person_minor;
+    if (!Number.isInteger(perPerson) || (perPerson as number) <= 0)
+      throw new Error("per_person_minor must be a positive integer");
+    if (lines.some((l) => !l.payer_email))
+      throw new Error("each participant requires an email");
+    prepared = lines.map((l) => ({
+      apartmentType: null,
+      nights: null,
+      amountMinor: perPerson as number,
+      payerName: l.payer_name || l.payer_email,
+      payerEmail: l.payer_email,
+    }));
+  } else if (mode === "independent") {
     prepared = lines.map((l) => ({
       apartmentType: l.apartment_type ?? null,
       nights: l.nights ?? null,
       amountMinor: lineAmountMinor(l.apartment_type, l.nights),
-      payerName: l.payer_name,
+      payerName: l.payer_name || l.payer_email,
       payerEmail: l.payer_email,
     }));
   } else {
@@ -95,7 +111,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
         apartmentType: null,
         nights: null,
         amountMinor: l.share_minor as number,
-        payerName: l.payer_name,
+        payerName: l.payer_name || l.payer_email,
         payerEmail: l.payer_email,
       }));
     } else {
@@ -105,7 +121,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
         apartmentType: null,
         nights: null,
         amountMinor: base + (i === 0 ? remainder : 0),
-        payerName: l.payer_name,
+        payerName: l.payer_name || l.payer_email,
         payerEmail: l.payer_email,
       }));
     }
@@ -118,7 +134,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
       .insert(groupOrders)
       .values({
         mode,
-        organiserName: organiser_name,
+        organiserName: organiserName,
         organiserEmail: organiser_email,
         splitApartmentType: splitApt,
         splitNights: splitNights,
@@ -259,7 +275,13 @@ export async function handleSessionCompleted(
     // Ignore payments arriving after the order is no longer open.
     if (!order || order.status !== "open") return;
 
-    if (order.mode === "independent") {
+    if (order.mode === "split") {
+      await tx
+        .update(voucherLines)
+        .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+        .where(eq(voucherLines.id, line.id));
+    } else {
+      // independent and flat: each paid line gets its own voucher code.
       await tx
         .update(voucherLines)
         .set({
@@ -268,11 +290,6 @@ export async function handleSessionCompleted(
           voucherCode: voucherCode(),
           updatedAt: new Date(),
         })
-        .where(eq(voucherLines.id, line.id));
-    } else {
-      await tx
-        .update(voucherLines)
-        .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
         .where(eq(voucherLines.id, line.id));
     }
 
@@ -287,12 +304,7 @@ export async function handleSessionCompleted(
       );
 
     if (pending === 0) {
-      if (order.mode === "independent") {
-        await tx
-          .update(groupOrders)
-          .set({ status: "complete", updatedAt: new Date() })
-          .where(eq(groupOrders.id, order.id));
-      } else {
+      if (order.mode === "split") {
         await tx
           .update(groupOrders)
           .set({
@@ -300,6 +312,12 @@ export async function handleSessionCompleted(
             splitVoucherCode: voucherCode(),
             updatedAt: new Date(),
           })
+          .where(eq(groupOrders.id, order.id));
+      } else {
+        // independent and flat: complete once all lines are paid.
+        await tx
+          .update(groupOrders)
+          .set({ status: "complete", updatedAt: new Date() })
           .where(eq(groupOrders.id, order.id));
       }
     }

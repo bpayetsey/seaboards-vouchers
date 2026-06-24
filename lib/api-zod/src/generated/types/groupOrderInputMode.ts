@@ -12,4 +12,5 @@ export type GroupOrderInputMode = typeof GroupOrderInputMode[keyof typeof GroupO
 export const GroupOrderInputMode = {
   independent: 'independent',
   split: 'split',
+  flat: 'flat',
 } as const;

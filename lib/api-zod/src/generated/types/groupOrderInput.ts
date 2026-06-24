@@ -11,8 +11,11 @@ import type { SplitConfig } from './splitConfig';
 
 export interface GroupOrderInput {
   mode: GroupOrderInputMode;
-  /** @minLength 1 */
-  organiser_name: string;
+  /**
+     * Optional; defaults to the organiser email (e.g. flat mode)
+     * @nullable
+     */
+  organiser_name?: string | null;
   /** @minLength 1 */
   organiser_email: string;
   /**
@@ -20,6 +23,11 @@ export interface GroupOrderInput {
      * @nullable
      */
   due_by?: string | null;
+  /**
+     * Per-person amount in minor units; required for flat mode
+     * @nullable
+     */
+  per_person_minor?: number | null;
   split?: SplitConfig | null;
   lines: LineInput[];
 }
