@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: rates
+    description: Voucher rate information
+  - name: group-orders
+    description: Group voucher orders
+  - name: pay
+    description: Per-person payment links
 paths:
   /healthz:
     get:
@@ -24,6 +30,175 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /rates:
+    get:
+      operationId: getRates
+      tags: [rates]
+      summary: Get voucher rate table
+      description: Authoritative apartment rate table used to price vouchers.
+      responses:
+        "200":
+          description: Rate table
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RateTable"
+  /group-orders:
+    post:
+      operationId: createGroupOrder
+      tags: [group-orders]
+      summary: Create a group voucher order
+      description: >
+        Creates a group order plus one payable line per person and returns the
+        organiser status URL and a payment link for each payer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupOrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupOrderCreated"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /group-orders/{statusToken}:
+    get:
+      operationId: getGroupOrder
+      tags: [group-orders]
+      summary: Get organiser status view
+      parameters:
+        - name: statusToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Organiser view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganiserView"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /group-orders/{statusToken}/lines/{lineId}/resend:
+    post:
+      operationId: resendLine
+      tags: [group-orders]
+      summary: Re-surface a payer's payment link
+      parameters:
+        - name: statusToken
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resend result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResendResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /pay/{payToken}:
+    get:
+      operationId: getPayLine
+      tags: [pay]
+      summary: Get a payer's line details
+      parameters:
+        - name: payToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pay line details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayLine"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /pay/{payToken}/checkout:
+    post:
+      operationId: createCheckout
+      tags: [pay]
+      summary: Create a Stripe Checkout session for a payer
+      description: >
+        Mints a fresh Stripe Checkout session for this payer's line and returns
+        the hosted checkout URL to redirect to.
+      parameters:
+        - name: payToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Already paid or closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Payments not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /group-orders/admin/sweep:
+    post:
+      operationId: sweepOrders
+      tags: [group-orders]
+      summary: Expire overdue orders
+      description: Marks unpaid lines on past-due orders expired and converts paid split shares to credit.
+      responses:
+        "200":
+          description: Sweep result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SweepResult"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +208,215 @@ components:
           type: string
       required:
         - status
-
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    RateTable:
+      type: object
+      required: [currency, minor_per_major, rates]
+      properties:
+        currency:
+          type: string
+        minor_per_major:
+          type: integer
+        rates:
+          type: object
+          required: [one_bedroom, two_bedroom]
+          properties:
+            one_bedroom:
+              type: integer
+            two_bedroom:
+              type: integer
+    GroupOrderInput:
+      type: object
+      required: [mode, organiser_name, organiser_email, lines]
+      properties:
+        mode:
+          type: string
+          enum: [independent, split]
+        organiser_name:
+          type: string
+          minLength: 1
+        organiser_email:
+          type: string
+          minLength: 1
+        due_by:
+          type: ["string", "null"]
+          description: ISO 8601 pay-by deadline
+        split:
+          anyOf:
+            - $ref: "#/components/schemas/SplitConfig"
+            - type: "null"
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineInput"
+    SplitConfig:
+      type: object
+      required: [apartment_type, nights]
+      properties:
+        apartment_type:
+          type: string
+          enum: [one_bedroom, two_bedroom]
+        nights:
+          type: integer
+          minimum: 1
+    LineInput:
+      type: object
+      required: [payer_name, payer_email]
+      properties:
+        payer_name:
+          type: string
+          minLength: 1
+        payer_email:
+          type: string
+          minLength: 1
+        apartment_type:
+          type: ["string", "null"]
+          enum: [one_bedroom, two_bedroom, null]
+          description: Required in independent mode
+        nights:
+          type: ["integer", "null"]
+          description: Required in independent mode
+        share_minor:
+          type: ["integer", "null"]
+          description: Optional explicit share for split mode (minor units)
+    GroupOrderCreated:
+      type: object
+      required: [order_id, status_token, organiser_url, lines]
+      properties:
+        order_id:
+          type: string
+        status_token:
+          type: string
+        organiser_url:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatedLine"
+    CreatedLine:
+      type: object
+      required: [id, payer_name, payer_email, amount_minor, pay_link]
+      properties:
+        id:
+          type: string
+        payer_name:
+          type: string
+        payer_email:
+          type: string
+        amount_minor:
+          type: integer
+        pay_link:
+          type: string
+    OrganiserView:
+      type: object
+      required:
+        - mode
+        - status
+        - currency
+        - organiser_name
+        - paid_count
+        - total_count
+        - lines
+      properties:
+        mode:
+          type: string
+        status:
+          type: string
+        currency:
+          type: string
+        organiser_name:
+          type: string
+        due_by:
+          type: ["string", "null"]
+        split_apartment_type:
+          type: ["string", "null"]
+        split_nights:
+          type: ["integer", "null"]
+        split_voucher_code:
+          type: ["string", "null"]
+        paid_count:
+          type: integer
+        total_count:
+          type: integer
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganiserLine"
+    OrganiserLine:
+      type: object
+      required: [id, payer_name, payer_email, amount_major, status, pay_link]
+      properties:
+        id:
+          type: string
+        payer_name:
+          type: string
+        payer_email:
+          type: string
+        amount_major:
+          type: number
+        status:
+          type: string
+        voucher_code:
+          type: ["string", "null"]
+        credit_code:
+          type: ["string", "null"]
+        apartment_type:
+          type: ["string", "null"]
+        nights:
+          type: ["integer", "null"]
+        pay_link:
+          type: string
+    ResendResult:
+      type: object
+      required: [pay_link, payer_email, status]
+      properties:
+        pay_link:
+          type: string
+        payer_email:
+          type: string
+        status:
+          type: string
+    PayLine:
+      type: object
+      required:
+        - payer_name
+        - amount_major
+        - currency
+        - description
+        - status
+        - payable
+      properties:
+        payer_name:
+          type: string
+        amount_major:
+          type: number
+        currency:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        payable:
+          type: boolean
+        voucher_code:
+          type: ["string", "null"]
+        organiser_name:
+          type: string
+    CheckoutSession:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+    SweepResult:
+      type: object
+      required: [swept]
+      properties:
+        swept:
+          type: integer

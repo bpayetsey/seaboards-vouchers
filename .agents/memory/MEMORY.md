@@ -1,0 +1,2 @@
+- [Group Vouchers app](group-vouchers.md) — Seaboards Golden Jubilee group-voucher app: modes, pricing, Stripe dynamic price_data, sweep/expiry rules.
+- [RHF + zod.coerce typing](rhf-zod-coerce-typing.md) — useFieldArray needs `control: form.control`; z.coerce makes input≠output, type useForm with three generics.

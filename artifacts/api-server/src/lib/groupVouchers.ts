@@ -1,0 +1,466 @@
+import crypto from "node:crypto";
+import { and, asc, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { db, groupOrders, voucherLines } from "@workspace/db";
+import type Stripe from "stripe";
+import { getUncachableStripeClient } from "./stripeClient";
+
+export const RATES: Record<string, number> = {
+  one_bedroom: 2300,
+  two_bedroom: 3750,
+};
+export const CURRENCY = process.env.VOUCHER_CURRENCY || "SCR";
+export const MINOR_PER_MAJOR = 100;
+
+const token = (n = 18): string => crypto.randomBytes(n).toString("base64url");
+const voucherCode = (): string =>
+  "SEA-JUB-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+const creditCode = (): string =>
+  "EZZY-CR-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+
+export function lineAmountMinor(
+  apartmentType: string | null | undefined,
+  nights: number | null | undefined,
+): number {
+  const rate = apartmentType ? RATES[apartmentType] : undefined;
+  if (!rate) throw new Error(`Unknown apartment_type: ${apartmentType}`);
+  const n = Number(nights);
+  if (!Number.isInteger(n) || n < 1)
+    throw new Error("nights must be a positive integer");
+  return rate * n * MINOR_PER_MAJOR;
+}
+
+interface LineInput {
+  payer_name: string;
+  payer_email: string;
+  apartment_type?: string | null;
+  nights?: number | null;
+  share_minor?: number | null;
+}
+
+interface CreateGroupOrderInput {
+  mode: "independent" | "split";
+  organiser_name: string;
+  organiser_email: string;
+  due_by?: string | null;
+  split?: { apartment_type: string; nights: number } | null;
+  lines: LineInput[];
+}
+
+interface PreparedLine {
+  apartmentType: string | null;
+  nights: number | null;
+  amountMinor: number;
+  payerName: string;
+  payerEmail: string;
+}
+
+export async function createGroupOrder(input: CreateGroupOrderInput) {
+  const { mode, organiser_name, organiser_email, lines, split, due_by } = input;
+
+  if (!["independent", "split"].includes(mode)) throw new Error("invalid mode");
+  if (!organiser_name || !organiser_email)
+    throw new Error("organiser details required");
+  if (!Array.isArray(lines) || lines.length === 0)
+    throw new Error("at least one payer required");
+
+  let splitApt: string | null = null;
+  let splitNights: number | null = null;
+  let prepared: PreparedLine[];
+
+  if (mode === "independent") {
+    prepared = lines.map((l) => ({
+      apartmentType: l.apartment_type ?? null,
+      nights: l.nights ?? null,
+      amountMinor: lineAmountMinor(l.apartment_type, l.nights),
+      payerName: l.payer_name,
+      payerEmail: l.payer_email,
+    }));
+  } else {
+    if (!split || !split.apartment_type || !split.nights)
+      throw new Error("split config required");
+    splitApt = split.apartment_type;
+    splitNights = split.nights;
+    const roomTotal = lineAmountMinor(splitApt, splitNights);
+    const n = lines.length;
+    const explicit = lines.every((l) => Number.isInteger(l.share_minor));
+    if (explicit) {
+      if (lines.some((l) => (l.share_minor as number) <= 0))
+        throw new Error("each share must be a positive integer");
+      const sum = lines.reduce((s, l) => s + (l.share_minor as number), 0);
+      if (sum !== roomTotal)
+        throw new Error(
+          `shares (${sum}) must sum to room total (${roomTotal})`,
+        );
+      prepared = lines.map((l) => ({
+        apartmentType: null,
+        nights: null,
+        amountMinor: l.share_minor as number,
+        payerName: l.payer_name,
+        payerEmail: l.payer_email,
+      }));
+    } else {
+      const base = Math.floor(roomTotal / n);
+      const remainder = roomTotal - base * n;
+      prepared = lines.map((l, i) => ({
+        apartmentType: null,
+        nights: null,
+        amountMinor: base + (i === 0 ? remainder : 0),
+        payerName: l.payer_name,
+        payerEmail: l.payer_email,
+      }));
+    }
+  }
+
+  const statusToken = token();
+
+  return await db.transaction(async (tx) => {
+    const [order] = await tx
+      .insert(groupOrders)
+      .values({
+        mode,
+        organiserName: organiser_name,
+        organiserEmail: organiser_email,
+        splitApartmentType: splitApt,
+        splitNights: splitNights,
+        currency: CURRENCY,
+        dueBy: due_by ? new Date(due_by) : null,
+        statusToken,
+      })
+      .returning();
+
+    const created = [];
+    for (const r of prepared) {
+      const payTok = token();
+      const [row] = await tx
+        .insert(voucherLines)
+        .values({
+          groupOrderId: order.id,
+          apartmentType: r.apartmentType,
+          nights: r.nights,
+          amountMinor: r.amountMinor,
+          payerName: r.payerName,
+          payerEmail: r.payerEmail,
+          payToken: payTok,
+        })
+        .returning();
+      created.push(row);
+    }
+
+    return {
+      order_id: order.id,
+      status_token: statusToken,
+      organiser_url: `/group/${statusToken}`,
+      lines: created.map((l) => ({
+        id: l.id,
+        payer_name: l.payerName,
+        payer_email: l.payerEmail,
+        amount_minor: l.amountMinor,
+        pay_link: `/pay/${l.payToken}`,
+      })),
+    };
+  });
+}
+
+type CheckoutResult =
+  | { url: string }
+  | { error: "not_found" | "already_paid" | "closed" };
+
+export async function startCheckout(
+  payToken: string,
+  origin: string,
+): Promise<CheckoutResult> {
+  const [line] = await db
+    .select()
+    .from(voucherLines)
+    .where(eq(voucherLines.payToken, payToken));
+  if (!line) return { error: "not_found" };
+
+  const [order] = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.id, line.groupOrderId));
+  if (!order) return { error: "not_found" };
+
+  if (line.status === "paid") return { error: "already_paid" };
+  if (line.status === "expired" || order.status !== "open")
+    return { error: "closed" };
+  if (order.dueBy && new Date(order.dueBy) < new Date())
+    return { error: "closed" };
+
+  const descr = line.apartmentType
+    ? `Golden Jubilee — ${line.apartmentType.replace("_", " ")}, ${line.nights} night(s)`
+    : "Golden Jubilee — group voucher share";
+
+  const stripe = await getUncachableStripeClient();
+
+  // Reuse an existing open Checkout session for this line to avoid minting
+  // multiple payable sessions (which could lead to duplicate charges).
+  if (line.stripeSessionId) {
+    try {
+      const existing = await stripe.checkout.sessions.retrieve(
+        line.stripeSessionId,
+      );
+      if (existing.status === "open" && existing.url) {
+        return { url: existing.url };
+      }
+    } catch {
+      // Existing session is no longer retrievable; fall through and create one.
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    customer_email: line.payerEmail,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: order.currency.toLowerCase(),
+          unit_amount: Number(line.amountMinor),
+          product_data: { name: descr },
+        },
+      },
+    ],
+    metadata: { line_id: line.id, group_order_id: line.groupOrderId },
+    success_url: `${origin}/pay/${payToken}/done?cs={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/pay/${payToken}`,
+  });
+
+  await db
+    .update(voucherLines)
+    .set({ stripeSessionId: session.id, updatedAt: new Date() })
+    .where(eq(voucherLines.id, line.id));
+
+  if (!session.url) throw new Error("Stripe did not return a checkout URL");
+  return { url: session.url };
+}
+
+export async function handleSessionCompleted(
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  const lineId = session.metadata?.line_id;
+  if (!lineId) return;
+
+  await db.transaction(async (tx) => {
+    const [line] = await tx
+      .select()
+      .from(voucherLines)
+      .where(eq(voucherLines.id, lineId))
+      .for("update");
+    // Only a still-pending line may transition to paid. Ignore late events for
+    // lines already paid or expired (e.g. swept after the deadline).
+    if (!line || line.status !== "pending") return;
+
+    const [order] = await tx
+      .select()
+      .from(groupOrders)
+      .where(eq(groupOrders.id, line.groupOrderId))
+      .for("update");
+    // Ignore payments arriving after the order is no longer open.
+    if (!order || order.status !== "open") return;
+
+    if (order.mode === "independent") {
+      await tx
+        .update(voucherLines)
+        .set({
+          status: "paid",
+          paidAt: new Date(),
+          voucherCode: voucherCode(),
+          updatedAt: new Date(),
+        })
+        .where(eq(voucherLines.id, line.id));
+    } else {
+      await tx
+        .update(voucherLines)
+        .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+        .where(eq(voucherLines.id, line.id));
+    }
+
+    const [{ c: pending }] = await tx
+      .select({ c: sql<number>`count(*)::int` })
+      .from(voucherLines)
+      .where(
+        and(
+          eq(voucherLines.groupOrderId, order.id),
+          ne(voucherLines.status, "paid"),
+        ),
+      );
+
+    if (pending === 0) {
+      if (order.mode === "independent") {
+        await tx
+          .update(groupOrders)
+          .set({ status: "complete", updatedAt: new Date() })
+          .where(eq(groupOrders.id, order.id));
+      } else {
+        await tx
+          .update(groupOrders)
+          .set({
+            status: "complete",
+            splitVoucherCode: voucherCode(),
+            updatedAt: new Date(),
+          })
+          .where(eq(groupOrders.id, order.id));
+      }
+    }
+  });
+}
+
+export async function getOrganiserView(statusToken: string) {
+  const [order] = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.statusToken, statusToken));
+  if (!order) return null;
+
+  const lines = await db
+    .select()
+    .from(voucherLines)
+    .where(eq(voucherLines.groupOrderId, order.id))
+    .orderBy(asc(voucherLines.createdAt));
+
+  return {
+    mode: order.mode,
+    status: order.status,
+    currency: order.currency,
+    organiser_name: order.organiserName,
+    due_by: order.dueBy ? order.dueBy.toISOString() : null,
+    split_apartment_type: order.splitApartmentType,
+    split_nights: order.splitNights,
+    split_voucher_code: order.splitVoucherCode,
+    paid_count: lines.filter((l) => l.status === "paid").length,
+    total_count: lines.length,
+    lines: lines.map((l) => ({
+      id: l.id,
+      payer_name: l.payerName,
+      payer_email: l.payerEmail,
+      amount_major: Number(l.amountMinor) / MINOR_PER_MAJOR,
+      status: l.status,
+      voucher_code: l.voucherCode,
+      credit_code: l.creditCode,
+      apartment_type: l.apartmentType,
+      nights: l.nights,
+      pay_link: `/pay/${l.payToken}`,
+    })),
+  };
+}
+
+export async function getPayLine(payToken: string) {
+  const [line] = await db
+    .select()
+    .from(voucherLines)
+    .where(eq(voucherLines.payToken, payToken));
+  if (!line) return null;
+
+  const [order] = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.id, line.groupOrderId));
+  if (!order) return null;
+
+  const dueExpired = order.dueBy ? new Date(order.dueBy) < new Date() : false;
+  const payable =
+    line.status === "pending" && order.status === "open" && !dueExpired;
+
+  const description = line.apartmentType
+    ? `Golden Jubilee — ${line.apartmentType.replace("_", " ")}, ${line.nights} night(s)`
+    : order.mode === "split"
+      ? "Golden Jubilee — group voucher share"
+      : "Golden Jubilee — group voucher";
+
+  return {
+    payer_name: line.payerName,
+    amount_major: Number(line.amountMinor) / MINOR_PER_MAJOR,
+    currency: order.currency,
+    description,
+    status: line.status,
+    payable,
+    voucher_code: line.voucherCode,
+    organiser_name: order.organiserName,
+  };
+}
+
+export async function resendLine(statusToken: string, lineId: string) {
+  const [order] = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.statusToken, statusToken));
+  if (!order) return null;
+
+  const [line] = await db
+    .select()
+    .from(voucherLines)
+    .where(
+      and(
+        eq(voucherLines.id, lineId),
+        eq(voucherLines.groupOrderId, order.id),
+      ),
+    );
+  if (!line) return null;
+
+  return {
+    pay_link: `/pay/${line.payToken}`,
+    payer_email: line.payerEmail,
+    status: line.status,
+  };
+}
+
+export async function sweepExpired(now = new Date()) {
+  const orders = await db
+    .select()
+    .from(groupOrders)
+    .where(
+      and(eq(groupOrders.status, "open"), lt(groupOrders.dueBy, now)),
+    );
+
+  for (const order of orders) {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(voucherLines)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(
+          and(
+            eq(voucherLines.groupOrderId, order.id),
+            eq(voucherLines.status, "pending"),
+          ),
+        );
+
+      if (order.mode === "split") {
+        const paid = await tx
+          .select({ id: voucherLines.id })
+          .from(voucherLines)
+          .where(
+            and(
+              eq(voucherLines.groupOrderId, order.id),
+              eq(voucherLines.status, "paid"),
+              isNull(voucherLines.creditCode),
+            ),
+          );
+        for (const p of paid) {
+          await tx
+            .update(voucherLines)
+            .set({ creditCode: creditCode(), updatedAt: new Date() })
+            .where(eq(voucherLines.id, p.id));
+        }
+      }
+
+      await tx
+        .update(groupOrders)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(groupOrders.id, order.id));
+    });
+  }
+
+  return { swept: orders.length };
+}
+
+export function getRateTable() {
+  return {
+    currency: CURRENCY,
+    minor_per_major: MINOR_PER_MAJOR,
+    rates: {
+      one_bedroom: RATES.one_bedroom,
+      two_bedroom: RATES.two_bedroom,
+    },
+  };
+}

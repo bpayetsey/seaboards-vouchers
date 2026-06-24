@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "t7llbdplcE01KeM1JTcGk"
+uri = "file://artifacts/group-vouchers/src/assets/resort-hero.jpg"
+type = "image"
+title = "luxury seychelles resort island ocean view golden hour high quality photograph"
