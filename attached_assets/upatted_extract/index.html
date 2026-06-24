@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Seaboards · 50 Years of Seychelles — Celebration Vouchers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  :root{
+    --ocean:#0B2A33;--sand:#FBF7EF;--sand-2:#F1E9D8;--gold:#C9A24B;--gold-deep:#A9842F;
+    --ink:#0B2A33;--muted:#5B6F73;--line:#E3DAC6;--white:#fff;
+    --display:"Fraunces",Georgia,serif;--body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--sand);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-deep);font-weight:600}
+  h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.05;margin:0}
+  .hidden{display:none!important}
+  .btn{font-family:var(--body);font-weight:600;font-size:15px;border:none;border-radius:999px;padding:14px 26px;cursor:pointer;transition:transform .12s,background .2s,box-shadow .2s}
+  .btn-gold{background:var(--gold);color:#1c1606}
+  .btn-gold:hover{background:var(--gold-deep);transform:translateY(-1px)}
+  .btn-gold:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .btn-ocean{background:var(--ocean);color:var(--sand)}
+  .btn-ocean:hover{transform:translateY(-1px)}
+  .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  header.bar{position:sticky;top:0;z-index:40;background:rgba(251,247,239,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--display);font-size:18px}
+  .brand .mark{width:30px;height:30px;flex:0 0 30px}
+  .bar nav{display:flex;gap:8px;align-items:center}
+
+  .hero{position:relative;overflow:hidden;background:var(--ocean);color:var(--sand)}
+  .hero .rays{position:absolute;inset:0;opacity:.5;pointer-events:none}
+  .hero .wrap{position:relative;padding:84px 24px 96px;display:grid;grid-template-columns:1.25fr .9fr;gap:48px;align-items:center}
+  .seal{width:128px;height:128px;margin-bottom:22px}
+  .hero h1{font-size:clamp(40px,6vw,68px);color:var(--sand)}
+  .hero h1 em{font-style:italic;color:var(--gold)}
+  .hero p.lede{font-size:18px;color:#D9E2E1;max-width:46ch;margin:18px 0 30px}
+  .hero .cta-row{display:flex;gap:12px;flex-wrap:wrap}
+  .countdown{display:flex;gap:14px;margin-top:34px}
+  .cd{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 16px;min-width:64px;text-align:center}
+  .cd b{font-family:var(--display);font-size:26px;display:block;color:var(--gold)}
+  .cd span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#B9C6C5}
+  .hero-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:26px}
+  .hero-card h3{color:var(--sand);font-size:22px}
+  .hero-card ul{list-style:none;padding:0;margin:16px 0 0}
+  .hero-card li{display:flex;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.1);color:#D9E2E1;font-size:14.5px}
+  .hero-card li:first-child{border-top:none}
+  .tick{color:var(--gold);flex:0 0 18px}
+
+  section{padding:76px 0}
+  .sec-head{max-width:60ch;margin-bottom:40px}
+  .sec-head h2{font-size:clamp(28px,3.6vw,40px)}
+  .sec-head p{color:var(--muted);font-size:17px;margin-top:12px}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column;transition:box-shadow .2s,transform .12s,border-color .2s}
+  .card:hover{box-shadow:0 18px 50px -28px rgba(11,42,51,.45);transform:translateY(-2px)}
+  .card.featured{border-color:var(--gold);box-shadow:0 18px 50px -30px rgba(201,162,75,.55)}
+  .card .ribbon{align-self:flex-start;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--gold-deep);background:var(--sand-2);border-radius:999px;padding:5px 12px;margin-bottom:16px}
+  .card h3{font-size:23px}
+  .card .desc{color:var(--muted);font-size:14.5px;margin:10px 0 18px}
+  .card .feat{list-style:none;padding:0;margin:0 0 22px;flex:1 1 auto}
+  .card .feat li{font-size:14px;color:#3c4f52;padding:6px 0 6px 22px;position:relative}
+  .card .feat li:before{content:"";position:absolute;left:0;top:11px;width:8px;height:8px;border-radius:50%;background:var(--gold)}
+  .price{font-family:var(--display);font-size:34px;line-height:1}
+  .price small{font-size:14px;font-family:var(--body);color:var(--muted)}
+  .was{color:var(--muted);text-decoration:line-through;font-size:15px;margin-left:8px}
+  .card .buy{margin-top:18px}
+
+  .giftcard{grid-column:1/-1;background:linear-gradient(120deg,var(--ocean),#14454f);color:var(--sand);border:none;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center}
+  .giftcard h3{color:var(--sand)}.giftcard .desc{color:#cfdad9}
+  .amounts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .chip{border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.04);color:var(--sand);border-radius:999px;padding:10px 16px;cursor:pointer;font-weight:600;font-size:14px}
+  .chip.active{background:var(--gold);color:#1c1606;border-color:var(--gold)}
+  .gift-custom{margin-top:14px;display:flex;align-items:center;gap:10px}
+  .gift-custom input{width:140px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:var(--sand);border-radius:10px;padding:11px 12px;font-size:15px;font-family:var(--body)}
+
+  .scrim{position:fixed;inset:0;background:rgba(11,42,51,.5);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--sand);box-shadow:-30px 0 80px -40px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:60;display:flex;flex-direction:column}
+  .drawer.open{transform:translateX(0)}
+  .dhead{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line)}
+  .dhead h3{font-size:20px}
+  .xbtn{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1}
+  .dbody{padding:22px 24px;overflow:auto;flex:1 1 auto}
+  .summary{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:22px}
+  .summary .row{display:flex;justify-content:space-between;font-size:14.5px;padding:5px 0}
+  .summary .row.total{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;font-weight:600;font-size:16px}
+  .plan-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 18px}
+  .plan{border:1.5px solid var(--line);background:var(--white);border-radius:14px;padding:14px;cursor:pointer;text-align:left}
+  .plan.active{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.18)}
+  .plan b{display:block;font-size:15px}.plan span{font-size:12.5px;color:var(--muted)}
+  .schedule{list-style:none;padding:0;margin:0 0 20px}
+  .schedule li{display:flex;justify-content:space-between;font-size:14px;padding:9px 0;border-bottom:1px dashed var(--line);color:#3c4f52}
+  .schedule li.now b{color:var(--gold-deep)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600}
+  .field input{width:100%;border:1px solid var(--line);border-radius:11px;padding:12px 13px;font-size:15px;font-family:var(--body);background:var(--white)}
+  .field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.16)}
+  #payment-element{margin:6px 0 4px}
+  .err{color:#b3261e;font-size:13.5px;margin:10px 0 0;min-height:18px}
+  .stripe-note{font-size:12px;color:var(--muted);margin-top:10px;display:flex;gap:6px;align-items:flex-start}
+  .dfoot{padding:18px 24px;border-top:1px solid var(--line);background:var(--white)}
+  .dfoot .btn{width:100%}
+  .fineprint{font-size:11.5px;color:var(--muted);margin-top:10px;text-align:center}
+  .spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.25);border-top-color:#1c1606;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:8px;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .success{text-align:center;padding:20px 4px}
+  .success .seal-ok{width:88px;height:88px;margin:6px auto 16px}
+  .codebox{font-family:var(--display);font-size:26px;letter-spacing:.12em;background:var(--ocean);color:var(--gold);border-radius:14px;padding:18px;margin:16px 0}
+
+  .trust{background:var(--ocean);color:#cfdad9}
+  .trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding:46px 24px}
+  .trust .t b{font-family:var(--display);color:var(--gold);font-size:20px;display:block;margin-bottom:4px}
+  .trust .t span{font-size:13.5px}
+  footer.foot{background:#082027;color:#9fb1b0;padding:46px 0;font-size:14px}
+  footer.foot .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px}
+  footer.foot a{color:#cfdad9;text-decoration:none}
+
+  @media (max-width:860px){
+    .hero .wrap{grid-template-columns:1fr;padding:60px 24px 70px}
+    .grid{grid-template-columns:1fr}.giftcard{grid-template-columns:1fr}
+    .trust .wrap{grid-template-columns:1fr 1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 60 60" aria-hidden="true">
+        <rect width="60" height="60" rx="13" fill="#0B2A33"/>
+        <g stroke-linecap="round">
+          <path d="M8 52 L24 8" stroke="#2C6FB5" stroke-width="5"/>
+          <path d="M8 52 L34 12" stroke="#F2C53D" stroke-width="5"/>
+          <path d="M8 52 L46 20" stroke="#fff" stroke-width="5"/>
+          <path d="M8 52 L52 34" stroke="#D33A2C" stroke-width="5"/>
+          <path d="M8 52 L54 48" stroke="#1F8A52" stroke-width="5"/>
+        </g>
+      </svg>
+      The Seaboards
+    </div>
+    <nav>
+      <a class="btn btn-ghost" href="#vouchers">Vouchers</a>
+      <button class="btn btn-gold" onclick="document.getElementById('vouchers').scrollIntoView()">Buy a voucher</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <svg class="rays" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><clipPath id="c"><rect width="1200" height="600"/></clipPath></defs>
+    <g clip-path="url(#c)">
+      <polygon points="0,600 0,440 1200,150 1200,30" fill="#2C6FB5" opacity=".22"/>
+      <polygon points="0,600 0,520 1200,260 1200,150" fill="#F2C53D" opacity=".16"/>
+      <polygon points="0,600 200,600 1200,360 1200,260" fill="#ffffff" opacity=".07"/>
+      <polygon points="200,600 520,600 1200,470 1200,360" fill="#D33A2C" opacity=".15"/>
+      <polygon points="520,600 1200,600 1200,470" fill="#1F8A52" opacity=".22"/>
+    </g>
+  </svg>
+  <div class="wrap">
+    <div>
+      <svg class="seal" viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="58" fill="none" stroke="#C9A24B" stroke-width="1.5"/>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#C9A24B" stroke-width="0.75" opacity=".6"/>
+        <text x="60" y="70" text-anchor="middle" font-family="Fraunces, serif" font-size="46" fill="#C9A24B" font-weight="600">50</text>
+        <text x="60" y="92" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" letter-spacing="3" fill="#C9A24B">1976 — 2026</text>
+      </svg>
+      <div class="eyebrow">29 June · National Day of Seychelles</div>
+      <h1>Fifty years of <em>these islands</em>. One stay to remember it by.</h1>
+      <p class="lede">To mark Seychelles' golden jubilee, The Seaboards is releasing a limited run of celebration vouchers for stays at Anse La Mouche — gift one, keep one, redeem within 12 months. Pay in full or spread it over three months.</p>
+      <div class="cta-row">
+        <button class="btn btn-gold" onclick="document.getElementById('vouchers').scrollIntoView()">See the vouchers</button>
+        <a class="btn btn-ghost" href="#how" style="color:var(--sand);border-color:rgba(255,255,255,.3)">How payment plans work</a>
+      </div>
+      <div class="countdown" id="countdown" aria-label="Time until National Day"></div>
+    </div>
+    <div class="hero-card">
+      <h3>The Jubilee Offer</h3>
+      <ul>
+        <li><span class="tick">✦</span> 50 vouchers only — released for the 50th year</li>
+        <li><span class="tick">✦</span> Golden-jubilee pricing, up to 20% below rack rate</li>
+        <li><span class="tick">✦</span> Pay in 3 — interest-free, card auto-charged monthly</li>
+        <li><span class="tick">✦</span> Valid 12 months · transferable as a gift</li>
+        <li><span class="tick">✦</span> 1% of every voucher to a local cause</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="vouchers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Choose your voucher</div>
+      <h2>Three celebration stays, or an open gift voucher</h2>
+      <p>Prices shown are the golden-jubilee rate. Every voucher is delivered by email with a unique redemption code and is valid for 12 months from purchase.</p>
+    </div>
+    <div class="grid" id="voucherGrid"></div>
+  </div>
+</section>
+
+<section id="how" style="background:var(--white);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Pay in 3 — how it works</div>
+      <h2>Spread the cost, interest-free</h2>
+      <p>Choose “Pay in 3” at checkout. You pay the first third today; the same card is securely charged the remaining two thirds at day 30 and day 60. No interest, no fees. Your voucher unlocks for redemption once the plan is paid in full.</p>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="ribbon">Today</div><h3>1 / 3 now</h3><p class="desc">Pick your voucher, choose Pay in 3, and pay the first instalment. Card stored securely with Stripe.</p></div>
+      <div class="card"><div class="ribbon">Day 30 &amp; 60</div><h3>Auto-charged</h3><p class="desc">We charge the next two instalments automatically. You get an email receipt each time — nothing to remember.</p></div>
+      <div class="card"><div class="ribbon">Paid in full</div><h3>Voucher unlocks</h3><p class="desc">Once the final instalment clears, your redemption code activates for any available dates in the next 12 months.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="wrap">
+    <div class="t"><b>Secure</b><span>Card payments processed by Stripe. We never see your card number.</span></div>
+    <div class="t"><b>Anse La Mouche</b><span>Self-catering apartments on Mahé's quiet south-west coast.</span></div>
+    <div class="t"><b>12-month validity</b><span>Redeem any time within a year, subject to availability.</span></div>
+    <div class="t"><b>Gift-ready</b><span>Vouchers are transferable — buy for someone else and forward the code.</span></div>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><strong style="font-family:var(--display);color:#cfdad9;font-size:16px">The Seaboards Apartments</strong><br/>Anse La Mouche, Mahé, Seychelles</div>
+    <div>Vouchers · <a href="#">Terms &amp; conditions</a> · <a href="#">Redemption policy</a> · <a href="#">Contact</a><br/><span style="opacity:.7">Golden Jubilee Voucher Campaign · 1976–2026</span></div>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Checkout" role="dialog" aria-modal="true">
+  <div class="dhead"><h3 id="drawerTitle">Checkout</h3><button class="xbtn" id="closeBtn" aria-label="Close">×</button></div>
+  <div class="dbody" id="drawerBody"></div>
+  <div class="dfoot" id="drawerFoot"></div>
+</aside>
+
+<script src="/app.js"></script>
+</body>
+</html>

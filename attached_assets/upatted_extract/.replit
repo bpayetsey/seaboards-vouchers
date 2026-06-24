@@ -1,0 +1,18 @@
+# Replit configuration — press Run.
+modules = ["nodejs-20"]
+run = "npm run start"
+entrypoint = "src/server.js"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+NODE_ENV = "development"
+
+[deployment]
+run = ["sh", "-c", "npm run start"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 4000
+externalPort = 80

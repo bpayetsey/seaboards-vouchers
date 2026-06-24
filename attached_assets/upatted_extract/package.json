@@ -1,0 +1,20 @@
+{
+  "name": "seaboards-vouchers",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "prisma db push --skip-generate --accept-data-loss && node src/server.js",
+    "dev": "prisma db push --skip-generate && node --watch src/server.js",
+    "db:push": "prisma db push",
+    "charge": "node -e \"import('./src/server.js').then(m=>m.chargeDueInstalments()).then(r=>{console.log(r);process.exit(0)})\"",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "stripe": "^17.5.0"
+  },
+  "devDependencies": { "prisma": "^5.22.0" }
+}

@@ -1,0 +1,77 @@
+// SQLite so it runs in Replit with zero database setup.
+// To move to Postgres later: change provider to "postgresql" and point
+// DATABASE_URL at your Railway/Neon database, then `npm run db:push`.
+
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
+
+model Business {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  name          String
+  currency      String           @default("eur")
+  createdAt     DateTime         @default(now())
+  products      VoucherProduct[]
+  orders        Order[]
+}
+
+model VoucherProduct {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  sku         String
+  name        String
+  type        String   @default("package") // "package" | "gift"
+  priceMinor  Int?
+  active      Boolean  @default(true)
+  @@unique([businessId, sku])
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  businessId            String?
+  business              Business?     @relation(fields: [businessId], references: [id])
+  productId             String?
+  productName           String
+  type                  String        @default("package")
+  buyerName             String
+  buyerEmail            String
+  currency              String
+  totalMinor            Int
+  installments          Int           @default(1)
+  paidInstalments       Int           @default(0)
+  status                String        @default("pending") // pending | paid | cancelled
+  stripeCustomerId      String
+  stripePaymentMethodId String?
+  firstPaymentIntentId  String?
+  createdAt             DateTime      @default(now())
+  schedule              Installment[]
+  voucher               Voucher?
+}
+
+model Installment {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id])
+  number      Int
+  amountMinor Int
+  dueAt       DateTime
+  status      String    @default("scheduled") // scheduled | paid | failed | needs_action
+  attempts    Int       @default(0)
+  paidAt      DateTime?
+  lastError   String?
+  @@index([status, dueAt])
+}
+
+model Voucher {
+  id         String    @id @default(cuid())
+  orderId    String    @unique
+  order      Order     @relation(fields: [orderId], references: [id])
+  code       String    @unique
+  valueMinor Int
+  currency   String
+  status     String    @default("pending") // pending | active | redeemed | expired
+  expiresAt  DateTime
+  redeemedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
