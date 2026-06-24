@@ -1,0 +1,17 @@
+{
+  "name": "seaboards-jubilee",
+  "version": "1.0.0",
+  "description": "The Seaboards Golden Jubilee offer site with group voucher purchase (per-person payment links).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node db/init.js",
+    "sweep": "node -e \"require('./src/groupVouchers.service').sweepExpired().then(r=>{console.log(r);process.exit(0)})\""
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "stripe": "^14.25.0"
+  },
+  "engines": { "node": ">=18" }
+}

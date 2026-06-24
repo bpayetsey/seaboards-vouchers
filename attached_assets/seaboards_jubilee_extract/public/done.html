@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment received — The Seaboards Golden Jubilee</title>
+<style>
+  body{margin:0;background:#F8F6F1;font-family:system-ui,sans-serif;color:#2A2E35}
+  .card{max-width:520px;margin:80px auto;background:#fff;border-radius:16px;padding:34px;text-align:center;
+    box-shadow:0 1px 30px rgba(31,58,95,.08)}
+  .eyebrow{color:#B8860B;font-weight:700;letter-spacing:.22em;font-size:12px;text-transform:uppercase}
+  h1{color:#1F3A5F;font-family:Georgia,serif;font-size:26px;margin:8px 0 4px}
+  .code{display:inline-block;margin-top:14px;background:#E8EEF4;color:#1F3A5F;font-weight:800;
+    letter-spacing:.06em;padding:10px 18px;border-radius:10px;font-size:18px}
+  .muted{color:#6B7280}
+  a{color:#B8860B}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">Golden Jubilee</div>
+  <h1>Payment received</h1>
+  <p class="muted" id="msg">Confirming your voucher…</p>
+  <div id="codeBox"></div>
+  <p style="margin-top:22px"><a href="/">Return to the offer</a></p>
+</div>
+<script>
+const payToken = location.pathname.split('/')[2]; // /pay/:token/done
+let tries = 0;
+async function poll(){
+  tries++;
+  try{
+    const r = await fetch(`/api/pay/${payToken}/status`);
+    const d = await r.json();
+    if(d.voucher_code){
+      document.getElementById('msg').textContent = `Thank you, ${d.payer_name}. Your Golden Jubilee voucher code is:`;
+      document.getElementById('codeBox').innerHTML = `<div class="code">${d.voucher_code}</div>
+        <p class="muted" style="margin-top:14px">Keep this code — you'll use it to arrange your stay dates with reservations.</p>`;
+      return;
+    }
+    if(d.status==='paid'){
+      document.getElementById('msg').textContent = 'Payment received. Your shared voucher will issue once everyone in the group has paid.';
+      return;
+    }
+  }catch(e){}
+  if(tries<8) setTimeout(poll, 1500);
+  else document.getElementById('msg').textContent = 'Payment received. Your voucher confirmation will arrive shortly by email.';
+}
+poll();
+</script>
+</body>
+</html>

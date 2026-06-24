@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import GroupDashboard from "@/pages/group";
 import PayLine from "@/pages/pay";
 import PayDone from "@/pages/pay-done";
+import Terms from "@/pages/terms";
 
 const queryClient = new QueryClient();
 
@@ -15,6 +16,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/terms" component={Terms} />
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />

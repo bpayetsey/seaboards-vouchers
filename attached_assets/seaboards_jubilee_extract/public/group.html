@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group Booking — The Seaboards Golden Jubilee</title>
+<style>
+  :root{--navy:#1F3A5F;--gold:#B8860B;--ink:#2A2E35;--muted:#6B7280;--line:#ECE7DC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#F8F6F1;font-family:system-ui,sans-serif;color:var(--ink)}
+  .wrap{max-width:680px;margin:0 auto;padding:34px 20px}
+  .eyebrow{color:var(--gold);font-weight:700;letter-spacing:.22em;font-size:12px;text-transform:uppercase}
+  h1{color:var(--navy);font-size:26px;margin:6px 0 2px;font-family:Georgia,serif}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .prog{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .track{flex:1;height:8px;background:#ECE7DC;border-radius:999px}
+  .fill{height:8px;background:var(--gold);border-radius:999px;transition:width .4s}
+  .lbl{font-size:13px;color:var(--navy);font-weight:600;white-space:nowrap}
+  .banner{background:#E8EEF4;color:var(--navy);padding:12px 14px;border-radius:10px;margin-bottom:16px;font-size:14px}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;flex-wrap:wrap;margin-bottom:10px}
+  .name{font-weight:600;color:var(--navy)}
+  .meta{font-size:12.5px;color:var(--muted)}
+  .chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .actions{display:flex;gap:8px}
+  button{cursor:pointer;font-size:13px;border-radius:8px;padding:6px 12px}
+  .ghost{border:1px solid var(--navy);color:var(--navy);background:#fff}
+  .solid{border:0;color:#fff;background:var(--navy)}
+  .refresh{margin-top:18px;border:1px solid var(--gold);color:var(--gold);background:#fff;padding:8px 16px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p style="color:var(--muted)">Loading…</p></div>
+<script>
+const token = location.pathname.split('/').pop();
+const CH = {
+  paid:{bg:'#E6F4EA',fg:'#1B7A3D',label:'Paid'},
+  pending:{bg:'#FFF4D6',fg:'#8A6300',label:'Pending'},
+  expired:{bg:'#F3E3E3',fg:'#9A2A2A',label:'Expired'},
+  refunded:{bg:'#EAEAEA',fg:'#555',label:'Refunded'},
+};
+async function load(){
+  const app = document.getElementById('app');
+  try{
+    const r = await fetch('/api/group-orders/'+token);
+    if(!r.ok) throw new Error('Group not found');
+    const d = await r.json();
+    const pct = d.total_count ? Math.round(d.paid_count/d.total_count*100) : 0;
+    const fmt = n => d.currency+' '+Number(n).toLocaleString();
+    const subtitle = d.mode==='split'
+      ? `Splitting one ${(d.split_apartment_type||'').replace('_',' ')} (${d.split_nights} night${d.split_nights>1?'s':''}) across ${d.total_count} people.`
+      : `${d.total_count} individual voucher${d.total_count>1?'s':''}.`;
+    app.innerHTML = `
+      <div class="eyebrow">Golden Jubilee · Group Booking</div>
+      <h1>${d.organiser_name}’s group</h1>
+      <p class="sub">${subtitle}</p>
+      <div class="prog"><div class="track"><div class="fill" style="width:${pct}%"></div></div>
+        <span class="lbl">${d.paid_count}/${d.total_count} paid</span></div>
+      ${d.mode==='split'&&d.split_voucher_code?`<div class="banner">All shares paid — voucher issued: <strong>${d.split_voucher_code}</strong></div>`:''}
+      ${d.lines.map(l=>{const c=CH[l.status]||CH.pending;return `
+        <div class="row">
+          <div style="flex:1;min-width:0">
+            <div class="name">${l.payer_name}</div>
+            <div class="meta">${l.payer_email} · ${fmt(l.amount_major)}
+              ${l.voucher_code?` · <span style="color:var(--navy)">${l.voucher_code}</span>`:''}
+              ${l.credit_code?` · <span style="color:var(--gold)">Credit ${l.credit_code}</span>`:''}</div>
+          </div>
+          <span class="chip" style="background:${c.bg};color:${c.fg}">${c.label}</span>
+          ${l.status==='pending'?`<div class="actions">
+            <button class="ghost" onclick="navigator.clipboard.writeText('${l.pay_link}');this.textContent='Copied'">Copy link</button>
+            <button class="solid" onclick="resend('${l.id}',this)">Resend</button></div>`:''}
+        </div>`}).join('')}
+      <button class="refresh" onclick="load()">Refresh</button>`;
+  }catch(e){ app.innerHTML = `<p style="color:#9A2A2A">${e.message}</p>`; }
+}
+async function resend(id,btn){
+  await fetch(`/api/group-orders/${token}/lines/${id}/resend`,{method:'POST'});
+  btn.textContent='Sent';
+}
+load();
+</script>
+</body>
+</html>

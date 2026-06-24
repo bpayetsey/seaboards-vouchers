@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Jubilee Stay Offer — The Seaboards Apartments</title>
+<style>
+  :root{--navy:#1F3A5F;--gold:#B8860B;--ink:#2A2E35;--muted:#6B7280;--line:#E4E0D8;
+    --faint:#F8F6F1;--lnavy:#E8EEF4;--lgold:#F5EEDC;
+    --serif:"Iowan Old Style",Palatino,Georgia,serif;--sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--faint);color:var(--ink);font-family:var(--sans);line-height:1.6}
+  .wrap{max-width:860px;margin:0 auto;background:#fff;min-height:100vh;
+    box-shadow:0 1px 40px rgba(31,58,95,.07)}
+  header{text-align:center;padding:46px 24px 30px;border-bottom:2px solid var(--gold)}
+  .brand{font-size:12px;letter-spacing:.32em;font-weight:700;color:var(--navy);text-transform:uppercase}
+  .eyebrow{margin-top:18px;font-size:12px;letter-spacing:.4em;font-weight:700;color:var(--gold);text-transform:uppercase}
+  h1{font-family:var(--serif);color:var(--navy);font-size:clamp(28px,6vw,44px);margin:.15em 0 .1em}
+  .sub{font-family:var(--serif);font-style:italic;color:var(--muted);margin:0}
+  main{padding:32px clamp(20px,5vw,56px) 56px}
+  h2{font-family:var(--serif);color:var(--navy);font-size:22px;margin:30px 0 12px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card .t{font-weight:700;color:var(--navy)}
+  .card .was{color:var(--muted);text-decoration:line-through;font-size:14px}
+  .card .now{font-size:26px;font-weight:800;color:var(--navy)}
+  .card .save{display:inline-block;margin-top:6px;background:var(--lgold);color:var(--gold);
+    font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px}
+  ul.feat{list-style:none;padding:0;margin:10px 0 0}
+  ul.feat li{padding-left:22px;position:relative;margin:6px 0;font-size:15px}
+  ul.feat li::before{content:"\2713";position:absolute;left:0;color:var(--gold);font-weight:800}
+  .panel{margin-top:14px;border:1px solid var(--line);border-radius:16px;padding:22px;background:#fff}
+  .seg{display:inline-flex;border:1px solid var(--navy);border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .seg button{border:0;background:#fff;color:var(--navy);padding:9px 16px;font-size:14px;cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:15px;font-family:inherit}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .payer{display:grid;grid-template-columns:1.1fr 1.4fr auto;gap:10px;align-items:end;margin-top:10px}
+  .payer.indep{grid-template-columns:1fr 70px 1.1fr 1.4fr auto}
+  @media(max-width:620px){.payer,.payer.indep{grid-template-columns:1fr}}
+  .x{border:1px solid var(--line);background:#fff;color:#9A2A2A;border-radius:9px;padding:10px 12px;cursor:pointer}
+  .btn{border:0;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer}
+  .btn.gold{background:var(--gold);color:#fff;margin-top:16px}
+  .btn.ghost{background:#fff;border:1px solid var(--navy);color:var(--navy);margin-top:10px}
+  .total{margin-top:12px;font-weight:700;color:var(--navy)}
+  .result{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--lnavy);display:none}
+  .result.show{display:block}
+  .lk{display:flex;gap:10px;align-items:center;justify-content:space-between;
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;flex-wrap:wrap}
+  .lk .who{font-weight:600;color:var(--navy)}
+  .lk .u{font-size:12px;color:var(--muted);word-break:break-all}
+  .copy{border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .note{font-size:12.5px;color:var(--muted);margin-top:8px}
+  a.terms{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">The Seaboards Apartments · Anse La Mouche · Mahé</div>
+    <div class="eyebrow">50 Years of Freedom</div>
+    <h1>Golden Jubilee Stay Offer</h1>
+    <p class="sub">Celebrating 50 Years of Seychelles Independence · 1976–2026</p>
+  </header>
+
+  <main>
+    <h2>The offer</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="t">One-Bedroom · 2 adults · Half Board</div>
+        <div><span class="was">SCR 3,285</span></div>
+        <div class="now">SCR 2,300 <span style="font-size:13px;color:var(--muted)">/night</span></div>
+        <span class="save">Save ~30%</span>
+      </div>
+      <div class="card">
+        <div class="t">Two-Bedroom · 4 guests · Half Board</div>
+        <div><span class="was">SCR 5,520</span></div>
+        <div class="now">SCR 3,750 <span style="font-size:13px;color:var(--muted)">/night</span></div>
+        <span class="save">Save ~32%</span>
+      </div>
+    </div>
+    <ul class="feat">
+      <li>Children stay free — breakfast supplement SCR 295/day</li>
+      <li>Pay in full, or spread over three monthly instalments</li>
+      <li>First 50 vouchers: a cocktail or mocktail per adult with dinner</li>
+    </ul>
+    <p class="note">Offer open 29 June – 30 September 2026, while allocation lasts. Blackout dates apply.
+      Full <a class="terms" href="/terms">Terms &amp; Conditions</a>.</p>
+
+    <h2>Buy as a group — one link each</h2>
+    <p style="margin-top:0;color:var(--muted)">Set up a group and each person gets their own payment link.</p>
+
+    <div class="panel">
+      <div class="seg">
+        <button id="mIndep" class="on" onclick="setMode('independent')">Each buys their own</button>
+        <button id="mSplit" onclick="setMode('split')">Split one room</button>
+      </div>
+
+      <div class="grid2">
+        <div><label>Organiser name</label><input id="orgName" placeholder="Marie"></div>
+        <div><label>Organiser email</label><input id="orgEmail" type="email" placeholder="marie@example.com"></div>
+      </div>
+      <label>Pay-by deadline</label><input id="dueBy" type="date" value="2026-09-30">
+
+      <div id="splitBox" style="display:none">
+        <div class="grid2">
+          <div><label>Apartment to split</label>
+            <select id="splitApt" onchange="recalc()">
+              <option value="one_bedroom">One-Bedroom — SCR 2,300/night</option>
+              <option value="two_bedroom" selected>Two-Bedroom — SCR 3,750/night</option>
+            </select></div>
+          <div><label>Nights</label><input id="splitNights" type="number" min="1" value="3" oninput="recalc()"></div>
+        </div>
+      </div>
+
+      <div id="payers"></div>
+      <button class="btn ghost" onclick="addPayer()">+ Add person</button>
+      <div class="total" id="total"></div>
+
+      <button class="btn gold" id="submit" onclick="submitOrder()">Create group &amp; get links</button>
+
+      <div class="result" id="result">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:6px">Group created ✓</div>
+        <div style="margin-bottom:10px">Organiser status page:
+          <a id="orgUrl" href="#" target="_blank" style="color:var(--navy)"></a></div>
+        <div id="links"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const RATES = { one_bedroom: 2300, two_bedroom: 3750 };
+let mode = 'independent';
+
+function setMode(m){
+  mode = m;
+  document.getElementById('mIndep').classList.toggle('on', m==='independent');
+  document.getElementById('mSplit').classList.toggle('on', m==='split');
+  document.getElementById('splitBox').style.display = m==='split' ? 'block' : 'none';
+  document.getElementById('payers').innerHTML = '';
+  addPayer(); addPayer();
+  recalc();
+}
+
+function addPayer(){
+  const wrap = document.getElementById('payers');
+  const row = document.createElement('div');
+  row.className = 'payer' + (mode==='independent' ? ' indep' : '');
+  if(mode==='independent'){
+    row.innerHTML = `
+      <div><label>Apartment</label>
+        <select class="apt" onchange="recalc()">
+          <option value="one_bedroom">1-Bed</option>
+          <option value="two_bedroom">2-Bed</option>
+        </select></div>
+      <div><label>Nights</label><input class="nights" type="number" min="1" value="2" oninput="recalc()"></div>
+      <div><label>Name</label><input class="pn" placeholder="Name"></div>
+      <div><label>Email</label><input class="pe" type="email" placeholder="email@example.com"></div>
+      <button class="x" onclick="this.parentElement.remove();recalc()">✕</button>`;
+  } else {
+    row.innerHTML = `
+      <div><label>Name</label><input class="pn" placeholder="Name"></div>
+      <div><label>Email</label><input class="pe" type="email" placeholder="email@example.com"></div>
+      <button class="x" onclick="this.parentElement.remove();recalc()">✕</button>`;
+  }
+  wrap.appendChild(row);
+  recalc();
+}
+
+function recalc(){
+  const rows = [...document.querySelectorAll('#payers .payer')];
+  let total = 0, detail = '';
+  if(mode==='independent'){
+    rows.forEach(r=>{
+      const apt = r.querySelector('.apt').value;
+      const n = +r.querySelector('.nights').value || 0;
+      total += RATES[apt]*n;
+    });
+    detail = `${rows.length} voucher(s) · total SCR ${total.toLocaleString()}`;
+  } else {
+    const apt = document.getElementById('splitApt').value;
+    const n = +document.getElementById('splitNights').value || 0;
+    total = RATES[apt]*n;
+    const each = rows.length ? Math.round(total/rows.length) : 0;
+    detail = `Room total SCR ${total.toLocaleString()} · ~SCR ${each.toLocaleString()} each (${rows.length} people)`;
+  }
+  document.getElementById('total').textContent = detail;
+}
+
+async function submitOrder(){
+  const btn = document.getElementById('submit');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  const rows = [...document.querySelectorAll('#payers .payer')];
+  const lines = rows.map(r=>{
+    const base = { payer_name: r.querySelector('.pn').value, payer_email: r.querySelector('.pe').value };
+    if(mode==='independent'){
+      base.apartment_type = r.querySelector('.apt').value;
+      base.nights = +r.querySelector('.nights').value;
+    }
+    return base;
+  });
+  const body = {
+    mode,
+    organiser_name: document.getElementById('orgName').value,
+    organiser_email: document.getElementById('orgEmail').value,
+    due_by: document.getElementById('dueBy').value ? new Date(document.getElementById('dueBy').value+'T23:59:59Z').toISOString() : null,
+    lines
+  };
+  if(mode==='split'){
+    body.split = { apartment_type: document.getElementById('splitApt').value, nights: +document.getElementById('splitNights').value };
+  }
+  try{
+    const r = await fetch('/api/group-orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error||'Failed');
+    const res = document.getElementById('result'); res.classList.add('show');
+    const org = document.getElementById('orgUrl'); org.href = data.organiserUrl; org.textContent = data.organiserUrl;
+    document.getElementById('links').innerHTML = data.lines.map(l=>`
+      <div class="lk">
+        <div><div class="who">${l.payer_name||'(no name)'}</div><div class="u">${l.pay_link}</div></div>
+        <button class="copy" onclick="navigator.clipboard.writeText('${l.pay_link}');this.textContent='Copied'">Copy link</button>
+      </div>`).join('');
+    res.scrollIntoView({behavior:'smooth'});
+  }catch(e){ alert('Error: '+e.message); }
+  finally{ btn.disabled=false; btn.textContent='Create group & get links'; }
+}
+
+setMode('independent');
+</script>
+</body>
+</html>

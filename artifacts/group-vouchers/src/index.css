@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -102,31 +101,31 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Deep ocean and warm sand aesthetic */
-  --background: 40 33% 98%; /* Warm off-white */
-  --foreground: 215 40% 15%; /* Deep ocean blue for text */
-  --border: 40 20% 85%;
-  --input: 40 20% 85%;
-  --ring: 215 50% 30%;
+  /* Golden Jubilee — navy & gold editorial aesthetic */
+  --background: 44 33% 96%; /* #F8F6F1 warm cream */
+  --foreground: 213 13% 19%; /* #2A2E35 ink */
+  --border: 38 23% 87%; /* #E4E0D8 line */
+  --input: 38 23% 87%;
+  --ring: 215 51% 25%;
 
   --card: 0 0% 100%;
-  --card-foreground: 215 40% 15%;
-  --card-border: 40 20% 90%;
+  --card-foreground: 213 13% 19%;
+  --card-border: 38 23% 89%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 215 40% 15%;
-  --popover-border: 40 20% 90%;
+  --popover-foreground: 213 13% 19%;
+  --popover-border: 38 23% 89%;
 
-  --primary: 215 50% 25%;
-  --primary-foreground: 40 33% 98%;
+  --primary: 215 51% 25%; /* #1F3A5F navy */
+  --primary-foreground: 44 33% 98%;
 
-  --secondary: 40 40% 85%;
-  --secondary-foreground: 215 50% 25%;
+  --secondary: 45 53% 91%; /* #F5EEDC light gold */
+  --secondary-foreground: 43 89% 38%;
 
-  --muted: 40 20% 92%;
-  --muted-foreground: 215 20% 45%;
+  --muted: 210 33% 94%; /* #E8EEF4 light navy */
+  --muted-foreground: 220 9% 46%; /* #6B7280 */
 
-  --accent: 40 60% 50%;
+  --accent: 43 89% 38%; /* #B8860B gold */
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 70% 50%;
@@ -147,10 +146,10 @@
   --sidebar-accent-foreground: 215 50% 25%;
   --sidebar-ring: 215 50% 30%;
 
-  --app-font-sans: 'Plus Jakarta Sans', sans-serif;
-  --app-font-serif: 'Playfair Display', serif;
+  --app-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --app-font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.375rem;
+  --radius: 0.5rem;
   
   --shadow-sm: 0px 2px 4px -1px rgba(10, 25, 45, 0.05);
   --shadow: 0px 4px 8px -2px rgba(10, 25, 45, 0.1);

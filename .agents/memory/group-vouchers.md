@@ -27,3 +27,7 @@ Rates major units: `one_bedroom=2300`, `two_bedroom=3750` per night. `MINOR_PER_
 
 ## Server links
 API returns RELATIVE links (`/pay/{token}`, `/group/{token}`); Stripe success/cancel URLs are absolute from request origin; frontend prepends `window.location.origin` for copyable links.
+
+## Design source of truth
+- The static `seaboards-jubilee` reference site (`attached_assets/seaboards_jubilee_extract/public/*.html`) is the authoritative design+content. Navy `#1F3A5F` / gold `#B8860B` / cream `#F8F6F1`, classic serif (Iowan/Palatino/Georgia) + system sans. Editorial masthead (no hero image). Theme lives in `index.css`.
+- App has a `/terms` route (`pages/terms.tsx`) reproducing the reference 9-section T&C verbatim with hierarchical clause numbering (`{section}.{n}`). When offer rates/dates/perks change, update BOTH the home offer block and Terms.

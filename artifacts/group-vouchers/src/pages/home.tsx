@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { formatMoney } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
-import resortHero from "@/assets/resort-hero.jpg";
+import { Link } from "wouter";
 
 const independentLineSchema = z.object({
   payer_name: z.string().min(1, "Name is required"),
@@ -279,30 +279,75 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="relative h-[40vh] min-h-[300px] max-h-[500px] overflow-hidden mb-12 flex items-center justify-center">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={resortHero} 
-            alt="Seaboards Resort Seychelles" 
-            className="w-full h-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/30" />
+      <header className="text-center px-6 pt-12 pb-8 border-b-2 border-accent max-w-3xl mx-auto">
+        <div className="font-sans text-xs font-bold uppercase tracking-[0.32em] text-primary">
+          The Seaboards Apartments &middot; Anse La Mouche &middot; Mah&eacute;
         </div>
-        <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
-          <div className="inline-flex items-center rounded-full border border-primary/30 bg-background/50 backdrop-blur-md px-3 py-1 text-sm font-medium text-primary mb-6">
-            <span className="flex h-2 w-2 rounded-full bg-primary mr-2"></span>
-            Golden Jubilee Exclusive
-          </div>
-          <h1 className="text-4xl md:text-6xl font-serif text-foreground mb-4 drop-shadow-sm">
-            Gift the Seychelles Experience
-          </h1>
-          <p className="text-lg md:text-xl text-foreground/80 max-w-2xl mx-auto drop-shadow-sm font-medium">
-            Organise a group voucher for family and friends. Everyone pays their own share seamlessly.
-          </p>
+        <div className="mt-4 font-sans text-xs font-bold uppercase tracking-[0.4em] text-accent">
+          50 Years of Freedom
         </div>
-      </div>
+        <h1 className="font-serif text-primary text-4xl md:text-5xl mt-2 mb-1">
+          Golden Jubilee Stay Offer
+        </h1>
+        <p className="font-serif italic text-muted-foreground m-0">
+          Celebrating 50 Years of Seychelles Independence &middot; 1976&ndash;2026
+        </p>
+      </header>
 
-      <div className="container max-w-4xl mx-auto px-4 pb-24">
+      <div className="container max-w-3xl mx-auto px-6 pt-8 pb-24">
+        <h2 className="font-serif text-primary text-2xl mb-3">The offer</h2>
+        <div className="grid sm:grid-cols-2 gap-3.5">
+          <div className="rounded-xl border border-border p-[18px]">
+            <div className="font-bold text-primary">One-Bedroom &middot; 2 adults &middot; Half Board</div>
+            <div className="mt-1">
+              <span className="text-muted-foreground line-through text-sm">SCR 3,285</span>
+            </div>
+            <div className="text-[26px] font-extrabold text-primary leading-tight">
+              SCR 2,300 <span className="text-[13px] font-normal text-muted-foreground">/night</span>
+            </div>
+            <span className="inline-block mt-1.5 rounded-full bg-secondary text-secondary-foreground font-bold text-xs px-2.5 py-0.5">
+              Save ~30%
+            </span>
+          </div>
+          <div className="rounded-xl border border-border p-[18px]">
+            <div className="font-bold text-primary">Two-Bedroom &middot; 4 guests &middot; Half Board</div>
+            <div className="mt-1">
+              <span className="text-muted-foreground line-through text-sm">SCR 5,520</span>
+            </div>
+            <div className="text-[26px] font-extrabold text-primary leading-tight">
+              SCR 3,750 <span className="text-[13px] font-normal text-muted-foreground">/night</span>
+            </div>
+            <span className="inline-block mt-1.5 rounded-full bg-secondary text-secondary-foreground font-bold text-xs px-2.5 py-0.5">
+              Save ~32%
+            </span>
+          </div>
+        </div>
+
+        <ul className="list-none p-0 mt-2.5 space-y-1.5">
+          {[
+            "Children stay free — breakfast supplement SCR 295/day",
+            "Pay in full, or spread over three monthly instalments",
+            "First 50 vouchers: a cocktail or mocktail per adult with dinner",
+          ].map((feat) => (
+            <li key={feat} className="relative pl-[22px] text-[15px]">
+              <Check className="absolute left-0 top-1 w-3.5 h-3.5 text-accent" strokeWidth={3} />
+              {feat}
+            </li>
+          ))}
+        </ul>
+        <p className="text-[12.5px] text-muted-foreground mt-2">
+          Offer open 29 June &ndash; 30 September 2026, while allocation lasts. Blackout dates apply. Full{" "}
+          <Link href="/terms" className="text-primary underline underline-offset-2">
+            Terms &amp; Conditions
+          </Link>
+          .
+        </p>
+
+        <h2 className="font-serif text-primary text-2xl mt-8 mb-1">Buy as a group — one link each</h2>
+        <p className="text-muted-foreground mt-0 mb-6">
+          Set up a group and each person gets their own payment link.
+        </p>
+
         {ratesLoading ? (
           <div className="space-y-8">
             <Skeleton className="h-12 w-3/4" />
