@@ -177,8 +177,12 @@ export interface StorefrontCatalogItem {
   ribbon: string;
   featured: boolean;
   name: string;
-  price: number;
+  /** Per-night price in the storefront currency */
+  rate: number;
+  /** Original per-night price (struck through) */
   was: number;
+  /** Minimum number of nights that can be booked */
+  minNights: number;
   desc: string;
   feat: string[];
 }
@@ -219,6 +223,11 @@ export interface StoreOrderInput {
      * @nullable
      */
   amount?: number | null;
+  /**
+     * Number of nights for an apartment order (must be >= the item's minNights)
+     * @nullable
+     */
+  nights?: number | null;
   /**
      * "3" (or the instalment count) for Pay-in-3, otherwise pay in full
      * @nullable

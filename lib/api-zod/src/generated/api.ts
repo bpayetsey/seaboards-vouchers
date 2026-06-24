@@ -160,8 +160,9 @@ export const GetStorefrontConfigResponse = zod.object({
   "ribbon": zod.string(),
   "featured": zod.boolean(),
   "name": zod.string(),
-  "price": zod.number(),
-  "was": zod.number(),
+  "rate": zod.number().describe('Per-night price in the storefront currency'),
+  "was": zod.number().describe('Original per-night price (struck through)'),
+  "minNights": zod.number().describe('Minimum number of nights that can be booked'),
   "desc": zod.string(),
   "feat": zod.array(zod.string())
 })),
@@ -189,6 +190,7 @@ export const CreateStoreOrderBody = zod.object({
   "product_id": zod.string().nullish(),
   "type": zod.enum(['package', 'gift']).optional(),
   "amount": zod.number().nullish().describe('Required for gift vouchers (open value)'),
+  "nights": zod.number().nullish().describe('Number of nights for an apartment order (must be >= the item\'s minNights)'),
   "plan": zod.string().nullish().describe('\"3\" (or the instalment count) for Pay-in-3, otherwise pay in full'),
   "name": zod.string().min(1),
   "email": zod.string().min(createStoreOrderBodyEmailMin)

@@ -533,7 +533,7 @@ components:
           type: integer
     StorefrontCatalogItem:
       type: object
-      required: [id, type, ribbon, featured, name, price, was, desc, feat]
+      required: [id, type, ribbon, featured, name, rate, was, minNights, desc, feat]
       properties:
         id:
           type: string
@@ -545,10 +545,15 @@ components:
           type: boolean
         name:
           type: string
-        price:
+        rate:
           type: number
+          description: Per-night price in the storefront currency
         was:
           type: number
+          description: Original per-night price (struck through)
+        minNights:
+          type: integer
+          description: Minimum number of nights that can be booked
         desc:
           type: string
         feat:
@@ -613,6 +618,9 @@ components:
         amount:
           type: ["number", "null"]
           description: Required for gift vouchers (open value)
+        nights:
+          type: ["integer", "null"]
+          description: Number of nights for an apartment order (must be >= the item's minNights)
         plan:
           type: ["string", "null"]
           description: '"3" (or the instalment count) for Pay-in-3, otherwise pay in full'

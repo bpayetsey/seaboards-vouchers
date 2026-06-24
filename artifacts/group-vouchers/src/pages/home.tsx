@@ -31,6 +31,8 @@ import {
   ArrowLeft,
   Users,
   Gift,
+  Minus,
+  Plus,
 } from "lucide-react";
 
 type Selection =
@@ -62,8 +64,7 @@ export default function Home() {
       <Layout>
         <div className="container max-w-5xl mx-auto px-6 py-16 space-y-8">
           <Skeleton className="h-10 w-2/3 mx-auto" />
-          <div className="grid sm:grid-cols-3 gap-5">
-            <Skeleton className="h-72 w-full" />
+          <div className="grid sm:grid-cols-2 gap-5">
             <Skeleton className="h-72 w-full" />
             <Skeleton className="h-72 w-full" />
           </div>
@@ -80,6 +81,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const symbol = config.symbol || config.currency.toUpperCase() + " ";
 
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [nights, setNights] = useState(1);
   const [giftAmount, setGiftAmount] = useState<string>("");
   const [plan, setPlan] = useState<"full" | "instalments">("full");
   const [name, setName] = useState("");
@@ -93,7 +95,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
   const total = selection
     ? selection.kind === "package"
-      ? selection.item.price
+      ? selection.item.rate * nights
       : selection.amount
     : 0;
   const perInstalment =
@@ -118,6 +120,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           product_id:
             selection.kind === "package" ? selection.item.id : undefined,
           amount: selection.kind === "gift" ? selection.amount : undefined,
+          nights: selection.kind === "package" ? nights : undefined,
           plan: plan === "instalments" ? String(config.instalments) : undefined,
           name,
           email,
@@ -190,7 +193,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         )}
 
         <h2 className="font-serif text-primary text-2xl mb-5">Choose a stay</h2>
-        <div className="grid sm:grid-cols-3 gap-5">
+        <div className="grid sm:grid-cols-2 gap-5">
           {config.catalog.map((item) => {
             const active =
               selection?.kind === "package" && selection.item.id === item.id;
@@ -198,7 +201,10 @@ function Storefront({ config }: { config: StorefrontConfig }) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setSelection({ kind: "package", item })}
+                onClick={() => {
+                  setSelection({ kind: "package", item });
+                  setNights((n) => Math.max(n, item.minNights));
+                }}
                 className={`text-left rounded-xl border-2 p-5 transition-all flex flex-col ${
                   active
                     ? "border-primary bg-primary/5 shadow-md"
@@ -214,13 +220,14 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 <div className="font-serif text-lg text-primary leading-snug">
                   {item.name}
                 </div>
-                <div className="mt-2">
-                  <span className="text-muted-foreground line-through text-sm mr-2">
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-muted-foreground line-through text-sm">
                     {money(symbol, item.was)}
                   </span>
                   <span className="text-2xl font-extrabold text-primary">
-                    {money(symbol, item.price)}
+                    {money(symbol, item.rate)}
                   </span>
+                  <span className="text-sm text-muted-foreground">/ night</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">{item.desc}</p>
                 <ul className="mt-3 space-y-1.5">
@@ -241,6 +248,63 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             );
           })}
         </div>
+
+        {selection?.kind === "package" && (
+          <div className="mt-5 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="font-serif text-lg text-primary">
+                How many nights?
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {money(symbol, selection.item.rate)} / night &middot;{" "}
+                {selection.item.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  aria-label="Fewer nights"
+                  disabled={nights <= selection.item.minNights}
+                  onClick={() =>
+                    setNights((n) =>
+                      Math.max(selection.item.minNights, n - 1),
+                    )
+                  }
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span
+                  className="w-10 text-center text-2xl font-extrabold text-primary tabular-nums"
+                  aria-live="polite"
+                >
+                  {nights}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  aria-label="More nights"
+                  onClick={() => setNights((n) => n + 1)}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Total
+                </div>
+                <div className="text-2xl font-extrabold text-primary tabular-nums">
+                  {money(symbol, total)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 rounded-xl border-2 border-border p-5">
           <div className="flex items-center gap-2 mb-1">

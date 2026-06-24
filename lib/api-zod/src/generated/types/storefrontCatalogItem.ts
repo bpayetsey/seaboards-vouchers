@@ -12,8 +12,12 @@ export interface StorefrontCatalogItem {
   ribbon: string;
   featured: boolean;
   name: string;
-  price: number;
+  /** Per-night price in the storefront currency */
+  rate: number;
+  /** Original per-night price (struck through) */
   was: number;
+  /** Minimum number of nights that can be booked */
+  minNights: number;
   desc: string;
   feat: string[];
 }

@@ -52,6 +52,7 @@ interface CreateOrderInput {
   product_id?: string | null;
   type?: string;
   amount?: number | null;
+  nights?: number | null;
   plan?: string | null;
   name: string;
   email: string;
@@ -64,15 +65,24 @@ type CreateOrderResult =
 export async function createStoreOrder(
   input: CreateOrderInput,
 ): Promise<CreateOrderResult> {
-  const { product_id, type = "package", amount, plan, name, email } = input;
+  const { product_id, type = "package", amount, nights, plan, name, email } = input;
   if (!name?.trim() || !email?.includes("@")) {
     return { error: "invalid_buyer" };
   }
 
   // Price comes from the catalog, never from the client.
-  const total = priceFor({ productId: product_id ?? undefined, type, amount: amount ?? undefined });
+  const total = priceFor({
+    productId: product_id ?? undefined,
+    type,
+    amount: amount ?? undefined,
+    nights: nights ?? undefined,
+  });
   if (total === null) return { error: "invalid_selection" };
-  const productName = nameFor({ productId: product_id ?? undefined, type });
+  const productName = nameFor({
+    productId: product_id ?? undefined,
+    type,
+    nights: nights ?? undefined,
+  });
 
   const payInN =
     String(plan) === String(SETTINGS.instalments) ||

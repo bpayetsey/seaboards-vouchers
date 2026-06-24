@@ -8,14 +8,15 @@
 export const SYMBOLS: Record<string, string> = {
   eur: "€",
   usd: "$",
-  scr: "₨",
+  scr: "SCR ",
   gbp: "£",
 };
 
 export const SETTINGS = {
-  // Stripe settles in the currencies your account country allows; SCR is usually
-  // not supported, so the storefront defaults to EUR. Override with STORE_CURRENCY.
-  currency: (process.env.STORE_CURRENCY || "eur").toLowerCase(),
+  // Prices are shown in SCR per the resort's request. Stripe almost never
+  // settles SCR, so when live payments are connected the charge currency will
+  // need revisiting (e.g. display SCR but charge EUR). Override with STORE_CURRENCY.
+  currency: (process.env.STORE_CURRENCY || "scr").toLowerCase(),
   instalments: Number(process.env.INSTALMENTS || 3),
   intervalDays: Number(process.env.INTERVAL_DAYS || 30),
   // "paid" = issue only when fully paid (safer); "deposit" = issue after instalment 1.
@@ -28,58 +29,37 @@ export interface CatalogItem {
   ribbon: string;
   featured: boolean;
   name: string;
-  price: number;
+  rate: number;
   was: number;
+  minNights: number;
   desc: string;
   feat: string[];
 }
 
 export const CATALOG: CatalogItem[] = [
   {
-    id: "twonight",
+    id: "one-bedroom",
     type: "package",
-    ribbon: "Most popular",
+    ribbon: "One-Bedroom",
     featured: false,
-    name: "Jubilee Two-Night Escape",
-    price: 280,
-    was: 340,
-    desc: "Two nights for two in a sea-breeze apartment, with a welcome basket of island treats.",
-    feat: [
-      "2 nights, sleeps 2",
-      "Welcome basket on arrival",
-      "Late check-out where available",
-    ],
+    name: "One-Bedroom Apartment",
+    rate: 2300,
+    was: 3285,
+    minNights: 1,
+    desc: "A sea-breeze one-bedroom apartment for two, on a Half Board basis.",
+    feat: ["Sleeps 2 adults", "Half Board included", "Sea-breeze apartment"],
   },
   {
-    id: "goldenweek",
+    id: "two-bedroom",
     type: "package",
-    ribbon: "Best value",
+    ribbon: "Two-Bedroom",
     featured: true,
-    name: "Golden Week — 5 Nights",
-    price: 620,
-    was: 780,
-    desc: "Five nights to settle into island time. Our headline 50th-anniversary stay.",
-    feat: [
-      "5 nights, sleeps up to 4",
-      "Welcome basket + island map",
-      "One sunset boat add-on credit",
-      "Late check-out where available",
-    ],
-  },
-  {
-    id: "family",
-    type: "package",
-    ribbon: "For families",
-    featured: false,
-    name: "Family Independence Week",
-    price: 540,
-    was: 660,
-    desc: "A family-sized apartment for the school holidays around National Day.",
-    feat: [
-      "4 nights, family apartment",
-      "Kids welcome pack",
-      "Flexible school-holiday dates",
-    ],
+    name: "Two-Bedroom Apartment",
+    rate: 3750,
+    was: 5520,
+    minNights: 1,
+    desc: "A spacious two-bedroom apartment for up to four guests, on a Half Board basis.",
+    feat: ["Sleeps 4 guests", "Half Board included", "Spacious two-bedroom layout"],
   },
 ];
 
@@ -96,10 +76,12 @@ export function priceFor({
   productId,
   type,
   amount,
+  nights,
 }: {
   productId?: string;
   type?: string;
   amount?: number;
+  nights?: number;
 }): number | null {
   if (type === "gift") {
     const a = Number(amount);
@@ -107,16 +89,27 @@ export function priceFor({
     return Math.round(a * 100) / 100;
   }
   const item = CATALOG.find((v) => v.id === productId);
-  return item ? item.price : null;
+  if (!item) return null;
+  const n = Number(nights);
+  if (!Number.isInteger(n) || n < item.minNights) return null;
+  return Math.round(item.rate * n * 100) / 100;
 }
 
 export function nameFor({
   productId,
   type,
+  nights,
 }: {
   productId?: string;
   type?: string;
+  nights?: number;
 }): string {
   if (type === "gift") return GIFT.name;
-  return CATALOG.find((v) => v.id === productId)?.name || "Voucher";
+  const item = CATALOG.find((v) => v.id === productId);
+  if (!item) return "Voucher";
+  const n = Number(nights);
+  if (Number.isInteger(n) && n > 0) {
+    return `${item.name} — ${n} night${n === 1 ? "" : "s"}`;
+  }
+  return item.name;
 }
