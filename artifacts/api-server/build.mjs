@@ -29,6 +29,10 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // Reads its SQL migration files relative to import.meta.url at runtime,
+      // so it must not be bundled (otherwise the migrations dir resolves to
+      // dist/ and runMigrations silently creates an empty schema).
+      "stripe-replit-sync",
       "sharp",
       "better-sqlite3",
       "sqlite3",
