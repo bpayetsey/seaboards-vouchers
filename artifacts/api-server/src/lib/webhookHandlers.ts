@@ -1,5 +1,6 @@
 import { getStripeCredentials, getUncachableStripeClient } from "./stripeClient";
 import { handleSessionCompleted } from "./groupVouchers";
+import { processPaidIntent } from "./storefront";
 
 export async function processWebhook(
   payload: Buffer,
@@ -26,5 +27,8 @@ export async function processWebhook(
 
   if (event.type === "checkout.session.completed") {
     await handleSessionCompleted(event.data.object);
+  } else if (event.type === "payment_intent.succeeded") {
+    // Storefront "Pay in 3" instalments are recorded here.
+    await processPaidIntent(event.data.object);
   }
 }

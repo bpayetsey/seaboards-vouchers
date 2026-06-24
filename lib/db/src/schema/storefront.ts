@@ -1,0 +1,88 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  bigint,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
+
+/**
+ * Direct-to-buyer storefront orders. Separate from the group-ordering flow
+ * (group_order / voucher_line). These power the "Pay in 3" instalment engine:
+ * instalment 1 is charged today and the card is saved; a daily job charges the
+ * rest off-session.
+ */
+export const storeOrders = pgTable(
+  "store_order",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: text("product_id"),
+    productName: text("product_name").notNull(),
+    type: text("type").notNull().default("package"),
+    buyerName: text("buyer_name").notNull(),
+    buyerEmail: text("buyer_email").notNull(),
+    currency: text("currency").notNull(),
+    totalMinor: bigint("total_minor", { mode: "number" }).notNull(),
+    installments: integer("installments").notNull().default(1),
+    paidInstalments: integer("paid_instalments").notNull().default(0),
+    status: text("status").notNull().default("pending"),
+    stripeCustomerId: text("stripe_customer_id").notNull(),
+    stripePaymentMethodId: text("stripe_payment_method_id"),
+    firstPaymentIntentId: text("first_payment_intent_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_store_order_status").on(table.status)],
+);
+
+export const storeInstallments = pgTable(
+  "store_installment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => storeOrders.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    status: text("status").notNull().default("scheduled"),
+    attempts: integer("attempts").notNull().default(0),
+    paymentIntentId: text("payment_intent_id"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_store_installment_order").on(table.orderId),
+    index("idx_store_installment_due").on(table.status, table.dueAt),
+  ],
+);
+
+export const storeVouchers = pgTable("store_voucher", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .unique()
+    .references(() => storeOrders.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(),
+  valueMinor: bigint("value_minor", { mode: "number" }).notNull(),
+  currency: text("currency").notNull(),
+  status: text("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type StoreOrder = typeof storeOrders.$inferSelect;
+export type StoreInstallment = typeof storeInstallments.$inferSelect;
+export type StoreVoucher = typeof storeVouchers.$inferSelect;

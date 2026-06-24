@@ -21,6 +21,7 @@ import type {
 
 import type {
   ApiError,
+  ChargeInstalmentsResult,
   CheckoutSession,
   GroupOrderCreated,
   GroupOrderInput,
@@ -29,6 +30,11 @@ import type {
   PayLine,
   RateTable,
   ResendResult,
+  StoreAdminOrders,
+  StoreOrderConfirmation,
+  StoreOrderCreated,
+  StoreOrderInput,
+  StorefrontConfig,
   SweepResult
 } from './api.schemas';
 
@@ -570,6 +576,376 @@ export const useCreateCheckout = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getCreateCheckoutMutationOptions(options));
     }
+
+export const getGetStorefrontConfigUrl = () => {
+
+
+
+
+  return `/api/storefront/config`
+}
+
+/**
+ * Catalog, currency, instalment settings and the Stripe publishable key.
+ * @summary Storefront campaign config
+ */
+export const getStorefrontConfig = async ( options?: RequestInit): Promise<StorefrontConfig> => {
+
+  return customFetch<StorefrontConfig>(getGetStorefrontConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorefrontConfigQueryKey = () => {
+    return [
+    `/api/storefront/config`
+    ] as const;
+    }
+
+
+export const getGetStorefrontConfigQueryOptions = <TData = Awaited<ReturnType<typeof getStorefrontConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorefrontConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorefrontConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorefrontConfig>>> = ({ signal }) => getStorefrontConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorefrontConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStorefrontConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getStorefrontConfig>>>
+export type GetStorefrontConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Storefront campaign config
+ */
+
+export function useGetStorefrontConfig<TData = Awaited<ReturnType<typeof getStorefrontConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorefrontConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStorefrontConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateStoreOrderUrl = () => {
+
+
+
+
+  return `/api/storefront/orders`
+}
+
+/**
+ * Creates the order plus the first PaymentIntent (full payment or instalment #1 with the card saved for off-session instalments) and returns the client secret for the Stripe Payment Element.
+
+ * @summary Create a storefront order
+ */
+export const createStoreOrder = async (storeOrderInput: StoreOrderInput, options?: RequestInit): Promise<StoreOrderCreated> => {
+
+  return customFetch<StoreOrderCreated>(getCreateStoreOrderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      storeOrderInput,)
+  }
+);}
+
+
+
+
+export const getCreateStoreOrderMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStoreOrder>>, TError,{data: BodyType<StoreOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStoreOrder>>, TError,{data: BodyType<StoreOrderInput>}, TContext> => {
+
+const mutationKey = ['createStoreOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStoreOrder>>, {data: BodyType<StoreOrderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStoreOrder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStoreOrderMutationResult = NonNullable<Awaited<ReturnType<typeof createStoreOrder>>>
+    export type CreateStoreOrderMutationBody = BodyType<StoreOrderInput>
+    export type CreateStoreOrderMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create a storefront order
+ */
+export const useCreateStoreOrder = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStoreOrder>>, TError,{data: BodyType<StoreOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStoreOrder>>,
+        TError,
+        {data: BodyType<StoreOrderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStoreOrderMutationOptions(options));
+    }
+
+export const getConfirmStoreOrderUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/storefront/orders/${orderId}/confirm`
+}
+
+/**
+ * @summary Finalize an order after the browser confirms
+ */
+export const confirmStoreOrder = async (orderId: string, options?: RequestInit): Promise<StoreOrderConfirmation> => {
+
+  return customFetch<StoreOrderConfirmation>(getConfirmStoreOrderUrl(orderId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getConfirmStoreOrderMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmStoreOrder>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmStoreOrder>>, TError,{orderId: string}, TContext> => {
+
+const mutationKey = ['confirmStoreOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmStoreOrder>>, {orderId: string}> = (props) => {
+          const {orderId} = props ?? {};
+
+          return  confirmStoreOrder(orderId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmStoreOrderMutationResult = NonNullable<Awaited<ReturnType<typeof confirmStoreOrder>>>
+
+    export type ConfirmStoreOrderMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Finalize an order after the browser confirms
+ */
+export const useConfirmStoreOrder = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmStoreOrder>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmStoreOrder>>,
+        TError,
+        {orderId: string},
+        TContext
+      > => {
+      return useMutation(getConfirmStoreOrderMutationOptions(options));
+    }
+
+export const getChargeInstalmentsUrl = () => {
+
+
+
+
+  return `/api/storefront/jobs/charge-instalments`
+}
+
+/**
+ * Scheduler-only. Requires a bearer token matching SESSION_SECRET.
+ * @summary Charge due instalments off-session
+ */
+export const chargeInstalments = async ( options?: RequestInit): Promise<ChargeInstalmentsResult> => {
+
+  return customFetch<ChargeInstalmentsResult>(getChargeInstalmentsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getChargeInstalmentsMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chargeInstalments>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof chargeInstalments>>, TError,void, TContext> => {
+
+const mutationKey = ['chargeInstalments'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof chargeInstalments>>, void> = () => {
+
+
+          return  chargeInstalments(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChargeInstalmentsMutationResult = NonNullable<Awaited<ReturnType<typeof chargeInstalments>>>
+
+    export type ChargeInstalmentsMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Charge due instalments off-session
+ */
+export const useChargeInstalments = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chargeInstalments>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof chargeInstalments>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getChargeInstalmentsMutationOptions(options));
+    }
+
+export const getGetStoreAdminOrdersUrl = () => {
+
+
+
+
+  return `/api/storefront/admin/orders`
+}
+
+/**
+ * Scheduler/admin-only. Requires a bearer token matching SESSION_SECRET.
+ * @summary Recent storefront orders
+ */
+export const getStoreAdminOrders = async ( options?: RequestInit): Promise<StoreAdminOrders> => {
+
+  return customFetch<StoreAdminOrders>(getGetStoreAdminOrdersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStoreAdminOrdersQueryKey = () => {
+    return [
+    `/api/storefront/admin/orders`
+    ] as const;
+    }
+
+
+export const getGetStoreAdminOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getStoreAdminOrders>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoreAdminOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStoreAdminOrdersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoreAdminOrders>>> = ({ signal }) => getStoreAdminOrders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStoreAdminOrders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStoreAdminOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getStoreAdminOrders>>>
+export type GetStoreAdminOrdersQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Recent storefront orders
+ */
+
+export function useGetStoreAdminOrders<TData = Awaited<ReturnType<typeof getStoreAdminOrders>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoreAdminOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStoreAdminOrdersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getSweepOrdersUrl = () => {
 

@@ -8,6 +8,7 @@ import { StripeSync } from "stripe-replit-sync";
 export async function getStripeCredentials(): Promise<{
   secretKey: string;
   webhookSecret?: string;
+  publishableKey?: string;
 }> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
@@ -38,7 +39,13 @@ export async function getStripeCredentials(): Promise<{
   }
 
   const data = (await resp.json()) as {
-    items?: Array<{ settings?: { secret_key?: string; webhook_secret?: string } }>;
+    items?: Array<{
+      settings?: {
+        secret_key?: string;
+        webhook_secret?: string;
+        publishable_key?: string;
+      };
+    }>;
   };
   const settings = data.items?.[0]?.settings;
 
@@ -52,7 +59,25 @@ export async function getStripeCredentials(): Promise<{
   return {
     secretKey: settings.secret_key,
     webhookSecret: settings.webhook_secret,
+    publishableKey: settings.publishable_key,
   };
+}
+
+/**
+ * Best-effort fetch of the Stripe publishable key for the browser-side Payment
+ * Element. Returns an empty string when Stripe is not connected yet so the
+ * storefront can degrade gracefully instead of throwing.
+ */
+export async function getStripePublishableKey(): Promise<string> {
+  if (process.env.STRIPE_PUBLISHABLE_KEY) {
+    return process.env.STRIPE_PUBLISHABLE_KEY;
+  }
+  try {
+    const { publishableKey } = await getStripeCredentials();
+    return publishableKey ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /**

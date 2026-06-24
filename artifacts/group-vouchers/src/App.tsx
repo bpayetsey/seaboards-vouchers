@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import Home from "@/pages/home";
+import GroupOrder from "@/pages/group-order";
 import GroupDashboard from "@/pages/group";
 import PayLine from "@/pages/pay";
 import PayDone from "@/pages/pay-done";
@@ -16,6 +17,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/group-order" component={GroupOrder} />
       <Route path="/terms" component={Terms} />
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />

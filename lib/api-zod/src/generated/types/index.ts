@@ -7,6 +7,7 @@
  */
 
 export * from './apiError';
+export * from './chargeInstalmentsResult';
 export * from './checkoutSession';
 export * from './createdLine';
 export * from './groupOrderCreated';
@@ -23,4 +24,15 @@ export * from './rateTableRates';
 export * from './resendResult';
 export * from './splitConfig';
 export * from './splitConfigApartmentType';
+export * from './storeAdminOrder';
+export * from './storeAdminOrders';
+export * from './storefrontCatalogItem';
+export * from './storefrontConfig';
+export * from './storefrontGift';
+export * from './storeInstallmentSummary';
+export * from './storeOrderConfirmation';
+export * from './storeOrderCreated';
+export * from './storeOrderInput';
+export * from './storeOrderInputType';
+export * from './storeVoucherSummary';
 export * from './sweepResult';

@@ -171,3 +171,109 @@ export interface SweepResult {
   swept: number;
 }
 
+export interface StorefrontCatalogItem {
+  id: string;
+  type: string;
+  ribbon: string;
+  featured: boolean;
+  name: string;
+  price: number;
+  was: number;
+  desc: string;
+  feat: string[];
+}
+
+export interface StorefrontGift {
+  id: string;
+  type: string;
+  name: string;
+  amounts: number[];
+  min: number;
+}
+
+export interface StorefrontConfig {
+  publishable_key: string;
+  payments_enabled: boolean;
+  currency: string;
+  symbol: string;
+  instalments: number;
+  interval_days: number;
+  catalog: StorefrontCatalogItem[];
+  gift: StorefrontGift;
+}
+
+export type StoreOrderInputType = typeof StoreOrderInputType[keyof typeof StoreOrderInputType];
+
+
+export const StoreOrderInputType = {
+  package: 'package',
+  gift: 'gift',
+} as const;
+
+export interface StoreOrderInput {
+  /** @nullable */
+  product_id?: string | null;
+  type?: StoreOrderInputType;
+  /**
+     * Required for gift vouchers (open value)
+     * @nullable
+     */
+  amount?: number | null;
+  /**
+     * "3" (or the instalment count) for Pay-in-3, otherwise pay in full
+     * @nullable
+     */
+  plan?: string | null;
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 3 */
+  email: string;
+}
+
+export interface StoreOrderCreated {
+  order_id: string;
+  client_secret: string;
+}
+
+export interface StoreVoucherSummary {
+  code: string;
+  status: string;
+}
+
+export interface StoreOrderConfirmation {
+  status: string;
+  paid_instalments: number;
+  installments: number;
+  voucher?: StoreVoucherSummary | null;
+}
+
+export interface ChargeInstalmentsResult {
+  processed: number;
+}
+
+export interface StoreInstallmentSummary {
+  number: number;
+  amount_major: number;
+  due_at: string;
+  status: string;
+}
+
+export interface StoreAdminOrder {
+  id: string;
+  product_name: string;
+  buyer_name: string;
+  buyer_email: string;
+  currency: string;
+  total_major: number;
+  installments: number;
+  paid_instalments: number;
+  status: string;
+  created_at: string;
+  schedule: StoreInstallmentSummary[];
+  voucher?: StoreVoucherSummary | null;
+}
+
+export interface StoreAdminOrders {
+  orders: StoreAdminOrder[];
+}
+

@@ -144,6 +144,120 @@ export const CreateCheckoutResponse = zod.object({
 
 
 /**
+ * Catalog, currency, instalment settings and the Stripe publishable key.
+ * @summary Storefront campaign config
+ */
+export const GetStorefrontConfigResponse = zod.object({
+  "publishable_key": zod.string(),
+  "payments_enabled": zod.boolean(),
+  "currency": zod.string(),
+  "symbol": zod.string(),
+  "instalments": zod.number(),
+  "interval_days": zod.number(),
+  "catalog": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "ribbon": zod.string(),
+  "featured": zod.boolean(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "was": zod.number(),
+  "desc": zod.string(),
+  "feat": zod.array(zod.string())
+})),
+  "gift": zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "name": zod.string(),
+  "amounts": zod.array(zod.number()),
+  "min": zod.number()
+})
+})
+
+
+/**
+ * Creates the order plus the first PaymentIntent (full payment or instalment #1 with the card saved for off-session instalments) and returns the client secret for the Stripe Payment Element.
+
+ * @summary Create a storefront order
+ */
+
+export const createStoreOrderBodyEmailMin = 3;
+
+
+
+export const CreateStoreOrderBody = zod.object({
+  "product_id": zod.string().nullish(),
+  "type": zod.enum(['package', 'gift']).optional(),
+  "amount": zod.number().nullish().describe('Required for gift vouchers (open value)'),
+  "plan": zod.string().nullish().describe('\"3\" (or the instalment count) for Pay-in-3, otherwise pay in full'),
+  "name": zod.string().min(1),
+  "email": zod.string().min(createStoreOrderBodyEmailMin)
+})
+
+export const CreateStoreOrderResponse = zod.object({
+  "order_id": zod.string(),
+  "client_secret": zod.string()
+})
+
+
+/**
+ * @summary Finalize an order after the browser confirms
+ */
+export const ConfirmStoreOrderParams = zod.object({
+  "orderId": zod.coerce.string()
+})
+
+export const ConfirmStoreOrderResponse = zod.object({
+  "status": zod.string(),
+  "paid_instalments": zod.number(),
+  "installments": zod.number(),
+  "voucher": zod.union([zod.object({
+  "code": zod.string(),
+  "status": zod.string()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * Scheduler-only. Requires a bearer token matching SESSION_SECRET.
+ * @summary Charge due instalments off-session
+ */
+export const ChargeInstalmentsResponse = zod.object({
+  "processed": zod.number()
+})
+
+
+/**
+ * Scheduler/admin-only. Requires a bearer token matching SESSION_SECRET.
+ * @summary Recent storefront orders
+ */
+export const GetStoreAdminOrdersResponse = zod.object({
+  "orders": zod.array(zod.object({
+  "id": zod.string(),
+  "product_name": zod.string(),
+  "buyer_name": zod.string(),
+  "buyer_email": zod.string(),
+  "currency": zod.string(),
+  "total_major": zod.number(),
+  "installments": zod.number(),
+  "paid_instalments": zod.number(),
+  "status": zod.string(),
+  "created_at": zod.string(),
+  "schedule": zod.array(zod.object({
+  "number": zod.number(),
+  "amount_major": zod.number(),
+  "due_at": zod.string(),
+  "status": zod.string()
+})),
+  "voucher": zod.union([zod.object({
+  "code": zod.string(),
+  "status": zod.string()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
  * Marks unpaid lines on past-due orders expired and converts paid split shares to credit.
  * @summary Expire overdue orders
  */
