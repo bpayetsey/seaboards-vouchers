@@ -10,10 +10,13 @@ export async function getStripeCredentials(): Promise<{
   webhookSecret?: string;
   publishableKey?: string;
 }> {
-  // Prefer explicit secrets when provided (e.g. live keys set in the Publish
-  // pane / deployment secrets). This lets production use a different Stripe
-  // account than the development connection without touching the connector.
-  if (process.env.STRIPE_SECRET_KEY) {
+  // In production only, prefer explicit live keys when provided (set as
+  // deployment secrets in the Publish pane). This lets the deployed app use a
+  // specific live Stripe account without touching the connector. We gate this
+  // to production so these global secrets never leak into the dev sandbox and
+  // accidentally charge real cards during testing -- dev always uses the
+  // environment-scoped (test) connector connection below.
+  if (process.env.REPLIT_DEPLOYMENT === "1" && process.env.STRIPE_SECRET_KEY) {
     return {
       secretKey: process.env.STRIPE_SECRET_KEY,
       webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || undefined,
@@ -91,7 +94,12 @@ export async function getStripeCredentials(): Promise<{
  * storefront can degrade gracefully instead of throwing.
  */
 export async function getStripePublishableKey(): Promise<string> {
-  if (process.env.STRIPE_PUBLISHABLE_KEY) {
+  // Same production-only gate as getStripeCredentials so the dev storefront
+  // never advertises a live publishable key while the backend uses test keys.
+  if (
+    process.env.REPLIT_DEPLOYMENT === "1" &&
+    process.env.STRIPE_PUBLISHABLE_KEY
+  ) {
     return process.env.STRIPE_PUBLISHABLE_KEY;
   }
   try {
