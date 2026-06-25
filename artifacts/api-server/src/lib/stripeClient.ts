@@ -51,6 +51,7 @@ export async function getStripeCredentials(): Promise<{
 
   const data = (await resp.json()) as {
     items?: Array<{
+      environment?: string;
       settings?: {
         secret?: string;
         publishable?: string;
@@ -58,7 +59,17 @@ export async function getStripeCredentials(): Promise<{
       };
     }>;
   };
-  const settings = data.items?.[0]?.settings;
+  // Multiple Stripe accounts can be connected at once -- one scoped to the
+  // development environment (test account) and one to production (live
+  // account). Pick the connection that matches the current runtime
+  // environment instead of blindly taking the first item, otherwise the dev
+  // server could end up using the live account (or vice versa).
+  const items = data.items ?? [];
+  const targetEnv =
+    process.env.REPLIT_DEPLOYMENT === "1" ? "production" : "development";
+  const selected =
+    items.find((item) => item.environment === targetEnv) ?? items[0];
+  const settings = selected?.settings;
 
   if (!settings?.secret) {
     throw new Error(
