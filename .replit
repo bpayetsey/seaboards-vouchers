@@ -22,3 +22,8 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+STORE_BASE_URL = "https://attached-assets-bazaarinvestmen.replit.app"

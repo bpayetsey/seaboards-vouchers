@@ -47,3 +47,8 @@ API returns RELATIVE links (`/pay/{token}`, `/group/{token}`); Stripe success/ca
 ## Design source of truth
 - The static `seaboards-jubilee` reference site (`attached_assets/seaboards_jubilee_extract/public/*.html`) is the authoritative design+content. Navy `#1F3A5F` / gold `#B8860B` / cream `#F8F6F1`, classic serif (Iowan/Palatino/Georgia) + system sans. Editorial masthead (no hero image). Theme lives in `index.css`.
 - App has a `/terms` route (`pages/terms.tsx`) reproducing the reference 9-section T&C verbatim with hierarchical clause numbering (`{section}.{n}`). When offer rates/dates/perks change, update BOTH the home offer block and Terms.
+
+## "Pay in N" instalments are NOT a Stripe subscription
+First payment saves the card to a Stripe Customer (`setup_future_usage: off_session`) and charges 1/N. Instalments 2..N live in the app DB (`storeInstallments`, due dates `INTERVAL_DAYS` apart), NOT in Stripe — there is no Stripe Subscription/Schedule object. Each future instalment becomes its own off-session PaymentIntent when charged.
+**Critical:** the charge job (`chargeDueInstalments`) has NO built-in scheduler. It only runs when something POSTs to `/api/storefront/jobs/charge-instalments` (Bearer = `SESSION_SECRET`). Without an external daily trigger, instalments 2..N are NEVER collected.
+**Trigger:** a Replit Scheduled Deployment runs `pnpm --filter @workspace/scripts run charge-instalments` (script `scripts/src/charge-instalments.ts`), which POSTs to that endpoint using `STORE_BASE_URL` (prod URL, shared env) + `SESSION_SECRET`. Job is idempotent (atomic row claim + Stripe idempotency), so daily retries are safe.
