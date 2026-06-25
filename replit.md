@@ -30,7 +30,10 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Seaboards Golden Jubilee voucher app (Seychelles resort, currency SCR/EUR):
+- **Storefront** (`/`): direct-to-buyer voucher purchase with Stripe "Pay in 3" instalments.
+- **Group ordering** (`/group-order`, token-based pay links): independent / split / flat modes.
+- **Client Account Dashboard** (`/dashboard`, Clerk email+password auth): logged-in clients see their vouchers/credits, payments, and downloadable Stripe receipts, scoped strictly to their verified account email.
 
 ## User preferences
 

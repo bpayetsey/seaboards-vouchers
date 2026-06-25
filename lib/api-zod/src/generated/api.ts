@@ -9,6 +9,36 @@ import * as zod from 'zod';
 
 
 /**
+ * Returns all vouchers/credits, payments and downloadable Stripe receipts belonging to the authenticated client, matched strictly to their verified account email. Requires a Clerk session.
+
+ * @summary Get the signed-in client's account dashboard
+ */
+export const GetDashboardResponse = zod.object({
+  "email": zod.string().describe('The verified account email all records are scoped to'),
+  "vouchers": zod.array(zod.object({
+  "kind": zod.enum(['voucher', 'credit']).describe('Whether this code is a redeemable voucher or residual credit'),
+  "code": zod.string(),
+  "source": zod.enum(['storefront', 'group']).describe('Which flow issued the code'),
+  "status": zod.string(),
+  "currency": zod.string(),
+  "value_minor": zod.number().nullish().describe('Face value in minor units, when known'),
+  "expires_at": zod.string().nullish(),
+  "created_at": zod.string().nullish()
+})),
+  "payments": zod.array(zod.object({
+  "id": zod.string(),
+  "source": zod.enum(['storefront', 'group']),
+  "description": zod.string(),
+  "amount_minor": zod.number().describe('Amount paid in minor units'),
+  "currency": zod.string(),
+  "status": zod.string(),
+  "paid_at": zod.string().nullish(),
+  "receipt_url": zod.string().nullish().describe('Hosted Stripe receipt URL, when available')
+}))
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

@@ -4,6 +4,7 @@ import ratesRouter from "./rates";
 import groupOrdersRouter from "./groupOrders";
 import payRouter from "./pay";
 import storefrontRouter from "./storefront";
+import dashboardRouter from "./dashboard";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(ratesRouter);
 router.use(groupOrdersRouter);
 router.use(payRouter);
 router.use(storefrontRouter);
+router.use(dashboardRouter);
 
 export default router;

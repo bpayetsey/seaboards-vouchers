@@ -31,6 +31,7 @@ export const storeOrders = pgTable(
     stripeCustomerId: text("stripe_customer_id").notNull(),
     stripePaymentMethodId: text("stripe_payment_method_id"),
     firstPaymentIntentId: text("first_payment_intent_id"),
+    firstReceiptUrl: text("first_receipt_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -54,6 +55,7 @@ export const storeInstallments = pgTable(
     status: text("status").notNull().default("scheduled"),
     attempts: integer("attempts").notNull().default(0),
     paymentIntentId: text("payment_intent_id"),
+    receiptUrl: text("receipt_url"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true })

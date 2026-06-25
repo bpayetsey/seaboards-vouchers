@@ -2,7 +2,10 @@ import crypto from "node:crypto";
 import { and, asc, eq, isNull, lt, ne, sql } from "drizzle-orm";
 import { db, groupOrders, voucherLines } from "@workspace/db";
 import type Stripe from "stripe";
-import { getUncachableStripeClient } from "./stripeClient";
+import {
+  getUncachableStripeClient,
+  fetchReceiptUrlForPaymentIntent,
+} from "./stripeClient";
 
 export const RATES: Record<string, number> = {
   one_bedroom: 2300,
@@ -257,6 +260,24 @@ export async function handleSessionCompleted(
   const lineId = session.metadata?.line_id;
   if (!lineId) return;
 
+  // Capture the hosted Stripe receipt URL for this payment so the client
+  // dashboard can show it without a live lookup. Done outside the transaction
+  // to avoid holding row locks during a network call; best-effort (null on
+  // failure, with an on-demand fallback in the dashboard aggregation).
+  let receiptUrl: string | null = null;
+  const piId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent?.id ?? null);
+  if (piId) {
+    try {
+      const stripe = await getUncachableStripeClient();
+      receiptUrl = await fetchReceiptUrlForPaymentIntent(stripe, piId);
+    } catch {
+      // ignore — dashboard fallback will retrieve it on demand
+    }
+  }
+
   await db.transaction(async (tx) => {
     const [line] = await tx
       .select()
@@ -278,7 +299,12 @@ export async function handleSessionCompleted(
     if (order.mode === "split") {
       await tx
         .update(voucherLines)
-        .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+        .set({
+          status: "paid",
+          paidAt: new Date(),
+          receiptUrl,
+          updatedAt: new Date(),
+        })
         .where(eq(voucherLines.id, line.id));
     } else {
       // independent and flat: each paid line gets its own voucher code.
@@ -288,6 +314,7 @@ export async function handleSessionCompleted(
           status: "paid",
           paidAt: new Date(),
           voucherCode: voucherCode(),
+          receiptUrl,
           updatedAt: new Date(),
         })
         .where(eq(voucherLines.id, line.id));

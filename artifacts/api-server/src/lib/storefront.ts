@@ -10,6 +10,7 @@ import type Stripe from "stripe";
 import {
   getUncachableStripeClient,
   getStripePublishableKey,
+  fetchReceiptUrlForPaymentIntent,
 } from "./stripeClient";
 import {
   CATALOG,
@@ -204,6 +205,22 @@ export async function processPaidIntent(
 
   const instalmentNo = Number(pi.metadata?.instalmentNo || 1);
 
+  // Resolve the hosted Stripe receipt URL for this payment. Prefer the already
+  // expanded latest charge; otherwise retrieve it. Best-effort (null on
+  // failure), with an on-demand fallback in the dashboard aggregation.
+  let receiptUrl: string | null = null;
+  try {
+    const charge = pi.latest_charge;
+    if (charge && typeof charge !== "string" && charge.receipt_url) {
+      receiptUrl = charge.receipt_url;
+    } else {
+      const stripe = await getUncachableStripeClient();
+      receiptUrl = await fetchReceiptUrlForPaymentIntent(stripe, pi.id);
+    }
+  } catch {
+    // ignore — dashboard fallback will retrieve it on demand
+  }
+
   if (instalmentNo === 1) {
     if (order.paidInstalments < 1) {
       const pm =
@@ -222,6 +239,7 @@ export async function processPaidIntent(
         .update(storeOrders)
         .set({
           stripePaymentMethodId: pm ?? null,
+          firstReceiptUrl: receiptUrl ?? order.firstReceiptUrl,
           paidInstalments: 1,
           updatedAt: new Date(),
         })
@@ -259,7 +277,7 @@ export async function processPaidIntent(
   } else if (order.paidInstalments < instalmentNo) {
     await db
       .update(storeInstallments)
-      .set({ status: "paid", paidAt: new Date() })
+      .set({ status: "paid", paidAt: new Date(), receiptUrl })
       .where(
         and(
           eq(storeInstallments.orderId, order.id),

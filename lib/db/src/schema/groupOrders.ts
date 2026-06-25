@@ -43,6 +43,7 @@ export const voucherLines = pgTable(
     payToken: text("pay_token").notNull().unique(),
     status: text("status").notNull().default("pending"),
     stripeSessionId: text("stripe_session_id"),
+    receiptUrl: text("receipt_url"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     voucherCode: text("voucher_code"),
     creditCode: text("credit_code"),

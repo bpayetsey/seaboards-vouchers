@@ -298,3 +298,76 @@ export interface StoreAdminOrders {
   orders: StoreAdminOrder[];
 }
 
+/**
+ * Whether this code is a redeemable voucher or residual credit
+ */
+export type DashboardVoucherKind = typeof DashboardVoucherKind[keyof typeof DashboardVoucherKind];
+
+
+export const DashboardVoucherKind = {
+  voucher: 'voucher',
+  credit: 'credit',
+} as const;
+
+/**
+ * Which flow issued the code
+ */
+export type DashboardVoucherSource = typeof DashboardVoucherSource[keyof typeof DashboardVoucherSource];
+
+
+export const DashboardVoucherSource = {
+  storefront: 'storefront',
+  group: 'group',
+} as const;
+
+export interface DashboardVoucher {
+  /** Whether this code is a redeemable voucher or residual credit */
+  kind: DashboardVoucherKind;
+  code: string;
+  /** Which flow issued the code */
+  source: DashboardVoucherSource;
+  status: string;
+  currency: string;
+  /**
+     * Face value in minor units, when known
+     * @nullable
+     */
+  value_minor?: number | null;
+  /** @nullable */
+  expires_at?: string | null;
+  /** @nullable */
+  created_at?: string | null;
+}
+
+export type DashboardPaymentSource = typeof DashboardPaymentSource[keyof typeof DashboardPaymentSource];
+
+
+export const DashboardPaymentSource = {
+  storefront: 'storefront',
+  group: 'group',
+} as const;
+
+export interface DashboardPayment {
+  id: string;
+  source: DashboardPaymentSource;
+  description: string;
+  /** Amount paid in minor units */
+  amount_minor: number;
+  currency: string;
+  status: string;
+  /** @nullable */
+  paid_at?: string | null;
+  /**
+     * Hosted Stripe receipt URL, when available
+     * @nullable
+     */
+  receipt_url?: string | null;
+}
+
+export interface DashboardView {
+  /** The verified account email all records are scoped to */
+  email: string;
+  vouchers: DashboardVoucher[];
+  payments: DashboardPayment[];
+}
+

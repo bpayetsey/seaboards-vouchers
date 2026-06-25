@@ -101,6 +101,55 @@ export async function getUncachableStripeClient(): Promise<Stripe> {
 }
 
 /**
+ * Best-effort fetch of the hosted Stripe receipt URL for a PaymentIntent.
+ * Expands the latest charge to read its `receipt_url`. Returns null when the
+ * receipt cannot be resolved (e.g. payment not captured yet) instead of
+ * throwing, so callers can degrade gracefully.
+ */
+export async function fetchReceiptUrlForPaymentIntent(
+  stripe: Stripe,
+  paymentIntentId: string,
+): Promise<string | null> {
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["latest_charge"],
+    });
+    const charge = pi.latest_charge;
+    if (charge && typeof charge !== "string") {
+      return charge.receipt_url ?? null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Best-effort fetch of the hosted Stripe receipt URL for a Checkout Session
+ * (used by the group-voucher flow, which pays via hosted Checkout).
+ */
+export async function fetchReceiptUrlForSession(
+  stripe: Stripe,
+  sessionId: string,
+): Promise<string | null> {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent.latest_charge"],
+    });
+    const pi = session.payment_intent;
+    if (pi && typeof pi !== "string") {
+      const charge = pi.latest_charge;
+      if (charge && typeof charge !== "string") {
+        return charge.receipt_url ?? null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Returns a fresh StripeSync instance for webhook processing and data sync.
  * Not cached -- fetches credentials on every call so rotated keys are picked up.
  */

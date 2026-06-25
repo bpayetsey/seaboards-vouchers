@@ -18,7 +18,37 @@ tags:
     description: Per-person payment links
   - name: storefront
     description: Direct voucher storefront with Pay-in-3 instalments
+  - name: dashboard
+    description: Authenticated client account dashboard
 paths:
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get the signed-in client's account dashboard
+      description: >
+        Returns all vouchers/credits, payments and downloadable Stripe receipts
+        belonging to the authenticated client, matched strictly to their verified
+        account email. Requires a Clerk session.
+      responses:
+        "200":
+          description: Dashboard view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardView"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /healthz:
     get:
       operationId: healthCheck
@@ -732,3 +762,72 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StoreAdminOrder"
+    DashboardVoucher:
+      type: object
+      required: [kind, code, source, status, currency]
+      properties:
+        kind:
+          type: string
+          enum: [voucher, credit]
+          description: Whether this code is a redeemable voucher or residual credit
+        code:
+          type: string
+        source:
+          type: string
+          enum: [storefront, group]
+          description: Which flow issued the code
+        status:
+          type: string
+        currency:
+          type: string
+        value_minor:
+          type: ["integer", "null"]
+          description: Face value in minor units, when known
+        expires_at:
+          type: ["string", "null"]
+        created_at:
+          type: ["string", "null"]
+    DashboardPayment:
+      type: object
+      required:
+        - id
+        - source
+        - description
+        - amount_minor
+        - currency
+        - status
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+          enum: [storefront, group]
+        description:
+          type: string
+        amount_minor:
+          type: integer
+          description: Amount paid in minor units
+        currency:
+          type: string
+        status:
+          type: string
+        paid_at:
+          type: ["string", "null"]
+        receipt_url:
+          type: ["string", "null"]
+          description: Hosted Stripe receipt URL, when available
+    DashboardView:
+      type: object
+      required: [email, vouchers, payments]
+      properties:
+        email:
+          type: string
+          description: The verified account email all records are scoped to
+        vouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardVoucher"
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardPayment"

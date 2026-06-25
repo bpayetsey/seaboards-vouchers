@@ -1,4 +1,49 @@
 import { Link } from "wouter";
+import { Show, useClerk } from "@clerk/react";
+import { LayoutDashboard, LogOut, LogIn } from "lucide-react";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function AuthNav() {
+  const { signOut } = useClerk();
+
+  return (
+    <nav className="flex items-center gap-5">
+      <Link
+        href="/terms"
+        className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
+      >
+        Terms
+      </Link>
+      <Show when="signed-in">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
+        >
+          <LayoutDashboard className="h-3.5 w-3.5" />
+          My Account
+        </Link>
+        <button
+          type="button"
+          onClick={() => signOut({ redirectUrl: basePath || "/" })}
+          className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Log out
+        </button>
+      </Show>
+      <Show when="signed-out">
+        <Link
+          href="/sign-in"
+          className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-primary transition-opacity hover:opacity-80"
+        >
+          <LogIn className="h-3.5 w-3.5" />
+          Sign in
+        </Link>
+      </Show>
+    </nav>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,12 +56,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             The Seaboards Apartments
           </Link>
-          <Link
-            href="/terms"
-            className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
-          >
-            Terms
-          </Link>
+          <AuthNav />
         </div>
       </header>
       <main className="flex-1 w-full relative">{children}</main>
