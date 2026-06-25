@@ -23,3 +23,11 @@ The Replit Stripe connector can hold more than one connection at once, each tagg
 `runMigrations` resolves its SQL migration dir as `path.resolve(import.meta.url dir, "./migrations")` and **silently skips** (creating an empty `stripe` schema, no tables, no error) if the dir is missing. esbuild bundling collapses `import.meta.url` to the output bundle path, so migrations are never found.
 **Fix:** add `"stripe-replit-sync"` to the `external` array in the API server's `build.mjs`. It's a declared dependency and resolves from node_modules at runtime.
 **Symptom:** server logs `relation "stripe.accounts" does not exist` during `findOrCreateManagedWebhook`, while the `stripe` schema exists but is empty.
+
+# Validating user-pasted live Stripe keys (deployment secrets path)
+When a user provides STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY by hand, prefix checks are NOT enough. Validate:
+- **Length:** a full key is ~107 chars. A truncated copy still starts `sk_live_…` and parses an account token but Stripe rejects it as `invalid_request_error - Invalid API Key provided`. Always check `sk.length` (~107); short = hand-selected/truncated copy. Tell the user to use Stripe's Copy button on a freshly created key (full secret is shown only once).
+- **Account match:** pk and sk encode the account in the 14 chars after the `_51` prefix (e.g. `sk_live_51<TOKEN>`). pk and sk MUST share the same token or checkout breaks silently (browser uses one account, server charges another). Verify `pkToken === skToken`.
+- **Standard vs restricted:** `rk_live_` is a restricted key — it can create PaymentIntents but lacks account-read / webhook-create perms that stripe-replit-sync needs. Require a standard `sk_live_` key ("Create secret key → Powering an integration you built").
+**Why:** a user can have MULTIPLE live accounts under one login and paste keys from different ones; confirm WHICH account should receive money before wiring, then keep pk+sk from that one account.
+**Validation without leaking secrets:** read via bash `node -e` (code_execution sandbox has no process.env); print only prefix/length/last4; GET https://api.stripe.com/v1/account and POST a test /v1/payment_intents in each currency (status `requires_payment_method` = success). Publishable keys are public — safe to print in full.
