@@ -10,6 +10,17 @@ export async function getStripeCredentials(): Promise<{
   webhookSecret?: string;
   publishableKey?: string;
 }> {
+  // Prefer explicit secrets when provided (e.g. live keys set in the Publish
+  // pane / deployment secrets). This lets production use a different Stripe
+  // account than the development connection without touching the connector.
+  if (process.env.STRIPE_SECRET_KEY) {
+    return {
+      secretKey: process.env.STRIPE_SECRET_KEY,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || undefined,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || undefined,
+    };
+  }
+
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
