@@ -41,15 +41,10 @@ import {
   Copy,
   Trash2,
   Link as LinkIcon,
-  Plane,
   Sparkles,
   Wifi,
-  ConciergeBell,
   UtensilsCrossed,
   Waves,
-  Car,
-  Flower2,
-  Compass,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -137,11 +132,6 @@ function AboutSection() {
 
 const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
-    icon: Plane,
-    title: "Airport pick-up",
-    desc: "Door-to-door transfers arranged for your arrival.",
-  },
-  {
     icon: Sparkles,
     title: "Housekeeping",
     desc: "Daily service keeps your apartment fresh.",
@@ -152,11 +142,6 @@ const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
     desc: "Stay connected throughout the property.",
   },
   {
-    icon: ConciergeBell,
-    title: "Concierge",
-    desc: "On-hand to plan, book, and tailor your stay.",
-  },
-  {
     icon: UtensilsCrossed,
     title: "In-house dining",
     desc: "Restaurant & bar serving Western, Creole & Japanese (sushi) cuisine with fresh, local, organic ingredients.",
@@ -165,21 +150,6 @@ const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
     icon: Waves,
     title: "Swimming pool",
     desc: "A pool and day beds for slow island afternoons.",
-  },
-  {
-    icon: Car,
-    title: "Car rental",
-    desc: "Explore Mahé at your own pace.",
-  },
-  {
-    icon: Flower2,
-    title: "Spa & wellness",
-    desc: "In-room massage and aqua yoga via concierge.",
-  },
-  {
-    icon: Compass,
-    title: "Island activities",
-    desc: "Surfing, diving, snorkeling, fishing, sailing, and nature trails.",
   },
 ];
 
