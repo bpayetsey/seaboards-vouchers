@@ -47,7 +47,7 @@ export const CATALOG: CatalogItem[] = [
     was: 3285,
     minNights: 1,
     desc: "A sea-breeze one-bedroom apartment for two, on a Half Board basis.",
-    feat: ["Sleeps 2 adults", "Half Board included", "Sea-breeze apartment"],
+    feat: ["Sleeps 2 adults", "Half Board included", "Valid for 1 year"],
   },
   {
     id: "two-bedroom",
@@ -59,7 +59,7 @@ export const CATALOG: CatalogItem[] = [
     was: 5520,
     minNights: 1,
     desc: "A spacious two-bedroom apartment for up to four guests, on a Half Board basis.",
-    feat: ["Sleeps 4 guests", "Half Board included", "Spacious two-bedroom layout"],
+    feat: ["Sleeps 4 guests", "Half Board included", "Spacious two-bedroom layout", "Valid for 1 year"],
   },
 ];
 

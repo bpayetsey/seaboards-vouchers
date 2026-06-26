@@ -52,6 +52,50 @@ function money(symbol: string, value: number) {
   })}`;
 }
 
+// Property photo gallery. These are tasteful placeholder images stored in
+// `public/gallery/` — replace the files (keeping the same names) or edit this
+// list to swap in the resort's own photography later.
+const galleryBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+const GALLERY: { src: string; alt: string }[] = [
+  { src: `${galleryBase}/gallery/01-exterior.jpg`, alt: "The Seaboards apartments exterior with palm trees and ocean view" },
+  { src: `${galleryBase}/gallery/02-beach.jpg`, alt: "Pristine white-sand beach and turquoise water at Anse La Mouche" },
+  { src: `${galleryBase}/gallery/03-bedroom.jpg`, alt: "Bright apartment bedroom with ocean view" },
+  { src: `${galleryBase}/gallery/04-pool.jpg`, alt: "Resort swimming pool overlooking the ocean" },
+  { src: `${galleryBase}/gallery/05-dining.jpg`, alt: "Half-board dining with a sunset terrace view" },
+  { src: `${galleryBase}/gallery/06-aerial.jpg`, alt: "Aerial view of Anse La Mouche bay in Mahé, Seychelles" },
+];
+
+function PhotoGallery() {
+  return (
+    <section className="mt-12" aria-labelledby="gallery-heading">
+      <h2
+        id="gallery-heading"
+        className="font-serif text-primary text-2xl mb-1"
+      >
+        A glimpse of The Seaboards
+      </h2>
+      <p className="text-sm text-muted-foreground mb-5">
+        Anse La Mouche, Mahé &middot; your island home for the Jubilee.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        {GALLERY.map((photo) => (
+          <div
+            key={photo.src}
+            className="overflow-hidden rounded-xl border border-border bg-muted"
+          >
+            <img
+              src={photo.src}
+              alt={photo.alt}
+              loading="lazy"
+              className="aspect-[4/3] w-full object-cover transition-transform duration-500 hover:scale-105"
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const stripePromiseCache = new Map<string, Promise<Stripe | null>>();
 function getStripe(publishableKey: string): Promise<Stripe | null> {
   let p = stripePromiseCache.get(publishableKey);
@@ -198,7 +242,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           </div>
         )}
 
-        <h2 className="font-serif text-primary text-2xl mb-5">Choose a stay</h2>
+        <h2 className="font-serif text-primary text-2xl mb-5">Choose your voucher</h2>
         <div className="grid sm:grid-cols-2 gap-5">
           {config.catalog.map((item) => {
             const active =
@@ -319,10 +363,19 @@ function Storefront({ config }: { config: StorefrontConfig }) {
               {config.gift.name}
             </h3>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-3">
             An open-value voucher — choose an amount or enter your own (min{" "}
             {money(symbol, config.gift.min)}).
           </p>
+          <ul className="mb-4">
+            <li className="relative pl-[20px] text-[13px] text-foreground/80">
+              <Check
+                className="absolute left-0 top-[3px] w-3 h-3 text-accent"
+                strokeWidth={3}
+              />
+              Valid for 1 year
+            </li>
+          </ul>
           <div className="flex flex-wrap items-center gap-2.5">
             {config.gift.amounts.map((amt) => {
               const active =
@@ -463,7 +516,9 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
         <GroupLinksSection />
 
-        <p className="text-[12.5px] text-muted-foreground mt-6">
+        <PhotoGallery />
+
+        <p className="text-[12.5px] text-muted-foreground mt-10">
           Offer open 29 June &ndash; 30 September 2026, while allocation lasts.
           Blackout dates apply. Full{" "}
           <Link

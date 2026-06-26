@@ -1,5 +1,40 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "LPkggo14udmWVjQDLJPll"
+uri = "file://artifacts/group-vouchers/public/gallery/01-exterior.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Wvm2fItVSEbCyDRLVh-Wk"
+uri = "file://artifacts/group-vouchers/public/gallery/02-beach.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "E16pBbMxKs9-Yk0m636wn"
+uri = "file://artifacts/group-vouchers/public/gallery/03-bedroom.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "esWFI9J5keF93VQUkXwtX"
+uri = "file://artifacts/group-vouchers/public/gallery/04-pool.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "lUpJ4Q2sm1QyqckKCplvh"
+uri = "file://artifacts/group-vouchers/public/gallery/05-dining.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "64lKVYoA9P7tYJ4K-Kc5V"
+uri = "file://artifacts/group-vouchers/public/gallery/06-aerial.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "t7llbdplcE01KeM1JTcGk"
