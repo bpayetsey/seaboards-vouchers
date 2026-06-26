@@ -210,6 +210,7 @@ export async function getAdminOrdersDetailed() {
 
     result.push({
       id: order.id,
+      order_number: order.orderNumber ?? null,
       product_name: order.productName,
       buyer_name: order.buyerName,
       buyer_email: order.buyerEmail,
@@ -316,6 +317,7 @@ export async function getAdminGroupOrders() {
 
     result.push({
       id: order.id,
+      order_number: order.orderNumber ?? null,
       mode: order.mode,
       status: order.status,
       organiser_name: order.organiserName,

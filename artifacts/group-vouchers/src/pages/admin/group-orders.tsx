@@ -119,6 +119,11 @@ function GroupOrderCard({ order }: { order: AdminGroupOrder }) {
               <Badge variant="outline" className={statusTone(order.status)}>
                 {order.status}
               </Badge>
+              {order.order_number ? (
+                <span className="font-mono text-xs text-muted-foreground">
+                  {order.order_number}
+                </span>
+              ) : null}
               {isSplit ? (
                 order.voucher_released ? (
                   <Badge

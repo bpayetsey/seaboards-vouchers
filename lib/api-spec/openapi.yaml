@@ -1970,6 +1970,9 @@ components:
       properties:
         id:
           type: string
+        order_number:
+          type: ["string", "null"]
+          description: Human-readable order reference for this order
         product_name:
           type: string
         buyer_name:
@@ -2052,6 +2055,9 @@ components:
       properties:
         id:
           type: string
+        order_number:
+          type: ["string", "null"]
+          description: Human-readable order reference for this group order
         mode:
           type: string
           description: independent, flat or split

@@ -453,6 +453,7 @@ export const GetAdminOverviewResponse = zod.object({
 export const GetAdminOrdersDetailedResponse = zod.object({
   "orders": zod.array(zod.object({
   "id": zod.string(),
+  "order_number": zod.string().nullish().describe('Human-readable order reference for this order'),
   "product_name": zod.string(),
   "buyer_name": zod.string(),
   "buyer_email": zod.string(),
@@ -526,6 +527,7 @@ export const CancelOrderResponse = zod.object({
 export const GetAdminGroupOrdersResponse = zod.object({
   "orders": zod.array(zod.object({
   "id": zod.string(),
+  "order_number": zod.string().nullish().describe('Human-readable order reference for this group order'),
   "mode": zod.string().describe('independent, flat or split'),
   "status": zod.string().describe('open, complete or expired'),
   "organiser_name": zod.string(),

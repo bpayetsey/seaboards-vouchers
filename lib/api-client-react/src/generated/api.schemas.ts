@@ -629,6 +629,11 @@ export interface AdminInstalment {
 
 export interface AdminOrder {
   id: string;
+  /**
+     * Human-readable order reference for this order
+     * @nullable
+     */
+  order_number?: string | null;
   product_name: string;
   buyer_name: string;
   buyer_email: string;
@@ -676,6 +681,11 @@ export interface AdminGroupParticipant {
 
 export interface AdminGroupOrder {
   id: string;
+  /**
+     * Human-readable order reference for this group order
+     * @nullable
+     */
+  order_number?: string | null;
   /** independent, flat or split */
   mode: string;
   /** open, complete or expired */

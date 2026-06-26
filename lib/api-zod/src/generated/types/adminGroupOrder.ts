@@ -9,6 +9,11 @@ import type { AdminGroupParticipant } from './adminGroupParticipant';
 
 export interface AdminGroupOrder {
   id: string;
+  /**
+     * Human-readable order reference for this group order
+     * @nullable
+     */
+  order_number?: string | null;
   /** independent, flat or split */
   mode: string;
   /** open, complete or expired */

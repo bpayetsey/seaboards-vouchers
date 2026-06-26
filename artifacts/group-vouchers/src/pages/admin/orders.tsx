@@ -154,13 +154,18 @@ function OrderCard({ order, onChanged }: { order: OrderRow; onChanged: () => voi
       <CardContent className="p-5 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-serif text-lg text-primary">
                 {order.product_name}
               </h3>
               <Badge variant="outline" className={statusTone(order.status)}>
                 {order.status}
               </Badge>
+              {order.order_number ? (
+                <span className="font-mono text-xs text-muted-foreground">
+                  {order.order_number}
+                </span>
+              ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
               {order.buyer_name} · {order.buyer_email}
