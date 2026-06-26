@@ -25,4 +25,6 @@ export interface DashboardVoucher {
   expires_at?: string | null;
   /** @nullable */
   created_at?: string | null;
+  /** True for a split-share voucher that is not yet released — the combined master voucher is held until every share in the group is paid. When true, no redeemable code is shown. */
+  pending?: boolean;
 }

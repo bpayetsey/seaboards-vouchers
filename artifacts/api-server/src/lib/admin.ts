@@ -5,11 +5,16 @@ import {
   storeOrders,
   storeInstallments,
   storeVouchers,
+  groupOrders,
+  voucherLines,
   type StoreOrder,
   type StoreInstallment,
   type StoreVoucher,
 } from "@workspace/db";
-import { getUncachableStripeClient } from "./stripeClient";
+import {
+  getUncachableStripeClient,
+  fetchReceiptUrlForSession,
+} from "./stripeClient";
 import { processPaidIntent } from "./storefront";
 import { sendActionRequiredEmail, sendPaymentFailedEmail } from "./storeEmail";
 import { logger } from "./logger";
@@ -228,6 +233,106 @@ export async function getAdminOrdersDetailed() {
       voucher: voucher
         ? { code: voucher.code, status: voucher.status }
         : null,
+    });
+  }
+  return { orders: result };
+}
+
+/**
+ * All group-ordering orders (independent, flat and split) with each share's
+ * status and receipt, paid-vs-total progress, and — for split orders — whether
+ * the combined master voucher has been released. The master voucher is only
+ * minted once every share is paid, so a partially-paid split order always
+ * reports `voucher_released: false` and a null `split_voucher_code`.
+ *
+ * Paid shares missing a stored receipt URL (older rows, or a webhook that raced
+ * the Stripe API) get a best-effort on-demand lookup, persisted for next time.
+ */
+export async function getAdminGroupOrders() {
+  const orders = await db
+    .select()
+    .from(groupOrders)
+    .orderBy(desc(groupOrders.createdAt))
+    .limit(200);
+
+  const result = [];
+  for (const order of orders) {
+    const lines = await db
+      .select()
+      .from(voucherLines)
+      .where(eq(voucherLines.groupOrderId, order.id))
+      .orderBy(asc(voucherLines.createdAt));
+
+    let paidCount = 0;
+    let paidMinor = 0;
+    let totalMinor = 0;
+    const participants = [];
+    for (const line of lines) {
+      const amount = Number(line.amountMinor);
+      totalMinor += amount;
+      const paid = line.status === "paid" || line.paidAt != null;
+      if (paid) {
+        paidCount += 1;
+        paidMinor += amount;
+      }
+
+      // Backfill a missing receipt for a paid share (best-effort, never throws).
+      let receipt = line.receiptUrl;
+      if (paid && !receipt && line.stripeSessionId) {
+        try {
+          const stripe = await getUncachableStripeClient();
+          receipt = await fetchReceiptUrlForSession(
+            stripe,
+            line.stripeSessionId,
+          );
+        } catch {
+          receipt = null;
+        }
+        if (receipt) {
+          await db
+            .update(voucherLines)
+            .set({ receiptUrl: receipt })
+            .where(eq(voucherLines.id, line.id));
+        }
+      }
+
+      participants.push({
+        id: line.id,
+        payer_name: line.payerName,
+        payer_email: line.payerEmail,
+        amount_minor: amount,
+        status: paid ? "paid" : line.status,
+        paid_at: paid ? iso(line.paidAt) : null,
+        receipt_url: paid ? (receipt ?? null) : null,
+        voucher_code: line.voucherCode,
+        credit_code: line.creditCode,
+      });
+    }
+
+    const voucherReleased =
+      order.mode === "split" &&
+      order.status === "complete" &&
+      !!order.splitVoucherCode;
+
+    result.push({
+      id: order.id,
+      mode: order.mode,
+      status: order.status,
+      organiser_name: order.organiserName,
+      organiser_email: order.organiserEmail,
+      currency: order.currency,
+      created_at: order.createdAt.toISOString(),
+      due_by: iso(order.dueBy),
+      split_apartment_type: order.splitApartmentType,
+      split_nights: order.splitNights,
+      // Only expose the master code once it has actually been released.
+      split_voucher_code: voucherReleased ? order.splitVoucherCode : null,
+      voucher_released: voucherReleased,
+      paid_count: paidCount,
+      total_count: lines.length,
+      paid_minor: paidMinor,
+      total_minor: totalMinor,
+      participants,
     });
   }
   return { orders: result };

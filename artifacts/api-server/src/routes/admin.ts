@@ -3,6 +3,7 @@ import {
   GetAdminMeResponse,
   GetAdminOverviewResponse,
   GetAdminOrdersDetailedResponse,
+  GetAdminGroupOrdersResponse,
   RetryInstalmentParams,
   RetryInstalmentResponse,
   CancelOrderParams,
@@ -18,6 +19,7 @@ import { requireStaff, type StaffRequest } from "../middlewares/requireStaff";
 import {
   getAdminOverview,
   getAdminOrdersDetailed,
+  getAdminGroupOrders,
   retryInstalment,
   cancelOrder,
   issueVoucher,
@@ -49,6 +51,16 @@ router.get("/admin/orders", requireStaff, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to load admin orders");
     return res.status(500).json({ error: "Could not load orders." });
+  }
+});
+
+router.get("/admin/group-orders", requireStaff, async (req, res) => {
+  try {
+    const orders = await getAdminGroupOrders();
+    return res.json(GetAdminGroupOrdersResponse.parse(orders));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load admin group orders");
+    return res.status(500).json({ error: "Could not load group orders." });
   }
 });
 

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, Mail, Copy, Check, Users, Calendar, Home as HomeIcon } from "lucide-react";
+import { CheckCircle2, Clock, Mail, Copy, Check, Users, Calendar, Home as HomeIcon, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -236,6 +236,14 @@ export default function GroupDashboard() {
 
                   {!isPaid && !isExpired && (
                     <div className="flex flex-wrap items-center gap-2 shrink-0 pt-4 md:pt-0 border-t md:border-none border-border/50">
+                      <Button
+                        asChild
+                        size="sm"
+                      >
+                        <a href={payUrl}>
+                          <CreditCard className="w-4 h-4 mr-2" /> Pay
+                        </a>
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"

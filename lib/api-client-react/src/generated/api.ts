@@ -21,6 +21,7 @@ import type {
 
 import type {
   AddGalleryImageInput,
+  AdminGroupOrders,
   AdminOrders,
   AdminOverview,
   AdminSession,
@@ -1490,6 +1491,84 @@ export const useCancelOrder = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getCancelOrderMutationOptions(options));
     }
+
+export const getGetAdminGroupOrdersUrl = () => {
+
+
+
+
+  return `/api/admin/group-orders`
+}
+
+/**
+ * Group ordering orders (independent, flat and split) with each participant share's paid/pending/expired status, per-paid-share receipt, paid-vs-total progress, and whether a split order's combined master voucher has been released (only once every share is paid).
+ * @summary All group/split orders with per-share status and progress
+ */
+export const getAdminGroupOrders = async ( options?: RequestInit): Promise<AdminGroupOrders> => {
+
+  return customFetch<AdminGroupOrders>(getGetAdminGroupOrdersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminGroupOrdersQueryKey = () => {
+    return [
+    `/api/admin/group-orders`
+    ] as const;
+    }
+
+
+export const getGetAdminGroupOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getAdminGroupOrders>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGroupOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminGroupOrdersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminGroupOrders>>> = ({ signal }) => getAdminGroupOrders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminGroupOrders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminGroupOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminGroupOrders>>>
+export type GetAdminGroupOrdersQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary All group/split orders with per-share status and progress
+ */
+
+export function useGetAdminGroupOrders<TData = Awaited<ReturnType<typeof getAdminGroupOrders>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGroupOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminGroupOrdersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getIssueVoucherUrl = () => {
 

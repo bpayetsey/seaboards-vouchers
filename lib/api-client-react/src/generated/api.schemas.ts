@@ -405,6 +405,8 @@ export interface DashboardVoucher {
   expires_at?: string | null;
   /** @nullable */
   created_at?: string | null;
+  /** True for a split-share voucher that is not yet released — the combined master voucher is held until every share in the group is paid. When true, no redeemable code is shown. */
+  pending?: boolean;
 }
 
 export type DashboardPaymentSource = typeof DashboardPaymentSource[keyof typeof DashboardPaymentSource];
@@ -502,6 +504,68 @@ export interface AdminOrder {
 
 export interface AdminOrders {
   orders: AdminOrder[];
+}
+
+export interface AdminGroupParticipant {
+  id: string;
+  payer_name: string;
+  payer_email: string;
+  amount_minor: number;
+  /** paid, pending or expired */
+  status: string;
+  /** @nullable */
+  paid_at?: string | null;
+  /**
+     * Hosted Stripe receipt URL for a paid share, when available
+     * @nullable
+     */
+  receipt_url?: string | null;
+  /**
+     * Per-share voucher (independent/flat modes); null in split mode
+     * @nullable
+     */
+  voucher_code?: string | null;
+  /**
+     * Residual store credit issued when a paid share expires
+     * @nullable
+     */
+  credit_code?: string | null;
+}
+
+export interface AdminGroupOrder {
+  id: string;
+  /** independent, flat or split */
+  mode: string;
+  /** open, complete or expired */
+  status: string;
+  organiser_name: string;
+  organiser_email: string;
+  currency: string;
+  created_at: string;
+  /** @nullable */
+  due_by?: string | null;
+  /** @nullable */
+  split_apartment_type?: string | null;
+  /** @nullable */
+  split_nights?: number | null;
+  /**
+     * Combined master voucher for a split order; null until every share is paid and the voucher is released.
+     * @nullable
+     */
+  split_voucher_code?: string | null;
+  /** True for a split order whose combined master voucher has been released (all shares paid). Always false while partially paid. */
+  voucher_released: boolean;
+  paid_count: number;
+  total_count: number;
+  /** Sum of paid shares in minor units (paid-so-far) */
+  paid_minor: number;
+  /** Sum of all shares in minor units (order total) */
+  total_minor: number;
+  participants: AdminGroupParticipant[];
+}
+
+export interface AdminGroupOrders {
+  orders: AdminGroupOrder[];
 }
 
 export interface RetryInstalmentResult {

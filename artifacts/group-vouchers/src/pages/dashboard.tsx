@@ -17,6 +17,7 @@ import {
   Download,
   Gift,
   CreditCard,
+  Clock,
 } from "lucide-react";
 
 function fromMinor(amountMinor: number) {
@@ -128,45 +129,85 @@ function VouchersSection({ vouchers }: { vouchers: DashboardVoucher[] }) {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {vouchers.map((v) => (
-            <Card key={`${v.source}-${v.kind}-${v.code}`} className="overflow-hidden">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {v.kind === "credit" ? (
-                      <Gift className="h-3.5 w-3.5" />
-                    ) : (
-                      <Ticket className="h-3.5 w-3.5" />
-                    )}
-                    {v.kind === "credit" ? "Credit" : "Voucher"}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={`capitalize ${statusTone(v.status)}`}
-                  >
-                    {v.status}
-                  </Badge>
-                </div>
-                <div className="font-mono text-lg font-semibold tracking-wider text-foreground break-all">
-                  {v.code}
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>
-                    {v.value_minor != null
-                      ? formatMoney(fromMinor(v.value_minor), v.currency)
-                      : "—"}
-                  </span>
-                  <span>
-                    {v.expires_at
-                      ? `Expires ${formatDate(v.expires_at)}`
-                      : v.source === "group"
-                        ? "Group order"
-                        : "Storefront"}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {vouchers.map((v, i) =>
+            v.pending ? (
+              <Card
+                key={`${v.source}-pending-${i}`}
+                className="overflow-hidden border-dashed border-accent/50 bg-accent/5"
+              >
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      Voucher
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${statusTone("pending")}`}
+                    >
+                      Pending
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    Voucher pending
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Your share is paid. The combined voucher is released once
+                    everyone in the group has paid.
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
+                    <span>
+                      {v.value_minor != null
+                        ? `${formatMoney(fromMinor(v.value_minor), v.currency)} paid`
+                        : "—"}
+                    </span>
+                    <span>Group order</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card
+                key={`${v.source}-${v.kind}-${v.code}-${i}`}
+                className="overflow-hidden"
+              >
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {v.kind === "credit" ? (
+                        <Gift className="h-3.5 w-3.5" />
+                      ) : (
+                        <Ticket className="h-3.5 w-3.5" />
+                      )}
+                      {v.kind === "credit" ? "Credit" : "Voucher"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`capitalize ${statusTone(v.status)}`}
+                    >
+                      {v.status}
+                    </Badge>
+                  </div>
+                  <div className="font-mono text-lg font-semibold tracking-wider text-foreground break-all">
+                    {v.code}
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>
+                      {v.value_minor != null
+                        ? formatMoney(fromMinor(v.value_minor), v.currency)
+                        : "—"}
+                    </span>
+                    <span>
+                      {v.expires_at
+                        ? `Expires ${formatDate(v.expires_at)}`
+                        : v.source === "group"
+                          ? "Group order"
+                          : "Storefront"}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+          )}
         </div>
       )}
     </section>

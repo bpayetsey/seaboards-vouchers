@@ -7,6 +7,9 @@
  */
 
 export * from './addGalleryImageInput';
+export * from './adminGroupOrder';
+export * from './adminGroupOrders';
+export * from './adminGroupParticipant';
 export * from './adminInstalment';
 export * from './adminOrder';
 export * from './adminOrders';

@@ -23,6 +23,11 @@ export interface DashboardVoucher {
   value_minor: number | null;
   expires_at: string | null;
   created_at: string | null;
+  /**
+   * True for a paid split share whose combined master voucher has not yet been
+   * released (the group is not fully paid). No redeemable code is shown.
+   */
+  pending?: boolean;
 }
 
 export interface DashboardPayment {
@@ -180,12 +185,25 @@ export async function getDashboardForEmail(
       line: voucherLines,
       orderCurrency: groupOrders.currency,
       orderStatusToken: groupOrders.statusToken,
+      orderMode: groupOrders.mode,
+      orderStatus: groupOrders.status,
+      orderSplitVoucherCode: groupOrders.splitVoucherCode,
     })
     .from(voucherLines)
     .innerJoin(groupOrders, eq(voucherLines.groupOrderId, groupOrders.id))
     .where(matches(voucherLines.payerEmail));
 
-  for (const { line, orderCurrency } of paidLines) {
+  // Track split master codes already surfaced so a payer who is also the
+  // organiser (handled again below) never sees the same code twice.
+  const seenSplitCodes = new Set<string>();
+
+  for (const {
+    line,
+    orderCurrency,
+    orderMode,
+    orderStatus,
+    orderSplitVoucherCode,
+  } of paidLines) {
     if (line.voucherCode) {
       vouchers.push({
         kind: "voucher",
@@ -212,6 +230,42 @@ export async function getDashboardForEmail(
     }
     // Every line the client is responsible for — paid, pending or expired.
     const linePaid = line.status === "paid" || line.paidAt != null;
+
+    // Split shares mint no per-share voucher: the single master code is held
+    // until every share is paid. Surface that state to the guest who paid —
+    // a "pending until everyone pays" placeholder while the group is still
+    // open, or the released master code once it is complete. (Expired split
+    // orders convert paid shares to the store credit handled above instead.)
+    if (orderMode === "split" && linePaid) {
+      if (orderStatus === "complete" && orderSplitVoucherCode) {
+        if (!seenSplitCodes.has(orderSplitVoucherCode)) {
+          seenSplitCodes.add(orderSplitVoucherCode);
+          vouchers.push({
+            kind: "voucher",
+            code: orderSplitVoucherCode,
+            source: "group",
+            status: "active",
+            currency: orderCurrency,
+            value_minor: null,
+            expires_at: null,
+            created_at: iso(line.createdAt),
+          });
+        }
+      } else if (orderStatus === "open") {
+        vouchers.push({
+          kind: "voucher",
+          code: "",
+          source: "group",
+          status: "pending",
+          currency: orderCurrency,
+          value_minor: Number(line.amountMinor),
+          expires_at: null,
+          created_at: iso(line.createdAt),
+          pending: true,
+        });
+      }
+    }
+
     let receipt = line.receiptUrl;
     if (linePaid && !receipt && line.stripeSessionId) {
       receipt = await backfillReceipt(() =>
@@ -242,12 +296,13 @@ export async function getDashboardForEmail(
     .from(groupOrders)
     .where(matches(groupOrders.organiserEmail));
   for (const order of organiserOrders) {
-    if (order.splitVoucherCode) {
+    if (order.splitVoucherCode && !seenSplitCodes.has(order.splitVoucherCode)) {
+      seenSplitCodes.add(order.splitVoucherCode);
       vouchers.push({
         kind: "voucher",
         code: order.splitVoucherCode,
         source: "group",
-        status: order.status,
+        status: order.status === "complete" ? "active" : order.status,
         currency: order.currency,
         value_minor: null,
         expires_at: null,

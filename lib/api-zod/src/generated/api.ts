@@ -23,7 +23,8 @@ export const GetDashboardResponse = zod.object({
   "currency": zod.string(),
   "value_minor": zod.number().nullish().describe('Face value in minor units, when known'),
   "expires_at": zod.string().nullish(),
-  "created_at": zod.string().nullish()
+  "created_at": zod.string().nullish(),
+  "pending": zod.boolean().optional().describe('True for a split-share voucher that is not yet released — the combined master voucher is held until every share in the group is paid. When true, no redeemable code is shown.')
 })),
   "payments": zod.array(zod.object({
   "id": zod.string(),
@@ -406,6 +407,43 @@ export const CancelOrderParams = zod.object({
 export const CancelOrderResponse = zod.object({
   "status": zod.string(),
   "cancelled_instalments": zod.number()
+})
+
+
+/**
+ * Group ordering orders (independent, flat and split) with each participant share's paid/pending/expired status, per-paid-share receipt, paid-vs-total progress, and whether a split order's combined master voucher has been released (only once every share is paid).
+ * @summary All group/split orders with per-share status and progress
+ */
+export const GetAdminGroupOrdersResponse = zod.object({
+  "orders": zod.array(zod.object({
+  "id": zod.string(),
+  "mode": zod.string().describe('independent, flat or split'),
+  "status": zod.string().describe('open, complete or expired'),
+  "organiser_name": zod.string(),
+  "organiser_email": zod.string(),
+  "currency": zod.string(),
+  "created_at": zod.string(),
+  "due_by": zod.string().nullish(),
+  "split_apartment_type": zod.string().nullish(),
+  "split_nights": zod.number().nullish(),
+  "split_voucher_code": zod.string().nullish().describe('Combined master voucher for a split order; null until every share is paid and the voucher is released.'),
+  "voucher_released": zod.boolean().describe('True for a split order whose combined master voucher has been released (all shares paid). Always false while partially paid.'),
+  "paid_count": zod.number(),
+  "total_count": zod.number(),
+  "paid_minor": zod.number().describe('Sum of paid shares in minor units (paid-so-far)'),
+  "total_minor": zod.number().describe('Sum of all shares in minor units (order total)'),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "payer_name": zod.string(),
+  "payer_email": zod.string(),
+  "amount_minor": zod.number(),
+  "status": zod.string().describe('paid, pending or expired'),
+  "paid_at": zod.string().nullish(),
+  "receipt_url": zod.string().nullish().describe('Hosted Stripe receipt URL for a paid share, when available'),
+  "voucher_code": zod.string().nullish().describe('Per-share voucher (independent\/flat modes); null in split mode'),
+  "credit_code": zod.string().nullish().describe('Residual store credit issued when a paid share expires')
+}))
+}))
 })
 
 
