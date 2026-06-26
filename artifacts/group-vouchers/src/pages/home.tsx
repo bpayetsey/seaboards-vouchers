@@ -88,7 +88,7 @@ function PhotoGallery() {
         A glimpse of The Seaboards
       </h2>
       <p className="text-sm text-muted-foreground mb-5">
-        Anse La Mouche, Mahé &middot; your island home for the Jubilee.
+        Anse La Mouche, Mahé
       </p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {photos.map((photo) => (
