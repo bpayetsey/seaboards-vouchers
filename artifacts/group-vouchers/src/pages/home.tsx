@@ -975,16 +975,6 @@ function GroupLinksSection() {
                 ? "Generating links…"
                 : "Generate payment links"}
             </Button>
-            <p className="text-xs text-muted-foreground">
-              Need apartment types or split costs?{" "}
-              <Link
-                href="/group-order"
-                className="text-primary underline underline-offset-2"
-              >
-                Use the full group order page
-              </Link>
-              .
-            </p>
           </div>
         </div>
       )}
