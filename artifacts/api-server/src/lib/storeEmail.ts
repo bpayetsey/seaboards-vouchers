@@ -38,6 +38,19 @@ function emailShell(heading: string, bodyHtml: string): string {
   </div></body></html>`;
 }
 
+/** Format a minor-unit amount as a localized currency string. */
+function formatMoney(minor: number, currency: string): string {
+  const code = currency.toUpperCase();
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+    }).format(minor / 100);
+  } catch {
+    return `${(minor / 100).toFixed(2)} ${code}`;
+  }
+}
+
 /** "Track your vouchers" CTA block, omitted when no base URL is available. */
 function dashboardCta(): { html: string; text: string } {
   const base = appBaseUrl();
@@ -86,6 +99,43 @@ export async function sendDepositReceivedEmail(
   return sendBestEffort({
     to: order.buyerEmail,
     subject: `Payment received — ${RESORT.offerTitle}`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Per-instalment payment receipt for an upcoming "Pay in 3" instalment that has
+ * just been collected — sent whether the instalment was finalised by the daily
+ * charge job (via the webhook) or by a client paying it early from their
+ * dashboard, so the experience is consistent and the buyer always has a record.
+ * The redeemable voucher PDF is still emailed separately on the final payment
+ * (voucherEmail.ts); this is just the payment confirmation for an intermediate
+ * instalment. Best-effort: returns whether delivery succeeded so the caller can
+ * release its idempotency claim for a retry.
+ */
+export async function sendInstalmentReceiptEmail(
+  order: StoreOrder,
+  inst: StoreInstallment,
+  receiptUrl: string | null,
+): Promise<boolean> {
+  const cta = dashboardCta();
+  const amount = formatMoney(Number(inst.amountMinor), order.currency);
+  const receiptHtml = receiptUrl
+    ? `<p style="margin:16px 0 0;font-size:14px;"><a href="${receiptUrl}" style="color:${BRAND};font-weight:bold;text-decoration:none;">View your payment receipt</a></p>`
+    : "";
+  const receiptText = receiptUrl
+    ? `\n\nView your payment receipt: ${receiptUrl}`
+    : "";
+  const html = emailShell(
+    "Payment received",
+    `<p style="font-size:15px;">Thank you. We've received instalment ${inst.number} of ${order.installments} (${amount}) for your ${RESORT.offerTitle} payment plan.</p>
+     <p style="font-size:14px;color:#6B7280;">Your remaining instalments will continue to be charged automatically. Your voucher activates once your plan is fully paid — we'll email you the voucher PDF then.</p>${receiptHtml}${cta.html}`,
+  );
+  const text = `Thank you. We've received instalment ${inst.number} of ${order.installments} (${amount}) for your ${RESORT.offerTitle} payment plan.\n\nYour remaining instalments will continue to be charged automatically. Your voucher activates once your plan is fully paid — we'll email you the voucher PDF then.${receiptText}${cta.text}`;
+  return sendBestEffort({
+    to: order.buyerEmail,
+    subject: `Payment received — instalment ${inst.number} of ${order.installments} — ${RESORT.offerTitle}`,
     html,
     text,
   });

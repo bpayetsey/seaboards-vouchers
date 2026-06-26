@@ -61,6 +61,11 @@ export const storeInstallments = pgTable(
     paymentIntentId: text("payment_intent_id"),
     receiptUrl: text("receipt_url"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    // Idempotency claim for the per-instalment payment receipt email. Set the
+    // first time the receipt is emailed (whether the instalment was finalised by
+    // the daily charge job's webhook or a client's advance payment), so the two
+    // paths never double-send.
+    receiptEmailedAt: timestamp("receipt_emailed_at", { withTimezone: true }),
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

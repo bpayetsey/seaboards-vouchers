@@ -27,6 +27,7 @@ import {
   sendActionRequiredEmail,
   sendPaymentFailedEmail,
   sendDepositReceivedEmail,
+  sendInstalmentReceiptEmail,
 } from "./storeEmail";
 import { sendIssuedVoucherEmail } from "./voucherEmail";
 
@@ -333,6 +334,55 @@ export async function processPaidIntent(
       .update(storeOrders)
       .set({ status: "paid", updatedAt: new Date() })
       .where(eq(storeOrders.id, order.id));
+  }
+
+  // Per-instalment payment receipt for an upcoming instalment (2..N) that did
+  // NOT complete the plan. The first payment has its own "plan started" notice
+  // and the final payment delivers the voucher PDF, so those milestones are not
+  // double-emailed here. Sent regardless of the voucher issue policy, so it must
+  // happen before the `shouldExist` early-return below. The receipt is claimed
+  // with a conditional UPDATE on the instalment's `receiptEmailedAt` so the daily
+  // charge job's webhook and a client's advance payment can never double-send;
+  // on a delivery failure the claim is released so a later run can retry.
+  if (instalmentNo >= 2 && !fullyPaid) {
+    const [inst] = await db
+      .select()
+      .from(storeInstallments)
+      .where(
+        and(
+          eq(storeInstallments.orderId, order.id),
+          eq(storeInstallments.number, instalmentNo),
+        ),
+      );
+    if (inst && inst.status === "paid") {
+      const [claimed] = await db
+        .update(storeInstallments)
+        .set({ receiptEmailedAt: new Date() })
+        .where(
+          and(
+            eq(storeInstallments.id, inst.id),
+            isNull(storeInstallments.receiptEmailedAt),
+          ),
+        )
+        .returning({ id: storeInstallments.id });
+      if (claimed) {
+        const delivered = await sendInstalmentReceiptEmail(
+          order,
+          inst,
+          inst.receiptUrl ?? receiptUrl,
+        );
+        if (!delivered) {
+          await db
+            .update(storeInstallments)
+            .set({ receiptEmailedAt: null })
+            .where(eq(storeInstallments.id, inst.id));
+          logger.warn(
+            { instalmentId: inst.id },
+            "instalment receipt email failed to send; claim rolled back for retry",
+          );
+        }
+      }
+    }
   }
 
   // Decide whether a voucher should exist yet, and in which state.
