@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import {
   RESORT,
-  VOUCHER_TERMS,
+  VOUCHER_TERMS_FULL,
   TERMS_ACCEPTANCE,
 } from "@workspace/voucher-content";
 
@@ -31,7 +31,7 @@ export default function Terms() {
           Terms &amp; Conditions
         </div>
 
-        {VOUCHER_TERMS.map((section) => (
+        {VOUCHER_TERMS_FULL.map((section) => (
           <section key={section.title} className="mt-9">
             <h2 className="font-serif text-primary text-[22px] font-semibold mb-1">
               {section.title}

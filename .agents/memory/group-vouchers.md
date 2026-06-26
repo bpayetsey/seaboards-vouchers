@@ -51,7 +51,8 @@ API returns RELATIVE links (`/pay/{token}`, `/group/{token}`); Stripe success/ca
 
 ## Design source of truth
 - The static `seaboards-jubilee` reference site (`attached_assets/seaboards_jubilee_extract/public/*.html`) is the authoritative design+content. Navy `#1F3A5F` / gold `#B8860B` / cream `#F8F6F1`, classic serif (Iowan/Palatino/Georgia) + system sans. Editorial masthead (no hero image). Theme lives in `index.css`.
-- App has a `/terms` route (`pages/terms.tsx`) reproducing the reference 9-section T&C verbatim with hierarchical clause numbering (`{section}.{n}`). When offer rates/dates/perks change, update BOTH the home offer block and Terms.
+- App has a `/terms` route (`pages/terms.tsx`) reproducing the reference 9-section T&C. When offer rates/dates/perks change, update the home offer block AND both terms exports below.
+- **Two terms exports in `lib/voucher-content`, deliberately split:** `VOUCHER_TERMS_FULL` (complete 9-section legal text) is rendered by the web `/terms` page (no space limit); `VOUCHER_TERMS` (condensed) feeds the single-A4-page voucher PDF (`api-server/.../voucherPdf.ts`, which has NO page-break handling, so it must stay short). Both must agree on substantive facts (rates, sale window, redemption deadline, blackout dates, perk, credit rules) — they can drift silently since nothing enforces parity. **Why:** the attached full T&C doc overflows the PDF; the user wanted full terms on the web but the PDF stays one page.
 
 ## Staff Admin Dashboard
 - Admin area (`/admin`, `/admin/orders`, `/admin/vouchers`) is gated **solely by Clerk identity + a `STAFF_EMAILS` allow-list** — the browser never holds the scheduler's `SESSION_SECRET`. `requireStaff` (Clerk verified primary email must be in `STAFF_EMAILS`) backs every `/api/admin/*` route; the daily charge job stays on its own `SESSION_SECRET` Bearer auth (unchanged).
