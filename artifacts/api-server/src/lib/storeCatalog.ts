@@ -46,8 +46,14 @@ export const CATALOG: CatalogItem[] = [
     rate: 2300,
     was: 3285,
     minNights: 1,
-    desc: "A sea-breeze one-bedroom apartment for two, on a Half Board basis.",
-    feat: ["Sleeps 2 adults", "Half Board included", "Valid for 1 year"],
+    desc: "A 58.7 sqm apartment opening to a private balcony with tropical mountain views — ideal for couples or a family with small children.",
+    feat: [
+      "58.7 sqm with private balcony",
+      "Tropical mountain views",
+      "Ideal for couples or a family with small children",
+      "Half Board included",
+      "Valid for 1 year",
+    ],
   },
   {
     id: "two-bedroom",
@@ -58,8 +64,15 @@ export const CATALOG: CatalogItem[] = [
     rate: 3750,
     was: 5520,
     minNights: 1,
-    desc: "A spacious two-bedroom apartment for up to four guests, on a Half Board basis.",
-    feat: ["Sleeps 4 guests", "Half Board included", "Spacious two-bedroom layout", "Valid for 1 year"],
+    desc: "A 71.2 sqm apartment with two queen-bed bedrooms (each en-suite), a spacious open-plan living area and a fully equipped kitchen — ideal for families or groups of 4–6 adults.",
+    feat: [
+      "71.2 sqm open-plan layout",
+      "Two queen bedrooms, each en-suite",
+      "Fully equipped kitchen",
+      "Ideal for families or groups of 4–6 adults",
+      "Half Board included",
+      "Valid for 1 year",
+    ],
   },
 ];
 

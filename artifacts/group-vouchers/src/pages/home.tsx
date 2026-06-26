@@ -41,7 +41,17 @@ import {
   Copy,
   Trash2,
   Link as LinkIcon,
+  Plane,
+  Sparkles,
+  Wifi,
+  ConciergeBell,
+  UtensilsCrossed,
+  Waves,
+  Car,
+  Flower2,
+  Compass,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 type Selection =
   | { kind: "package"; item: StorefrontCatalogItem }
@@ -98,6 +108,115 @@ function PhotoGallery() {
             />
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function AboutSection() {
+  return (
+    <section className="mt-10" aria-labelledby="about-heading">
+      <h2
+        id="about-heading"
+        className="font-serif text-primary text-2xl mb-1"
+      >
+        About The Seaboards
+      </h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        A boutique apartment haven in the southern region of Mahé.
+      </p>
+      <p className="text-[15px] leading-relaxed text-foreground/80">
+        Tucked into the verdant tropical vegetation of southern Mahé, The
+        Seaboards is a tranquil boutique retreat with great mountain views.
+        Unwind by the swimming pool, stretch out on the day beds, and dine at
+        the in-house restaurant &amp; bar — your island home for the Jubilee.
+      </p>
+    </section>
+  );
+}
+
+const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
+  {
+    icon: Plane,
+    title: "Airport pick-up",
+    desc: "Door-to-door transfers arranged for your arrival.",
+  },
+  {
+    icon: Sparkles,
+    title: "Housekeeping",
+    desc: "Daily service keeps your apartment fresh.",
+  },
+  {
+    icon: Wifi,
+    title: "Wifi & internet",
+    desc: "Stay connected throughout the property.",
+  },
+  {
+    icon: ConciergeBell,
+    title: "Concierge",
+    desc: "On-hand to plan, book, and tailor your stay.",
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "In-house dining",
+    desc: "Restaurant & bar using fresh, local, organic ingredients.",
+  },
+  {
+    icon: Waves,
+    title: "Swimming pool",
+    desc: "A pool and day beds for slow island afternoons.",
+  },
+  {
+    icon: Car,
+    title: "Car rental",
+    desc: "Explore Mahé at your own pace.",
+  },
+  {
+    icon: Flower2,
+    title: "Spa & wellness",
+    desc: "In-room massage and aqua yoga via concierge.",
+  },
+  {
+    icon: Compass,
+    title: "Island activities",
+    desc: "Surfing, diving, snorkeling, fishing, sailing, and nature trails.",
+  },
+];
+
+function AmenitiesSection() {
+  return (
+    <section className="mt-12" aria-labelledby="amenities-heading">
+      <h2
+        id="amenities-heading"
+        className="font-serif text-primary text-2xl mb-1"
+      >
+        Amenities &amp; Services
+      </h2>
+      <p className="text-sm text-muted-foreground mb-5">
+        Everything you need for an effortless island stay.
+      </p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {AMENITIES.map((a) => {
+          const Icon = a.icon;
+          return (
+            <div
+              key={a.title}
+              className="rounded-xl border border-border p-4 flex items-start gap-3"
+            >
+              <span className="shrink-0 rounded-lg bg-accent/10 p-2 text-accent">
+                <Icon className="w-5 h-5" />
+              </span>
+              <div>
+                <div className="font-semibold text-primary text-[15px]">
+                  {a.title}
+                </div>
+                <p className="text-[13px] text-muted-foreground mt-0.5">
+                  {a.desc}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -249,7 +368,9 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           </div>
         )}
 
-        <h2 className="font-serif text-primary text-2xl mb-5">Choose your voucher</h2>
+        <AboutSection />
+
+        <h2 className="font-serif text-primary text-2xl mt-12 mb-5">Choose your voucher</h2>
         <div className="grid sm:grid-cols-2 gap-5">
           {config.catalog.map((item) => {
             const active =
@@ -558,6 +679,8 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         )}
 
         <GroupLinksSection />
+
+        <AmenitiesSection />
 
         <PhotoGallery />
 
