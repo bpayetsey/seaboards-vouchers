@@ -159,7 +159,7 @@ const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: UtensilsCrossed,
     title: "In-house dining",
-    desc: "Restaurant & bar using fresh, local, organic ingredients.",
+    desc: "Restaurant & bar serving Western, Creole & Japanese (sushi) cuisine with fresh, local, organic ingredients.",
   },
   {
     icon: Waves,
