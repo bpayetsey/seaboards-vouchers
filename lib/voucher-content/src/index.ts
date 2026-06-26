@@ -63,7 +63,7 @@ export const VOUCHER_TERMS: TermsSection[] = [
   {
     title: "5. Validity & Blackout Dates",
     clauses: [
-      "Vouchers are sold from 29 June 2026 until 30 September 2026 (or until the allocation is exhausted) and are redeemable for stays up to and including 30 June 2027, subject to availability.",
+      "Vouchers are sold from 27 June 2026 until 30 June 2026 (or until the allocation is exhausted) and are redeemable for stays up to and including 30 June 2027, subject to availability.",
       "Stays may not fall, even partially, within the blackout periods 15 July \u2013 31 August 2026 and 20 December 2026 \u2013 15 January 2027 (inclusive).",
     ],
   },
