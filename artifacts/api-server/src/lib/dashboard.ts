@@ -70,10 +70,41 @@ export interface DashboardOrganisedOrder {
   lines: DashboardOrganisedLine[];
 }
 
+export interface DashboardInstalment {
+  number: number;
+  amount_minor: number;
+  due_at: string | null;
+  /**
+   * Raw lifecycle status: paid | scheduled | charging | failed | needs_action |
+   * expired | cancelled | pending (slot 1 before the first payment clears).
+   */
+  status: string;
+  paid_at: string | null;
+  receipt_url: string | null;
+  /** True when the client may pay this upcoming instalment early right now. */
+  payable: boolean;
+}
+
+export interface DashboardOrder {
+  id: string;
+  order_number: string | null;
+  product_name: string;
+  currency: string;
+  total_minor: number;
+  installments: number;
+  paid_instalments: number;
+  status: string;
+  created_at: string | null;
+  /** True when at least one instalment can be paid in advance now. */
+  has_upcoming: boolean;
+  schedule: DashboardInstalment[];
+}
+
 export interface DashboardView {
   email: string;
   vouchers: DashboardVoucher[];
   payments: DashboardPayment[];
+  orders: DashboardOrder[];
   organised_orders: DashboardOrganisedOrder[];
 }
 
@@ -112,6 +143,7 @@ export async function getDashboardForEmail(
 
   const vouchers: DashboardVoucher[] = [];
   const payments: DashboardPayment[] = [];
+  const dashboardOrders: DashboardOrder[] = [];
 
   // ---- Storefront flow ----------------------------------------------------
   const orders = await db
@@ -120,6 +152,9 @@ export async function getDashboardForEmail(
     .where(matches(storeOrders.buyerEmail));
 
   for (const order of orders) {
+    // Per-order instalment schedule (slot 1 + slots 2..N) for the detail view.
+    const schedule: DashboardInstalment[] = [];
+    const orderActive = order.status !== "expired" && order.status !== "cancelled";
     // Storefront vouchers (issued per order).
     const [voucher] = await db
       .select()
@@ -171,6 +206,18 @@ export async function getDashboardForEmail(
         paid_at: firstPaid ? iso(order.createdAt) : null,
         receipt_url: firstPaid ? (receipt ?? null) : null,
       });
+
+      // Slot 1 in the schedule. Never advance-payable — it is the checkout
+      // payment, handled by the storefront flow, not the daily/advance path.
+      schedule.push({
+        number: 1,
+        amount_minor: firstAmount,
+        due_at: iso(order.createdAt),
+        status: firstPaid ? "paid" : orderPendingStatus(order.status),
+        paid_at: firstPaid ? iso(order.createdAt) : null,
+        receipt_url: firstPaid ? (receipt ?? null) : null,
+        payable: false,
+      });
     }
 
     // Subsequent instalments (2..N) — every scheduled / paid / failed / expired
@@ -204,8 +251,40 @@ export async function getDashboardForEmail(
           paid_at: instPaid ? iso(inst.paidAt) : null,
           receipt_url: instPaid ? (receipt ?? null) : null,
         });
+
+        // Schedule slot. Payable only when in a claimable state (scheduled /
+        // failed — exactly what the advance path can claim), the order is still
+        // active, and a card is on file to charge.
+        const payable =
+          orderActive &&
+          !!order.stripePaymentMethodId &&
+          (inst.status === "scheduled" || inst.status === "failed");
+        schedule.push({
+          number: inst.number,
+          amount_minor: Number(inst.amountMinor),
+          due_at: iso(inst.dueAt),
+          status: inst.status,
+          paid_at: instPaid ? iso(inst.paidAt) : null,
+          receipt_url: instPaid ? (receipt ?? null) : null,
+          payable,
+        });
       }
     }
+
+    schedule.sort((a, b) => a.number - b.number);
+    dashboardOrders.push({
+      id: order.id,
+      order_number: order.orderNumber,
+      product_name: order.productName,
+      currency: order.currency,
+      total_minor: Number(order.totalMinor),
+      installments: order.installments,
+      paid_instalments: order.paidInstalments,
+      status: order.status,
+      created_at: iso(order.createdAt),
+      has_upcoming: schedule.some((s) => s.payable),
+      schedule,
+    });
   }
 
   // ---- Group flow ---------------------------------------------------------
@@ -403,7 +482,17 @@ export async function getDashboardForEmail(
     (b.created_at ?? "").localeCompare(a.created_at ?? ""),
   );
 
-  return { email: normalized, vouchers, payments, organised_orders };
+  dashboardOrders.sort((a, b) =>
+    (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+  );
+
+  return {
+    email: normalized,
+    vouchers,
+    payments,
+    orders: dashboardOrders,
+    organised_orders,
+  };
 }
 
 async function fetchPiReceipt(paymentIntentId: string): Promise<string | null> {

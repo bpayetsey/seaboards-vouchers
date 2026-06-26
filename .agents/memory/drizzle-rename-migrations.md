@@ -1,7 +1,20 @@
 ---
-name: Drizzle column renames can't flow through task/merge/publish
-description: Why a Drizzle column rename silently fails to reach dev and prod, and the only reliable fix path.
+name: Drizzle DDL that prompts can't flow through task/merge/publish
+description: Why a Drizzle column rename — or adding a UNIQUE constraint to a populated column — silently fails to reach dev and prod, and the reliable fix paths.
 ---
+
+# Adding a UNIQUE constraint to a populated column also breaks push
+
+`drizzle-kit push` prompts (TTY-only) whenever it adds a `UNIQUE` constraint to a table that already has rows ("Do you want to truncate <table>?"), even when existing values are unique or NULL. In the non-interactive post-merge/publish environment this aborts the whole push — the same failure mode as a rename.
+
+**The fix that works for dev AND prod (no manual SQL per environment):** do the rollout in an **idempotent backfill script** that runs *before* `pnpm --filter db push` in `scripts/post-merge.sh`. The script must:
+1. `ALTER TABLE <t> ADD COLUMN IF NOT EXISTS ...` (nullable).
+2. Backfill the new column for all rows.
+3. Add the unique constraint under **drizzle's exact generated name** `<table>_<column>_unique`, guarded by `IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ...)` in a `DO $$ ... $$` block.
+
+Because the DB now matches the Drizzle schema, the subsequent `push` sees no diff and never prompts. Keep `.unique()` in the Drizzle schema (so the contract is declarative) — the script just gets the DB there first. Constraint name must match drizzle's convention exactly or push will still try to add it.
+
+**Why:** the schema declares `.unique()` on a column added to tables that already had rows; without pre-applying the constraint, the first post-merge push hangs on the truncate prompt and silently leaves prod unmigrated.
 
 # Drizzle column renames break the automated migration flow
 

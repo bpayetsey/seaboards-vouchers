@@ -41,6 +41,8 @@ import type {
   IssueVoucherInput,
   OkResult,
   OrganiserView,
+  PayInstalmentsBody,
+  PayInstalmentsResult,
   PayLine,
   RateTable,
   ReorderGalleryInput,
@@ -600,6 +602,80 @@ export const useResendOrganisedLine = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getResendOrganisedLineMutationOptions(options));
+    }
+
+export const getPayOrderInstalmentsUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/dashboard/orders/${orderId}/pay-instalments`
+}
+
+/**
+ * Charges one or more upcoming instalments for a storefront order owned by the authenticated client against the card saved at checkout. Scoped strictly to the verified account email. Pass `numbers` to pay specific instalments, or omit it to pay all remaining upcoming instalments. Shares the daily charge job's atomic status claim so an instalment can never be double-charged. Requires a Clerk session.
+
+ * @summary Pay upcoming "Pay in 3" instalments in advance
+ */
+export const payOrderInstalments = async (orderId: string,
+    payInstalmentsBody?: PayInstalmentsBody, options?: RequestInit): Promise<PayInstalmentsResult> => {
+
+  return customFetch<PayInstalmentsResult>(getPayOrderInstalmentsUrl(orderId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      payInstalmentsBody,)
+  }
+);}
+
+
+
+
+export const getPayOrderInstalmentsMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payOrderInstalments>>, TError,{orderId: string;data?: BodyType<PayInstalmentsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payOrderInstalments>>, TError,{orderId: string;data?: BodyType<PayInstalmentsBody>}, TContext> => {
+
+const mutationKey = ['payOrderInstalments'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payOrderInstalments>>, {orderId: string;data?: BodyType<PayInstalmentsBody>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  payOrderInstalments(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayOrderInstalmentsMutationResult = NonNullable<Awaited<ReturnType<typeof payOrderInstalments>>>
+    export type PayOrderInstalmentsMutationBody = BodyType<PayInstalmentsBody> | undefined
+    export type PayOrderInstalmentsMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Pay upcoming "Pay in 3" instalments in advance
+ */
+export const usePayOrderInstalments = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payOrderInstalments>>, TError,{orderId: string;data?: BodyType<PayInstalmentsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof payOrderInstalments>>,
+        TError,
+        {orderId: string;data?: BodyType<PayInstalmentsBody>},
+        TContext
+      > => {
+      return useMutation(getPayOrderInstalmentsMutationOptions(options));
     }
 
 export const getGetPayLineUrl = (payToken: string,) => {

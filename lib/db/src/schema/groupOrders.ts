@@ -10,6 +10,10 @@ import {
 
 export const groupOrders = pgTable("group_order", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Human-readable, unique order reference shown to participants on the pay
+  // link "done" screen. Nullable so the additive migration applies cleanly;
+  // generated at creation and backfilled.
+  orderNumber: text("order_number").unique(),
   mode: text("mode").notNull(),
   organiserName: text("organiser_name").notNull(),
   organiserEmail: text("organiser_email").notNull(),

@@ -1,6 +1,7 @@
 import {
   useGetDashboard,
   useResendOrganisedLine,
+  usePayOrderInstalments,
   getGetDashboardQueryKey,
 } from "@workspace/api-client-react";
 import type {
@@ -8,6 +9,8 @@ import type {
   DashboardPayment,
   DashboardOrganisedOrder,
   DashboardOrganisedLine,
+  DashboardOrder,
+  DashboardInstalment,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { useState } from "react";
@@ -17,6 +20,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { formatMoney } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,6 +47,10 @@ import {
   Copy,
   Check,
   CheckCircle2,
+  CalendarClock,
+  Package,
+  Loader2,
+  ChevronRight,
 } from "lucide-react";
 
 function fromMinor(amountMinor: number) {
@@ -136,6 +150,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <>
+            <OrdersSection orders={data?.orders ?? []} />
             <OrganisedOrdersSection orders={data?.organised_orders ?? []} />
             <VouchersSection vouchers={data?.vouchers ?? []} />
             <PaymentsSection payments={data?.payments ?? []} />
@@ -182,6 +197,276 @@ function lineStatusLabel(status: string) {
   if (s === "paid") return "Paid";
   if (s === "expired") return "Expired";
   return "Pending";
+}
+
+function instalmentStatusLabel(status: string) {
+  const s = status.toLowerCase();
+  if (s === "paid") return "Paid";
+  if (s === "charging") return "Charging";
+  if (s === "failed") return "Failed";
+  if (s === "needs_action") return "Action needed";
+  if (s === "expired") return "Expired";
+  if (s === "cancelled") return "Cancelled";
+  if (s === "pending") return "Pending";
+  return "Scheduled";
+}
+
+function OrderDetailDialog({
+  order,
+  open,
+  onOpenChange,
+}: {
+  order: DashboardOrder;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const payInstalments = usePayOrderInstalments();
+  const [payingNumber, setPayingNumber] = useState<number | null>(null);
+
+  const payOne = (inst: DashboardInstalment) => {
+    setPayingNumber(inst.number);
+    payInstalments.mutate(
+      { orderId: order.id, data: { numbers: [inst.number] } },
+      {
+        onSuccess: (res) => {
+          const result = res.results.find((r) => r.number === inst.number);
+          if (result?.status === "paid") {
+            toast({ title: `Instalment ${inst.number} paid` });
+          } else if (result?.status === "needs_action") {
+            toast({
+              title: "Further authentication needed",
+              description:
+                "Your bank needs to confirm this payment. Please try again or use a different card.",
+              variant: "destructive",
+            });
+          } else if (result?.status === "skipped") {
+            toast({
+              title: "Already handled",
+              description: "This instalment was no longer payable.",
+            });
+          } else {
+            toast({
+              title: "Payment failed",
+              description: result?.error ?? "Please try again in a moment.",
+              variant: "destructive",
+            });
+          }
+          queryClient.invalidateQueries({
+            queryKey: getGetDashboardQueryKey(),
+          });
+        },
+        onError: (err: unknown) => {
+          const message =
+            err && typeof err === "object" && "error" in err
+              ? String((err as { error?: unknown }).error)
+              : "Please try again in a moment.";
+          toast({
+            title: "Payment failed",
+            description: message,
+            variant: "destructive",
+          });
+        },
+        onSettled: () => setPayingNumber(null),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-2xl text-primary">
+            {order.product_name}
+          </DialogTitle>
+          <DialogDescription>
+            {order.order_number ? (
+              <span className="font-mono tracking-wider text-foreground">
+                {order.order_number}
+              </span>
+            ) : (
+              "Order details"
+            )}
+            {" · "}
+            {order.paid_instalments} of {order.installments} instalments paid
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          {order.schedule.map((inst) => {
+            const isPaid = inst.status.toLowerCase() === "paid";
+            const busy = payingNumber === inst.number;
+            return (
+              <div
+                key={inst.number}
+                className="flex items-center gap-3 rounded-lg border border-border p-3"
+              >
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    isPaid
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {isPaid ? <Check className="h-4 w-4" /> : inst.number}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {formatMoney(fromMinor(inst.amount_minor), order.currency)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isPaid
+                      ? `Paid ${formatDate(inst.paid_at)}`
+                      : inst.due_at
+                        ? `Due ${formatDate(inst.due_at)}`
+                        : "Upcoming"}
+                  </p>
+                </div>
+                {isPaid && inst.receipt_url ? (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <a
+                      href={inst.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Receipt
+                    </a>
+                  </Button>
+                ) : inst.payable ? (
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={busy || payInstalments.isPending}
+                    onClick={() => payOne(inst)}
+                  >
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CreditCard className="h-3.5 w-3.5" />
+                    )}
+                    Pay now
+                  </Button>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className={`capitalize ${statusTone(inst.status)}`}
+                  >
+                    {instalmentStatusLabel(inst.status)}
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OrderCard({ order }: { order: DashboardOrder }) {
+  const [open, setOpen] = useState(false);
+  const progress =
+    order.installments > 0
+      ? Math.round((order.paid_instalments / order.installments) * 100)
+      : 0;
+  const isPaid = order.paid_instalments >= order.installments;
+
+  return (
+    <>
+      <Card className="overflow-hidden">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">{order.product_name}</p>
+              {order.order_number && (
+                <p className="mt-0.5 font-mono text-xs tracking-wider text-muted-foreground">
+                  {order.order_number}
+                </p>
+              )}
+            </div>
+            <Badge
+              variant="outline"
+              className={`capitalize ${statusTone(isPaid ? "paid" : order.status)}`}
+            >
+              {isPaid ? "Paid" : order.status}
+            </Badge>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {order.paid_instalments} of {order.installments} instalments paid
+              </span>
+              <span className="font-medium text-foreground">
+                {formatMoney(fromMinor(order.total_minor), order.currency)}
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setOpen(true)}
+            >
+              View schedule
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+            {order.has_upcoming && (
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setOpen(true)}
+              >
+                <CalendarClock className="h-3.5 w-3.5" />
+                Pay early
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <OrderDetailDialog order={order} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+function OrdersSection({ orders }: { orders: DashboardOrder[] }) {
+  return (
+    <section>
+      <SectionHeading
+        icon={<Package className="h-4 w-4" />}
+        title="Your orders"
+        count={orders.length}
+      />
+      {orders.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            You haven&rsquo;t placed any orders yet.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function OrganisedLineRow({

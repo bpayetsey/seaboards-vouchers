@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { and, asc, eq, isNull, lt, ne, sql } from "drizzle-orm";
-import { db, groupOrders, voucherLines } from "@workspace/db";
+import { db, groupOrders, voucherLines, newOrderNumber } from "@workspace/db";
 import type Stripe from "stripe";
 import {
   getUncachableStripeClient,
@@ -182,6 +182,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
     const [order] = await tx
       .insert(groupOrders)
       .values({
+        orderNumber: newOrderNumber(),
         mode,
         organiserName: organiserName,
         organiserEmail: organiser_email,
@@ -599,6 +600,7 @@ export async function getPayLine(payToken: string) {
     payable,
     voucher_code: line.voucherCode,
     organiser_name: order.organiserName,
+    order_number: order.orderNumber,
   };
 }
 

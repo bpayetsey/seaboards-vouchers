@@ -708,6 +708,7 @@ function CheckoutView({
   const [result, setResult] = useState<{
     status: string;
     voucher: { code: string; status: string } | null | undefined;
+    orderNumber: string | null | undefined;
   } | null>(null);
 
   const dueNow = plan === "instalments" ? perInstalment : total;
@@ -732,7 +733,11 @@ function CheckoutView({
       { orderId },
       {
         onSuccess: (data) => {
-          setResult({ status: data.status, voucher: data.voucher });
+          setResult({
+            status: data.status,
+            voucher: data.voucher,
+            orderNumber: data.order_number,
+          });
           setSubmitting(false);
         },
         onError: () => {
@@ -753,11 +758,21 @@ function CheckoutView({
           <Check className="w-10 h-10" />
         </div>
         <h1 className="text-3xl font-serif text-foreground mb-3">Thank you!</h1>
-        <p className="text-muted-foreground mb-8">
+        <p className="text-muted-foreground mb-6">
           {plan === "instalments"
             ? "Your first payment is in. We'll charge the remaining instalments automatically."
             : "Your payment is complete."}
         </p>
+        {result.orderNumber && (
+          <div className="mb-8 inline-flex flex-col items-center">
+            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Order number
+            </span>
+            <span className="mt-1 font-mono text-lg font-bold tracking-wider text-primary">
+              {result.orderNumber}
+            </span>
+          </div>
+        )}
         {result.voucher ? (
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground mb-3">

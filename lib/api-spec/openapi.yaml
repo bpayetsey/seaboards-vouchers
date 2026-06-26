@@ -204,6 +204,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /dashboard/orders/{orderId}/pay-instalments:
+    post:
+      operationId: payOrderInstalments
+      tags: [dashboard]
+      summary: Pay upcoming "Pay in 3" instalments in advance
+      description: >
+        Charges one or more upcoming instalments for a storefront order owned by
+        the authenticated client against the card saved at checkout. Scoped
+        strictly to the verified account email. Pass `numbers` to pay specific
+        instalments, or omit it to pay all remaining upcoming instalments. Shares
+        the daily charge job's atomic status claim so an instalment can never be
+        double-charged. Requires a Clerk session.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayInstalmentsBody"
+      responses:
+        "200":
+          description: Per-instalment outcome plus the refreshed order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayInstalmentsResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /pay/{payToken}:
     get:
       operationId: getPayLine
@@ -1356,6 +1405,9 @@ components:
           type: ["string", "null"]
         organiser_name:
           type: string
+        order_number:
+          type: ["string", "null"]
+          description: Human-readable order reference for this group order
     CheckoutSession:
       type: object
       required: [url]
@@ -1481,6 +1533,9 @@ components:
       properties:
         status:
           type: string
+        order_number:
+          type: ["string", "null"]
+          description: Human-readable order reference for this order
         paid_instalments:
           type: integer
         installments:
@@ -1698,9 +1753,98 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DashboardOrganisedLine"
+    DashboardInstalment:
+      type: object
+      required: [number, amount_minor, status, payable]
+      properties:
+        number:
+          type: integer
+          description: 1-based instalment number (1 is the checkout payment)
+        amount_minor:
+          type: integer
+          description: Instalment amount in minor units
+        due_at:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: paid / scheduled / charging / failed / needs_action / expired / cancelled / pending
+        paid_at:
+          type: ["string", "null"]
+        receipt_url:
+          type: ["string", "null"]
+        payable:
+          type: boolean
+          description: True when this upcoming instalment can be paid in advance now
+    DashboardOrder:
+      type: object
+      required:
+        - id
+        - product_name
+        - currency
+        - total_minor
+        - installments
+        - paid_instalments
+        - status
+        - has_upcoming
+        - schedule
+      properties:
+        id:
+          type: string
+        order_number:
+          type: ["string", "null"]
+        product_name:
+          type: string
+        currency:
+          type: string
+        total_minor:
+          type: integer
+        installments:
+          type: integer
+        paid_instalments:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: ["string", "null"]
+        has_upcoming:
+          type: boolean
+          description: True when at least one instalment can be paid in advance now
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardInstalment"
+    PayInstalmentsBody:
+      type: object
+      properties:
+        numbers:
+          type: array
+          description: Instalment numbers to pay; omit or leave empty to pay all remaining upcoming instalments
+          items:
+            type: integer
+    PayInstalmentResult:
+      type: object
+      required: [number, status]
+      properties:
+        number:
+          type: integer
+        status:
+          type: string
+          enum: [paid, skipped, needs_action, failed]
+        error:
+          type: ["string", "null"]
+    PayInstalmentsResult:
+      type: object
+      required: [results, order]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayInstalmentResult"
+        order:
+          $ref: "#/components/schemas/DashboardOrder"
     DashboardView:
       type: object
-      required: [email, vouchers, payments, organised_orders]
+      required: [email, vouchers, payments, orders, organised_orders]
       properties:
         email:
           type: string
@@ -1713,6 +1857,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DashboardPayment"
+        orders:
+          type: array
+          description: Storefront orders with their full instalment schedule
+          items:
+            $ref: "#/components/schemas/DashboardOrder"
         organised_orders:
           type: array
           description: Group orders this account created as the organiser, any status

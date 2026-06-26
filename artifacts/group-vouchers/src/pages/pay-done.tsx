@@ -106,7 +106,18 @@ export default function PayDone() {
               <ShieldCheck className="w-10 h-10" />
             </div>
             <h1 className="text-3xl font-serif text-foreground mb-2">Payment Successful!</h1>
-            <p className="text-muted-foreground mb-8">Thank you, {line.payer_name}. Your payment has been confirmed.</p>
+            <p className="text-muted-foreground mb-6">Thank you, {line.payer_name}. Your payment has been confirmed.</p>
+
+            {line.order_number && (
+              <div className="mb-8 inline-flex flex-col items-center">
+                <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                  Order number
+                </span>
+                <span className="mt-1 font-mono text-lg font-bold tracking-wider text-primary">
+                  {line.order_number}
+                </span>
+              </div>
+            )}
             
             {line.voucher_code && (
               <Card className="border-primary/20 bg-primary/5 shadow-sm">

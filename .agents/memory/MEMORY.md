@@ -2,4 +2,4 @@
 - [RHF + zod.coerce typing](rhf-zod-coerce-typing.md) — useFieldArray needs `control: form.control`; z.coerce makes input≠output, type useForm with three generics.
 - [stripe-replit-sync setup](stripe-replit-sync-setup.md) — connector exposes `secret`/`publishable` (not `_key`), verify via sync.processWebhook, externalize stripe-replit-sync in esbuild or migrations silently skip.
 - [Object storage upload auth](object-storage-upload-auth.md) — storage template ships request-url route unauthenticated; gate it or public-serve routes become an open file host.
-- [Drizzle rename migrations](drizzle-rename-migrations.md) — column renames silently break the task/merge/publish flow (TTY prompt aborts push); fix dev via direct SQL rename then push, then re-publish + confirm.
+- [Drizzle rename migrations](drizzle-rename-migrations.md) — renames AND adding UNIQUE to a populated column trigger a TTY prompt that aborts non-interactive push; pre-apply via idempotent backfill script (drizzle's exact constraint name) before `db push`.

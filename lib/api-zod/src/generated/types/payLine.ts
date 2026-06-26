@@ -16,4 +16,9 @@ export interface PayLine {
   /** @nullable */
   voucher_code?: string | null;
   organiser_name?: string;
+  /**
+     * Human-readable order reference for this group order
+     * @nullable
+     */
+  order_number?: string | null;
 }

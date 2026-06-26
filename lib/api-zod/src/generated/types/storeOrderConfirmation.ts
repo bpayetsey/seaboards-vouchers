@@ -9,6 +9,11 @@ import type { StoreVoucherSummary } from './storeVoucherSummary';
 
 export interface StoreOrderConfirmation {
   status: string;
+  /**
+     * Human-readable order reference for this order
+     * @nullable
+     */
+  order_number?: string | null;
   paid_instalments: number;
   installments: number;
   voucher?: StoreVoucherSummary | null;

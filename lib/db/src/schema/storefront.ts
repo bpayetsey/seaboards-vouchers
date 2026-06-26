@@ -19,6 +19,9 @@ export const storeOrders = pgTable(
   "store_order",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Human-readable, unique order reference shown to buyers. Nullable so the
+    // additive migration applies cleanly; generated at creation and backfilled.
+    orderNumber: text("order_number").unique(),
     productId: text("product_id"),
     productName: text("product_name").notNull(),
     type: text("type").notNull().default("package"),

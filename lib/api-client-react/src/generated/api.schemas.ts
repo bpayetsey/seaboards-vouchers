@@ -262,6 +262,11 @@ export interface PayLine {
   /** @nullable */
   voucher_code?: string | null;
   organiser_name?: string;
+  /**
+     * Human-readable order reference for this group order
+     * @nullable
+     */
+  order_number?: string | null;
 }
 
 export interface CheckoutSession {
@@ -352,6 +357,11 @@ export interface StoreVoucherSummary {
 
 export interface StoreOrderConfirmation {
   status: string;
+  /**
+     * Human-readable order reference for this order
+     * @nullable
+     */
+  order_number?: string | null;
   paid_instalments: number;
   installments: number;
   voucher?: StoreVoucherSummary | null;
@@ -501,11 +511,74 @@ export interface DashboardOrganisedOrder {
   lines: DashboardOrganisedLine[];
 }
 
+export interface DashboardInstalment {
+  /** 1-based instalment number (1 is the checkout payment) */
+  number: number;
+  /** Instalment amount in minor units */
+  amount_minor: number;
+  /** @nullable */
+  due_at?: string | null;
+  /** paid / scheduled / charging / failed / needs_action / expired / cancelled / pending */
+  status: string;
+  /** @nullable */
+  paid_at?: string | null;
+  /** @nullable */
+  receipt_url?: string | null;
+  /** True when this upcoming instalment can be paid in advance now */
+  payable: boolean;
+}
+
+export interface DashboardOrder {
+  id: string;
+  /** @nullable */
+  order_number?: string | null;
+  product_name: string;
+  currency: string;
+  total_minor: number;
+  installments: number;
+  paid_instalments: number;
+  status: string;
+  /** @nullable */
+  created_at?: string | null;
+  /** True when at least one instalment can be paid in advance now */
+  has_upcoming: boolean;
+  schedule: DashboardInstalment[];
+}
+
+export interface PayInstalmentsBody {
+  /** Instalment numbers to pay; omit or leave empty to pay all remaining upcoming instalments */
+  numbers?: number[];
+}
+
+export type PayInstalmentResultStatus = typeof PayInstalmentResultStatus[keyof typeof PayInstalmentResultStatus];
+
+
+export const PayInstalmentResultStatus = {
+  paid: 'paid',
+  skipped: 'skipped',
+  needs_action: 'needs_action',
+  failed: 'failed',
+} as const;
+
+export interface PayInstalmentResult {
+  number: number;
+  status: PayInstalmentResultStatus;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface PayInstalmentsResult {
+  results: PayInstalmentResult[];
+  order: DashboardOrder;
+}
+
 export interface DashboardView {
   /** The verified account email all records are scoped to */
   email: string;
   vouchers: DashboardVoucher[];
   payments: DashboardPayment[];
+  /** Storefront orders with their full instalment schedule */
+  orders: DashboardOrder[];
   /** Group orders this account created as the organiser, any status */
   organised_orders: DashboardOrganisedOrder[];
 }

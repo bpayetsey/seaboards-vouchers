@@ -2,9 +2,13 @@ import { Router, type IRouter } from "express";
 import {
   GetDashboardResponse,
   ResendOrganisedLineParams,
+  PayOrderInstalmentsParams,
+  PayOrderInstalmentsBody,
+  PayOrderInstalmentsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 import { getDashboardForEmail } from "../lib/dashboard";
+import { payInstalmentsForOrder } from "../lib/storefront";
 import { resendLineForOrganiser } from "../lib/groupVouchers";
 import { resolveVoucherByCode, buildVoucherPdf } from "../lib/voucherPdf";
 import { sendVoucherPdf } from "./vouchers";
@@ -40,6 +44,44 @@ router.post(
       return res
         .status(500)
         .json({ error: "Could not send the reminder right now." });
+    }
+  },
+);
+
+/**
+ * Pay one or more upcoming "Pay in 3" instalments in advance. Scoped strictly
+ * to the authenticated, verified account email — the buyer must own the order.
+ * Returns the per-instalment outcome and the refreshed order so the dashboard
+ * can re-render its schedule.
+ */
+router.post(
+  "/dashboard/orders/:orderId/pay-instalments",
+  requireAuth,
+  async (req, res) => {
+    const { userEmail } = req as AuthedRequest;
+    const { orderId } = PayOrderInstalmentsParams.parse(req.params);
+    const { numbers } = PayOrderInstalmentsBody.parse(req.body ?? {});
+    try {
+      const outcome = await payInstalmentsForOrder(userEmail, orderId, numbers);
+      if ("error" in outcome) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      // Re-read the order (post-charge) scoped to the same verified email.
+      const view = await getDashboardForEmail(userEmail);
+      const order = view.orders.find((o) => o.id === orderId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      const validated = PayOrderInstalmentsResponse.parse({
+        results: outcome.results,
+        order,
+      });
+      return res.json(validated);
+    } catch (err) {
+      req.log.error({ err }, "Failed to pay instalments in advance");
+      return res
+        .status(500)
+        .json({ error: "Could not process your payment right now." });
     }
   },
 );

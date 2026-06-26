@@ -6,6 +6,8 @@ import {
   storeInstallments,
   storeVouchers,
 } from "@workspace/db";
+import type { StoreOrder, StoreInstallment } from "@workspace/db";
+import { newOrderNumber } from "@workspace/db";
 import type Stripe from "stripe";
 import {
   getUncachableStripeClient,
@@ -109,6 +111,7 @@ export async function createStoreOrder(
   const [order] = await db
     .insert(storeOrders)
     .values({
+      orderNumber: newOrderNumber(),
       productId: product_id ?? null,
       productName,
       type,
@@ -153,6 +156,7 @@ export async function createStoreOrder(
 type ConfirmResult =
   | {
       status: string;
+      order_number: string | null;
       paid_instalments: number;
       installments: number;
       voucher: { code: string; status: string } | null;
@@ -185,6 +189,7 @@ export async function confirmStoreOrder(
 
   return {
     status: fresh.status,
+    order_number: fresh.orderNumber,
     paid_instalments: fresh.paidInstalments,
     installments: fresh.installments,
     voucher: voucher ? { code: voucher.code, status: voucher.status } : null,
@@ -284,7 +289,7 @@ export async function processPaidIntent(
         }
       }
     }
-  } else if (order.paidInstalments < instalmentNo) {
+  } else {
     await db
       .update(storeInstallments)
       .set({ status: "paid", paidAt: new Date(), receiptUrl })
@@ -295,13 +300,34 @@ export async function processPaidIntent(
           ne(storeInstallments.status, "paid"),
         ),
       );
-    await db
-      .update(storeOrders)
-      .set({ paidInstalments: instalmentNo, updatedAt: new Date() })
-      .where(eq(storeOrders.id, order.id));
   }
 
-  const fullyPaid = instalmentNo >= order.installments;
+  // Recompute paid progress from the actual paid slots rather than treating the
+  // instalment number as a high-water mark. Advance payments let a client pay a
+  // later instalment before an earlier one, so a number-based count would both
+  // mis-report progress and prematurely mark the order fully paid (activating
+  // the voucher while an earlier instalment is still unpaid). Slot 1 is the
+  // first payment (always cleared before any instalment 2..N can be charged);
+  // slots 2..N are storeInstallments rows.
+  let paidCount = 1;
+  if (order.installments > 1) {
+    const paidRows = await db
+      .select({ id: storeInstallments.id })
+      .from(storeInstallments)
+      .where(
+        and(
+          eq(storeInstallments.orderId, order.id),
+          eq(storeInstallments.status, "paid"),
+        ),
+      );
+    paidCount = 1 + paidRows.length;
+  }
+  await db
+    .update(storeOrders)
+    .set({ paidInstalments: paidCount, updatedAt: new Date() })
+    .where(eq(storeOrders.id, order.id));
+
+  const fullyPaid = paidCount >= order.installments;
   if (fullyPaid && order.status !== "paid") {
     await db
       .update(storeOrders)
@@ -427,6 +453,97 @@ async function emailVoucherOnce(
   }
 }
 
+type ChargeOutcome =
+  | { ok: true }
+  | { ok: false; reason: "skipped" }
+  | { ok: false; reason: "needs_action" }
+  | { ok: false; reason: "failed"; error: string };
+
+/**
+ * Charge a single instalment off-session against the buyer's saved card.
+ *
+ * This is the single charging primitive shared by the daily job and the
+ * client-triggered advance-payment path. Both acquire the SAME atomic status
+ * claim (UPDATE … SET status='charging' WHERE status IN ('scheduled','failed'))
+ * AND use the SAME Stripe idempotency key, so the two paths can never produce a
+ * double charge for one instalment: whoever claims the row first proceeds and
+ * the other gets `skipped`.
+ *
+ * When `finalize` is true (advance path) a synchronously-succeeded PI is
+ * finalised immediately via `processPaidIntent` for instant UI feedback; the
+ * daily job leaves `finalize` false and lets the webhook finalise. On failure
+ * the row is moved off `charging` (to `failed`/`needs_action`) so it is never
+ * stuck and can be retried.
+ */
+async function chargeInstalmentRow(
+  order: StoreOrder,
+  inst: StoreInstallment,
+  { finalize }: { finalize: boolean },
+): Promise<ChargeOutcome> {
+  if (!order.stripePaymentMethodId) {
+    return { ok: false, reason: "failed", error: "no_payment_method" };
+  }
+
+  const claimed = await db
+    .update(storeInstallments)
+    .set({ status: "charging" })
+    .where(
+      and(
+        eq(storeInstallments.id, inst.id),
+        inArray(storeInstallments.status, ["scheduled", "failed"]),
+      ),
+    )
+    .returning({ id: storeInstallments.id });
+  if (claimed.length === 0) return { ok: false, reason: "skipped" };
+
+  try {
+    const stripe = await getUncachableStripeClient();
+    const pi = await stripe.paymentIntents.create(
+      {
+        amount: Number(inst.amountMinor),
+        currency: order.currency,
+        customer: order.stripeCustomerId,
+        payment_method: order.stripePaymentMethodId,
+        off_session: true,
+        confirm: true,
+        metadata: { orderId: order.id, instalmentNo: String(inst.number) },
+      },
+      { idempotencyKey: `store-order-${order.id}-i${inst.number}` },
+    );
+    await db
+      .update(storeInstallments)
+      .set({ paymentIntentId: pi.id })
+      .where(eq(storeInstallments.id, inst.id));
+    if (finalize && pi.status === "succeeded") {
+      await processPaidIntent(pi);
+    }
+    return { ok: true };
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === "authentication_required") {
+      await db
+        .update(storeInstallments)
+        .set({ status: "needs_action" })
+        .where(eq(storeInstallments.id, inst.id));
+      await sendActionRequiredEmail(order, inst);
+      logger.warn({ err, instalmentId: inst.id }, "Instalment charge failed");
+      return { ok: false, reason: "needs_action" };
+    }
+    const message = err instanceof Error ? err.message : "charge failed";
+    await db
+      .update(storeInstallments)
+      .set({
+        status: "failed",
+        lastError: message,
+        attempts: inst.attempts + 1,
+      })
+      .where(eq(storeInstallments.id, inst.id));
+    await sendPaymentFailedEmail(order, inst);
+    logger.warn({ err, instalmentId: inst.id }, "Instalment charge failed");
+    return { ok: false, reason: "failed", error: message };
+  }
+}
+
 /** Daily job: charge due instalments off-session. */
 export async function chargeDueInstalments(): Promise<{ processed: number }> {
   const due = await db
@@ -447,64 +564,86 @@ export async function chargeDueInstalments(): Promise<{ processed: number }> {
       .where(eq(storeOrders.id, inst.orderId));
     if (!order || !order.stripePaymentMethodId) continue;
 
-    // Atomically claim the row so a concurrent run or a pending webhook
-    // cannot trigger a second charge for the same instalment. Only proceed
-    // if it is still in a chargeable state.
-    const claimed = await db
-      .update(storeInstallments)
-      .set({ status: "charging" })
-      .where(
-        and(
-          eq(storeInstallments.id, inst.id),
-          inArray(storeInstallments.status, ["scheduled", "failed"]),
-        ),
-      )
-      .returning({ id: storeInstallments.id });
-    if (claimed.length === 0) continue;
-    processed++;
-
-    try {
-      const stripe = await getUncachableStripeClient();
-      const pi = await stripe.paymentIntents.create(
-        {
-          amount: Number(inst.amountMinor),
-          currency: order.currency,
-          customer: order.stripeCustomerId,
-          payment_method: order.stripePaymentMethodId,
-          off_session: true,
-          confirm: true,
-          metadata: { orderId: order.id, instalmentNo: String(inst.number) },
-        },
-        { idempotencyKey: `store-order-${order.id}-i${inst.number}` },
-      );
-      // Persist the PI id; success is finalised by the webhook (or confirm).
-      await db
-        .update(storeInstallments)
-        .set({ paymentIntentId: pi.id })
-        .where(eq(storeInstallments.id, inst.id));
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === "authentication_required") {
-        await db
-          .update(storeInstallments)
-          .set({ status: "needs_action" })
-          .where(eq(storeInstallments.id, inst.id));
-        await sendActionRequiredEmail(order, inst);
-      } else {
-        await db
-          .update(storeInstallments)
-          .set({
-            status: "failed",
-            lastError: err instanceof Error ? err.message : "charge failed",
-            attempts: inst.attempts + 1,
-          })
-          .where(eq(storeInstallments.id, inst.id));
-        await sendPaymentFailedEmail(order, inst);
-      }
-      logger.warn({ err, instalmentId: inst.id }, "Instalment charge failed");
-    }
+    // Success is finalised by the webhook (finalize: false).
+    const outcome = await chargeInstalmentRow(order, inst, { finalize: false });
+    if (outcome.ok || outcome.reason !== "skipped") processed++;
   }
   return { processed };
+}
+
+export type PayInstalmentResult = {
+  number: number;
+  status: "paid" | "skipped" | "needs_action" | "failed";
+  error?: string;
+};
+
+/**
+ * Client-triggered advance payment of upcoming "Pay in 3" instalments. Scoped
+ * to the buyer's own email. Charges the requested instalment numbers (or all
+ * remaining upcoming instalments when `numbers` is omitted) immediately against
+ * the saved card, in ascending order, finalising each on success. Shares the
+ * exact atomic claim used by the daily job, so it can never double-charge.
+ */
+export async function payInstalmentsForOrder(
+  email: string,
+  orderId: string,
+  numbers?: number[],
+): Promise<
+  { error: "not_found" } | { results: PayInstalmentResult[] }
+> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const [order] = await db
+    .select()
+    .from(storeOrders)
+    .where(eq(storeOrders.id, orderId));
+  if (!order || order.buyerEmail.trim().toLowerCase() !== normalizedEmail) {
+    return { error: "not_found" };
+  }
+
+  // Only scheduled/failed instalments are claimable — this matches the daily
+  // job's claim exactly. (A row already in `charging`/`paid` is intentionally
+  // not picked so the two paths cannot collide.)
+  let upcoming = await db
+    .select()
+    .from(storeInstallments)
+    .where(
+      and(
+        eq(storeInstallments.orderId, order.id),
+        inArray(storeInstallments.status, ["scheduled", "failed"]),
+      ),
+    )
+    .orderBy(asc(storeInstallments.number));
+
+  if (numbers && numbers.length > 0) {
+    const want = new Set(numbers);
+    upcoming = upcoming.filter((i) => want.has(i.number));
+  }
+
+  const results: PayInstalmentResult[] = [];
+  for (const inst of upcoming) {
+    // Re-read the order so the saved card / status reflect any instalment
+    // finalised earlier in this same loop.
+    const [current] = await db
+      .select()
+      .from(storeOrders)
+      .where(eq(storeOrders.id, order.id));
+    if (!current) break;
+    const outcome = await chargeInstalmentRow(current, inst, {
+      finalize: true,
+    });
+    if (outcome.ok) {
+      results.push({ number: inst.number, status: "paid" });
+    } else if (outcome.reason === "failed") {
+      results.push({
+        number: inst.number,
+        status: "failed",
+        error: outcome.error,
+      });
+    } else {
+      results.push({ number: inst.number, status: outcome.reason });
+    }
+  }
+  return { results };
 }
 
 export async function getAdminOrders() {

@@ -36,6 +36,27 @@ export const GetDashboardResponse = zod.object({
   "paid_at": zod.string().nullish(),
   "receipt_url": zod.string().nullish().describe('Hosted Stripe receipt URL, when available')
 })),
+  "orders": zod.array(zod.object({
+  "id": zod.string(),
+  "order_number": zod.string().nullish(),
+  "product_name": zod.string(),
+  "currency": zod.string(),
+  "total_minor": zod.number(),
+  "installments": zod.number(),
+  "paid_instalments": zod.number(),
+  "status": zod.string(),
+  "created_at": zod.string().nullish(),
+  "has_upcoming": zod.boolean().describe('True when at least one instalment can be paid in advance now'),
+  "schedule": zod.array(zod.object({
+  "number": zod.number().describe('1-based instalment number (1 is the checkout payment)'),
+  "amount_minor": zod.number().describe('Instalment amount in minor units'),
+  "due_at": zod.string().nullish(),
+  "status": zod.string().describe('paid \/ scheduled \/ charging \/ failed \/ needs_action \/ expired \/ cancelled \/ pending'),
+  "paid_at": zod.string().nullish(),
+  "receipt_url": zod.string().nullish(),
+  "payable": zod.boolean().describe('True when this upcoming instalment can be paid in advance now')
+}))
+})).describe('Storefront orders with their full instalment schedule'),
   "organised_orders": zod.array(zod.object({
   "id": zod.string().describe('Group order id, used to send owner-scoped reminders'),
   "mode": zod.string(),
@@ -187,6 +208,49 @@ export const ResendOrganisedLineResponse = zod.object({
 
 
 /**
+ * Charges one or more upcoming instalments for a storefront order owned by the authenticated client against the card saved at checkout. Scoped strictly to the verified account email. Pass `numbers` to pay specific instalments, or omit it to pay all remaining upcoming instalments. Shares the daily charge job's atomic status claim so an instalment can never be double-charged. Requires a Clerk session.
+
+ * @summary Pay upcoming "Pay in 3" instalments in advance
+ */
+export const PayOrderInstalmentsParams = zod.object({
+  "orderId": zod.coerce.string()
+})
+
+export const PayOrderInstalmentsBody = zod.object({
+  "numbers": zod.array(zod.number()).optional().describe('Instalment numbers to pay; omit or leave empty to pay all remaining upcoming instalments')
+})
+
+export const PayOrderInstalmentsResponse = zod.object({
+  "results": zod.array(zod.object({
+  "number": zod.number(),
+  "status": zod.enum(['paid', 'skipped', 'needs_action', 'failed']),
+  "error": zod.string().nullish()
+})),
+  "order": zod.object({
+  "id": zod.string(),
+  "order_number": zod.string().nullish(),
+  "product_name": zod.string(),
+  "currency": zod.string(),
+  "total_minor": zod.number(),
+  "installments": zod.number(),
+  "paid_instalments": zod.number(),
+  "status": zod.string(),
+  "created_at": zod.string().nullish(),
+  "has_upcoming": zod.boolean().describe('True when at least one instalment can be paid in advance now'),
+  "schedule": zod.array(zod.object({
+  "number": zod.number().describe('1-based instalment number (1 is the checkout payment)'),
+  "amount_minor": zod.number().describe('Instalment amount in minor units'),
+  "due_at": zod.string().nullish(),
+  "status": zod.string().describe('paid \/ scheduled \/ charging \/ failed \/ needs_action \/ expired \/ cancelled \/ pending'),
+  "paid_at": zod.string().nullish(),
+  "receipt_url": zod.string().nullish(),
+  "payable": zod.boolean().describe('True when this upcoming instalment can be paid in advance now')
+}))
+})
+})
+
+
+/**
  * @summary Get a payer's line details
  */
 export const GetPayLineParams = zod.object({
@@ -201,7 +265,8 @@ export const GetPayLineResponse = zod.object({
   "status": zod.string(),
   "payable": zod.boolean(),
   "voucher_code": zod.string().nullish(),
-  "organiser_name": zod.string().optional()
+  "organiser_name": zod.string().optional(),
+  "order_number": zod.string().nullish().describe('Human-readable order reference for this group order')
 })
 
 
@@ -287,6 +352,7 @@ export const ConfirmStoreOrderParams = zod.object({
 
 export const ConfirmStoreOrderResponse = zod.object({
   "status": zod.string(),
+  "order_number": zod.string().nullish().describe('Human-readable order reference for this order'),
   "paid_instalments": zod.number(),
   "installments": zod.number(),
   "voucher": zod.union([zod.object({
