@@ -91,7 +91,7 @@ export default function PayLine() {
             <h1 className="text-3xl md:text-4xl font-serif text-foreground mb-3">Hello, {line.payer_name}</h1>
             {line.organiser_name && (
               <p className="text-muted-foreground">
-                You've been invited by <span className="font-medium text-foreground">{line.organiser_name}</span> to join a group voucher for Seaboards Resort.
+                You've been invited by <span className="font-medium text-foreground">{line.organiser_name}</span> to join a group voucher for Seaboards Apartments.
               </p>
             )}
           </div>
