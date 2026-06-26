@@ -14,6 +14,19 @@ import { processWebhook } from "./lib/webhookHandlers";
 
 const app: Express = express();
 
+// Trust the Replit edge proxy so that req.ip, req.protocol, and the
+// x-forwarded-* headers resolve to the real client values rather than
+// the internal proxy address. Without this, Express ignores the incoming
+// x-forwarded-for chain and req.ip would return the proxy's loopback IP,
+// which would cause all users to share the same apparent IP for any
+// per-IP rate limiting or Clerk auth that inspects req.ip.
+//
+// The clerkProxyMiddleware reads req.headers["x-forwarded-for"] directly
+// (bypassing Express trust-proxy entirely), but setting trust proxy is
+// still required for correctness elsewhere in the stack (e.g. session
+// security, protocol detection, any future per-IP middleware).
+app.set("trust proxy", true);
+
 app.use(
   pinoHttp({
     logger,

@@ -22,6 +22,7 @@
 import { createProxyMiddleware } from "http-proxy-middleware";
 import type { RequestHandler } from "express";
 import type { IncomingHttpHeaders } from "http";
+import { logger } from "../lib/logger";
 
 const CLERK_FAPI = "https://frontend-api.clerk.dev";
 export const CLERK_PROXY_PATH = "/api/__clerk";
@@ -77,6 +78,14 @@ export function clerkProxyMiddleware(): RequestHandler {
         proxyReq.setHeader("Clerk-Proxy-Url", proxyUrl);
         proxyReq.setHeader("Clerk-Secret-Key", secretKey);
 
+        // Extract the leftmost x-forwarded-for value — the original visitor
+        // IP as set by the Replit edge proxy — and forward it explicitly so
+        // Clerk applies per-user rate limits instead of bucketing all traffic
+        // under the server's shared IP.
+        //
+        // To verify distinct visitor IPs are reaching Clerk in production,
+        // set LOG_LEVEL=debug and redeploy; this handler logs clientIp at
+        // debug level for each proxied sign-in/sign-up request.
         const xff = req.headers["x-forwarded-for"];
         const clientIp =
           (Array.isArray(xff) ? xff[0] : xff)?.split(",")[0]?.trim() ||
@@ -85,6 +94,15 @@ export function clerkProxyMiddleware(): RequestHandler {
         if (clientIp) {
           proxyReq.setHeader("X-Forwarded-For", clientIp);
         }
+        logger.debug(
+          {
+            clientIp,
+            rawXff: Array.isArray(xff) ? xff[0] : xff,
+            method: req.method,
+            url: req.url,
+          },
+          "clerk-proxy: forwarding client IP to FAPI",
+        );
       },
     },
   }) as RequestHandler;
