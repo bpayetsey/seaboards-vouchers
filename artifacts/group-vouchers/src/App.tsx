@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
+import { useGetAdminMe } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -102,7 +103,7 @@ function SignInPage() {
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
-        fallbackRedirectUrl={`${basePath}/dashboard`}
+        fallbackRedirectUrl={`${basePath}/post-login`}
       />
     </div>
   );
@@ -115,7 +116,7 @@ function SignUpPage() {
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
-        fallbackRedirectUrl={`${basePath}/dashboard`}
+        fallbackRedirectUrl={`${basePath}/post-login`}
       />
     </div>
   );
@@ -126,6 +127,38 @@ function ProtectedDashboard() {
     <>
       <Show when="signed-in">
         <Dashboard />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
+// Post-login landing: checks staff status via /admin/me and routes staff to the
+// admin dashboard, everyone else to their client account dashboard.
+function PostLoginRedirect() {
+  const { data, isLoading, isError } = useGetAdminMe();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isError && data?.staff) {
+    return <Redirect to="/admin" />;
+  }
+  return <Redirect to="/dashboard" />;
+}
+
+function ProtectedPostLogin() {
+  return (
+    <>
+      <Show when="signed-in">
+        <PostLoginRedirect />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
@@ -180,6 +213,7 @@ function Router() {
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />
+      <Route path="/post-login" component={ProtectedPostLogin} />
       <Route path="/dashboard" component={ProtectedDashboard} />
       <Route path="/admin">
         <ProtectedAdmin>
