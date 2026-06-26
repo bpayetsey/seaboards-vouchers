@@ -19,6 +19,7 @@ import type {
   StorefrontConfig,
   StorefrontCatalogItem,
   GroupOrderCreated,
+  SplitConfigApartmentType,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -139,7 +140,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [nights, setNights] = useState(1);
   const [giftAmount, setGiftAmount] = useState<string>("");
-  const [plan, setPlan] = useState<"full" | "instalments">("full");
+  const [plan, setPlan] = useState<"full" | "instalments" | "split">("full");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [checkout, setCheckout] = useState<{
@@ -211,7 +212,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             orderId={checkout.orderId}
             total={total}
             symbol={symbol}
-            plan={plan}
+            plan={plan === "instalments" ? "instalments" : "full"}
             perInstalment={perInstalment}
             instalments={config.instalments}
             onBack={() => setCheckout(null)}
@@ -427,7 +428,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         <h2 className="font-serif text-primary text-2xl mt-10 mb-4">
           How would you like to pay?
         </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <button
             type="button"
             onClick={() => setPlan("full")}
@@ -463,62 +464,98 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 : `Split across ${config.instalments} monthly payments.`}
             </p>
           </button>
-        </div>
-
-        <div className="mt-8 grid sm:grid-cols-2 gap-4 max-w-2xl">
-          <div className="space-y-2">
-            <Label htmlFor="buyer_name">Your name</Label>
-            <Input
-              id="buyer_name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Jane Doe"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="buyer_email">Email address</Label>
-            <Input
-              id="buyer_email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jane@example.com"
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
-          <Button
-            size="lg"
-            className="h-14 text-lg"
-            disabled={
-              !config.payments_enabled ||
-              !selection ||
-              createOrder.isPending
-            }
-            onClick={startCheckout}
+          <button
+            type="button"
+            onClick={() => setPlan("split")}
+            className={`text-left rounded-xl border-2 p-5 transition-all ${
+              plan === "split"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/40"
+            }`}
           >
-            {createOrder.isPending ? (
-              "Preparing checkout…"
-            ) : (
-              <>
-                <Lock className="w-5 h-5 mr-2" />
-                {plan === "instalments" && total > 0
-                  ? `Pay ${money(symbol, perInstalment)} now`
-                  : total > 0
-                    ? `Pay ${money(symbol, total)}`
-                    : "Continue to payment"}
-              </>
-            )}
-          </Button>
-          {plan === "instalments" && total > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Then {config.instalments - 1} more payments of{" "}
-              {money(symbol, perInstalment)}. Your card is saved securely for the
-              remaining instalments.
+            <div className="flex items-center gap-2 font-semibold text-primary">
+              <Users className="w-5 h-5" /> Split with a group
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {total > 0
+                ? `Share ${money(symbol, total)} across friends — one voucher, paid together.`
+                : "Share one voucher across a group, paid together."}
             </p>
-          )}
+          </button>
         </div>
+
+        {plan === "split" ? (
+          selection ? (
+            <VoucherSplitSetup
+              selection={selection}
+              nights={nights}
+              total={total}
+              symbol={symbol}
+            />
+          ) : (
+            <div className="mt-8 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              Choose an apartment package or gift amount above to split it with a
+              group.
+            </div>
+          )
+        ) : (
+          <>
+            <div className="mt-8 grid sm:grid-cols-2 gap-4 max-w-2xl">
+              <div className="space-y-2">
+                <Label htmlFor="buyer_name">Your name</Label>
+                <Input
+                  id="buyer_name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jane Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="buyer_email">Email address</Label>
+                <Input
+                  id="buyer_email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jane@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
+              <Button
+                size="lg"
+                className="h-14 text-lg"
+                disabled={
+                  !config.payments_enabled ||
+                  !selection ||
+                  createOrder.isPending
+                }
+                onClick={startCheckout}
+              >
+                {createOrder.isPending ? (
+                  "Preparing checkout…"
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5 mr-2" />
+                    {plan === "instalments" && total > 0
+                      ? `Pay ${money(symbol, perInstalment)} now`
+                      : total > 0
+                        ? `Pay ${money(symbol, total)}`
+                        : "Continue to payment"}
+                  </>
+                )}
+              </Button>
+              {plan === "instalments" && total > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Then {config.instalments - 1} more payments of{" "}
+                  {money(symbol, perInstalment)}. Your card is saved securely for
+                  the remaining instalments.
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         <GroupLinksSection />
 
@@ -693,6 +730,415 @@ function absoluteUrl(relative: string) {
   );
 }
 
+/**
+ * Shared presentation for a freshly created group order: the organiser
+ * dashboard link plus a copyable payment link per participant. Reused by the
+ * simple "same amount per person" box and the voucher-split flow.
+ */
+function GroupLinksResult({
+  result,
+  currency,
+  minorPerMajor,
+  onReset,
+  resetLabel,
+  intro,
+}: {
+  result: GroupOrderCreated;
+  currency: string;
+  minorPerMajor: number;
+  onReset: () => void;
+  resetLabel: string;
+  intro: string;
+}) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied((c) => (c === text ? null : c)), 2000);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  const dashboardUrl = absoluteUrl(result.organiser_url);
+
+  return (
+    <div className="mt-8 rounded-xl border border-primary/20 bg-primary/5 p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex items-center gap-2 mb-1">
+        <Check className="w-5 h-5 text-primary" />
+        <p className="font-medium text-primary">Payment links are ready</p>
+      </div>
+      <p className="text-sm text-muted-foreground mb-5">{intro}</p>
+
+      <div className="mb-6">
+        <Label className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-2">
+          <LinkIcon className="w-3.5 h-3.5" /> Organiser dashboard
+        </Label>
+        <div className="flex items-center gap-2 bg-background rounded-md border border-border p-1.5">
+          <Input
+            readOnly
+            value={dashboardUrl}
+            className="border-none font-mono text-xs focus-visible:ring-0 h-8"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            onClick={() => copy(dashboardUrl)}
+          >
+            {copied === dashboardUrl ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
+        Participant payment links
+      </Label>
+      <div className="space-y-2">
+        {result.lines.map((line) => {
+          const payUrl = absoluteUrl(line.pay_link);
+          return (
+            <div
+              key={line.id}
+              className="flex items-center gap-2 bg-background rounded-md border border-border p-2"
+            >
+              <span className="text-sm text-foreground truncate min-w-0 flex-1 pl-1">
+                {line.payer_email}
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                {currency}{" "}
+                {(line.amount_minor / minorPerMajor).toLocaleString("en-US")}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => copy(payUrl)}
+              >
+                {copied === payUrl ? (
+                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {copied === payUrl ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        onClick={onReset}
+        className="text-sm text-primary underline underline-offset-2 mt-5"
+      >
+        {resetLabel}
+      </button>
+    </div>
+  );
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Inline "split this voucher with a group" setup, seeded from the storefront
+ * selection. Builds a group-order in the existing "split" mode: apartment
+ * packages are priced server-side from the catalog (apartment_type + nights);
+ * gift vouchers are split as an open-value total (amount_minor).
+ */
+function VoucherSplitSetup({
+  selection,
+  nights,
+  total,
+  symbol,
+}: {
+  selection: Selection;
+  nights: number;
+  total: number;
+  symbol: string;
+}) {
+  const { toast } = useToast();
+  const { data: rates } = useGetRates();
+  const createGroupOrder = useCreateGroupOrder();
+
+  const [organiserEmail, setOrganiserEmail] = useState("");
+  const [participants, setParticipants] = useState<
+    { email: string; share: string }[]
+  >([
+    { email: "", share: "" },
+    { email: "", share: "" },
+  ]);
+  const [result, setResult] = useState<GroupOrderCreated | null>(null);
+
+  const minorPerMajor = rates?.minor_per_major ?? 100;
+  const currency = rates?.currency?.toUpperCase() ?? "SCR";
+  const totalMinor = Math.round(total * minorPerMajor);
+
+  const setParticipant = (
+    index: number,
+    field: "email" | "share",
+    value: string,
+  ) =>
+    setParticipants((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
+    );
+  const addParticipant = () =>
+    setParticipants((prev) => [...prev, { email: "", share: "" }]);
+  const removeParticipant = (index: number) =>
+    setParticipants((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
+    );
+
+  const reset = () => {
+    setResult(null);
+    setOrganiserEmail("");
+    setParticipants([
+      { email: "", share: "" },
+      { email: "", share: "" },
+    ]);
+  };
+
+  const submit = () => {
+    if (!rates) return;
+    if (!EMAIL_RE.test(organiserEmail.trim())) {
+      toast({
+        title: "Organiser email required",
+        description: "Please enter a valid organiser email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const filled = participants
+      .map((p) => ({ email: p.email.trim(), share: p.share.trim() }))
+      .filter((p) => p.email.length > 0);
+    if (filled.length === 0 || !filled.every((p) => EMAIL_RE.test(p.email))) {
+      toast({
+        title: "Check participant emails",
+        description: "Add at least one valid participant email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Build the per-participant lines. If anyone enters a custom share we send
+    // explicit shares for everyone (the remainder is divided equally among the
+    // people without a custom share); otherwise we let the server split equally.
+    const anyCustom = filled.some((p) => p.share.length > 0);
+    let lines: { payer_email: string; share_minor?: number }[];
+
+    if (anyCustom) {
+      const withShare = filled.filter((p) => p.share.length > 0);
+      for (const p of withShare) {
+        const v = Number(p.share);
+        if (!Number.isFinite(v) || v <= 0) {
+          toast({
+            title: "Check the shares",
+            description: "Each custom share must be a positive amount.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      const allocatedMinor = withShare.reduce(
+        (s, p) => s + Math.round(Number(p.share) * minorPerMajor),
+        0,
+      );
+      const withoutShare = filled.filter((p) => p.share.length === 0);
+      const remainingMinor = totalMinor - allocatedMinor;
+      if (remainingMinor < 0) {
+        toast({
+          title: "Shares exceed the total",
+          description: `The shares add up to more than ${money(symbol, total)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (withoutShare.length === 0 && remainingMinor > 0) {
+        toast({
+          title: "Shares don't cover the total",
+          description: `The shares must add up to ${money(symbol, total)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const baseMinor =
+        withoutShare.length > 0
+          ? Math.floor(remainingMinor / withoutShare.length)
+          : 0;
+      let remainder =
+        withoutShare.length > 0 ? remainingMinor % withoutShare.length : 0;
+      lines = filled.map((p) => {
+        if (p.share.length > 0) {
+          return {
+            payer_email: p.email,
+            share_minor: Math.round(Number(p.share) * minorPerMajor),
+          };
+        }
+        let share = baseMinor;
+        if (remainder > 0) {
+          share += 1;
+          remainder -= 1;
+        }
+        return { payer_email: p.email, share_minor: share };
+      });
+    } else {
+      lines = filled.map((p) => ({ payer_email: p.email }));
+    }
+
+    const split =
+      selection.kind === "package"
+        ? {
+            apartment_type: selection.item.id.replace(
+              /-/g,
+              "_",
+            ) as SplitConfigApartmentType,
+            nights,
+          }
+        : { amount_minor: totalMinor };
+
+    createGroupOrder.mutate(
+      {
+        data: {
+          mode: "split",
+          organiser_email: organiserEmail.trim(),
+          split,
+          lines,
+        },
+      },
+      {
+        onSuccess: (data) => setResult(data),
+        onError: (err: unknown) => {
+          const message =
+            err && typeof err === "object" && "error" in err
+              ? String((err as { error: unknown }).error)
+              : "Please try again.";
+          toast({
+            title: "Couldn't create payment links",
+            description: message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  if (result) {
+    return (
+      <GroupLinksResult
+        result={result}
+        currency={currency}
+        minorPerMajor={minorPerMajor}
+        onReset={reset}
+        resetLabel="Split another voucher"
+        intro="Share each link below — the single voucher is issued once everyone has paid."
+      />
+    );
+  }
+
+  const voucherLabel =
+    selection.kind === "package"
+      ? `${selection.item.name} · ${nights} night${nights === 1 ? "" : "s"}`
+      : "Gift voucher";
+
+  return (
+    <div className="mt-8 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 animate-in fade-in slide-in-from-top-1 duration-300">
+      <div className="flex items-start gap-3">
+        <Users className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="font-medium text-primary">Split this voucher</p>
+          <p className="text-sm text-muted-foreground">
+            {voucherLabel} · everyone contributes toward one{" "}
+            {money(symbol, total)} voucher, issued once all shares are paid.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <div className="max-w-md">
+          <Label htmlFor="split-organiser">Your email (organiser)</Label>
+          <Input
+            id="split-organiser"
+            type="email"
+            value={organiserEmail}
+            onChange={(e) => setOrganiserEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="mt-1.5"
+          />
+        </div>
+
+        <div>
+          <Label>
+            Participants{" "}
+            <span className="font-normal text-muted-foreground">
+              (leave a share blank to split the rest equally)
+            </span>
+          </Label>
+          <div className="space-y-2 mt-1.5">
+            {participants.map((p, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  value={p.email}
+                  onChange={(e) => setParticipant(index, "email", e.target.value)}
+                  placeholder="name@example.com"
+                  className="min-w-0 flex-1"
+                />
+                <Input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={p.share}
+                  onChange={(e) => setParticipant(index, "share", e.target.value)}
+                  placeholder={`Share (${currency})`}
+                  className="w-32 shrink-0"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-muted-foreground"
+                  disabled={participants.length <= 1}
+                  onClick={() => removeParticipant(index)}
+                  aria-label="Remove participant"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={addParticipant}
+          >
+            <Plus className="w-4 h-4 mr-1.5" /> Add participant
+          </Button>
+        </div>
+
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={createGroupOrder.isPending}
+        >
+          {createGroupOrder.isPending
+            ? "Generating links…"
+            : "Generate payment links"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function GroupLinksSection() {
   const { toast } = useToast();
   const { data: rates } = useGetRates();
@@ -703,16 +1149,8 @@ function GroupLinksSection() {
   const [organiserEmail, setOrganiserEmail] = useState("");
   const [participants, setParticipants] = useState<string[]>(["", ""]);
   const [result, setResult] = useState<GroupOrderCreated | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
 
   const currency = rates?.currency?.toUpperCase() ?? "SCR";
-
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(text);
-    setTimeout(() => setCopied((c) => (c === text ? null : c)), 2000);
-    toast({ title: "Copied to clipboard" });
-  };
 
   const setParticipant = (index: number, value: string) =>
     setParticipants((prev) => prev.map((p, i) => (i === index ? value : p)));
@@ -786,91 +1224,15 @@ function GroupLinksSection() {
   };
 
   if (result) {
-    const dashboardUrl = absoluteUrl(result.organiser_url);
-    const perPerson = result.lines[0]?.amount_minor;
     return (
-      <div className="mt-12 rounded-xl border border-primary/20 bg-primary/5 p-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="flex items-center gap-2 mb-1">
-          <Check className="w-5 h-5 text-primary" />
-          <p className="font-medium text-primary">Payment links are ready</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-5">
-          Share each link below — everyone gets their own voucher once they pay.
-        </p>
-
-        <div className="mb-6">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-2">
-            <LinkIcon className="w-3.5 h-3.5" /> Organiser dashboard
-          </Label>
-          <div className="flex items-center gap-2 bg-background rounded-md border border-border p-1.5">
-            <Input
-              readOnly
-              value={dashboardUrl}
-              className="border-none font-mono text-xs focus-visible:ring-0 h-8"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="shrink-0"
-              onClick={() => copy(dashboardUrl)}
-            >
-              {copied === dashboardUrl ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
-          Participant payment links
-          {perPerson != null && rates && (
-            <span className="ml-1 normal-case tracking-normal">
-              · {currency}{" "}
-              {(perPerson / rates.minor_per_major).toLocaleString("en-US")} each
-            </span>
-          )}
-        </Label>
-        <div className="space-y-2">
-          {result.lines.map((line) => {
-            const payUrl = absoluteUrl(line.pay_link);
-            return (
-              <div
-                key={line.id}
-                className="flex items-center gap-2 bg-background rounded-md border border-border p-2"
-              >
-                <span className="text-sm text-foreground truncate min-w-0 flex-1 pl-1">
-                  {line.payer_email}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => copy(payUrl)}
-                >
-                  {copied === payUrl ? (
-                    <Check className="w-3.5 h-3.5 mr-1.5" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 mr-1.5" />
-                  )}
-                  {copied === payUrl ? "Copied" : "Copy link"}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={reset}
-          className="text-sm text-primary underline underline-offset-2 mt-5"
-        >
-          Create another set of links
-        </button>
-      </div>
+      <GroupLinksResult
+        result={result}
+        currency={currency}
+        minorPerMajor={rates?.minor_per_major ?? 100}
+        onReset={reset}
+        resetLabel="Create another set of links"
+        intro="Share each link below — everyone gets their own voucher once they pay."
+      />
     );
   }
 

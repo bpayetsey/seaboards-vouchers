@@ -80,7 +80,10 @@ export const GroupOrderInputMode = {
   flat: 'flat',
 } as const;
 
-export type SplitConfigApartmentType = typeof SplitConfigApartmentType[keyof typeof SplitConfigApartmentType];
+/**
+ * @nullable
+ */
+export type SplitConfigApartmentType = typeof SplitConfigApartmentType[keyof typeof SplitConfigApartmentType] | null;
 
 
 export const SplitConfigApartmentType = {
@@ -88,10 +91,23 @@ export const SplitConfigApartmentType = {
   two_bedroom: 'two_bedroom',
 } as const;
 
+/**
+ * Defines the single voucher being split. Provide either apartment_type + nights (apartment package, priced server-side from the catalog) or amount_minor (open-value gift voucher total from the buyer).
+ */
 export interface SplitConfig {
-  apartment_type: SplitConfigApartmentType;
-  /** @minimum 1 */
-  nights: number;
+  /** @nullable */
+  apartment_type?: SplitConfigApartmentType;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  nights?: number | null;
+  /**
+     * Open-value split total in minor units (gift vouchers); used instead of apartment_type + nights
+     * @minimum 1
+     * @nullable
+     */
+  amount_minor?: number | null;
 }
 
 /**
@@ -197,6 +213,11 @@ export interface OrganiserView {
   split_apartment_type?: string | null;
   /** @nullable */
   split_nights?: number | null;
+  /**
+     * Open-value (gift) split total in major units, when applicable
+     * @nullable
+     */
+  split_amount_major?: number | null;
   /** @nullable */
   split_voucher_code?: string | null;
   paid_count: number;

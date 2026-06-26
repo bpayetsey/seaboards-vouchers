@@ -7,8 +7,21 @@
  */
 import type { SplitConfigApartmentType } from './splitConfigApartmentType';
 
+/**
+ * Defines the single voucher being split. Provide either apartment_type + nights (apartment package, priced server-side from the catalog) or amount_minor (open-value gift voucher total from the buyer).
+ */
 export interface SplitConfig {
-  apartment_type: SplitConfigApartmentType;
-  /** @minimum 1 */
-  nights: number;
+  /** @nullable */
+  apartment_type?: SplitConfigApartmentType;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  nights?: number | null;
+  /**
+     * Open-value split total in minor units (gift vouchers); used instead of apartment_type + nights
+     * @minimum 1
+     * @nullable
+     */
+  amount_minor?: number | null;
 }

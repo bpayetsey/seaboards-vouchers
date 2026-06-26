@@ -16,6 +16,7 @@ export const groupOrders = pgTable("group_order", {
   status: text("status").notNull().default("open"),
   splitApartmentType: text("split_apartment_type"),
   splitNights: integer("split_nights"),
+  splitAmountMinor: bigint("split_amount_minor", { mode: "number" }),
   splitVoucherCode: text("split_voucher_code"),
   currency: text("currency").notNull().default("SCR"),
   dueBy: timestamp("due_by", { withTimezone: true }),

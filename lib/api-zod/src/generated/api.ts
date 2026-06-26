@@ -71,6 +71,7 @@ export const GetRatesResponse = zod.object({
 
 
 
+
 export const CreateGroupOrderBody = zod.object({
   "mode": zod.enum(['independent', 'split', 'flat']),
   "organiser_name": zod.string().nullish().describe('Optional; defaults to the organiser email (e.g. flat mode)'),
@@ -78,9 +79,10 @@ export const CreateGroupOrderBody = zod.object({
   "due_by": zod.string().nullish().describe('ISO 8601 pay-by deadline'),
   "per_person_minor": zod.number().nullish().describe('Per-person amount in minor units; required for flat mode'),
   "split": zod.union([zod.object({
-  "apartment_type": zod.enum(['one_bedroom', 'two_bedroom']),
-  "nights": zod.number().min(1)
-}),zod.null()]).optional(),
+  "apartment_type": zod.union([zod.literal('one_bedroom'),zod.literal('two_bedroom'),zod.literal(null)]).nullish(),
+  "nights": zod.number().min(1).nullish(),
+  "amount_minor": zod.number().min(1).nullish().describe('Open-value split total in minor units (gift vouchers); used instead of apartment_type + nights')
+}).describe('Defines the single voucher being split. Provide either apartment_type + nights (apartment package, priced server-side from the catalog) or amount_minor (open-value gift voucher total from the buyer).'),zod.null()]).optional(),
   "lines": zod.array(zod.object({
   "payer_name": zod.string().nullish().describe('Optional; defaults to the payer email (e.g. flat mode)'),
   "payer_email": zod.string().min(1),
@@ -106,6 +108,7 @@ export const GetGroupOrderResponse = zod.object({
   "due_by": zod.string().nullish(),
   "split_apartment_type": zod.string().nullish(),
   "split_nights": zod.number().nullish(),
+  "split_amount_major": zod.number().nullish().describe('Open-value (gift) split total in major units, when applicable'),
   "split_voucher_code": zod.string().nullish(),
   "paid_count": zod.number(),
   "total_count": zod.number(),

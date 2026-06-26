@@ -46,7 +46,11 @@ interface CreateGroupOrderInput {
   organiser_email: string;
   due_by?: string | null;
   per_person_minor?: number | null;
-  split?: { apartment_type: string; nights: number } | null;
+  split?: {
+    apartment_type?: string | null;
+    nights?: number | null;
+    amount_minor?: number | null;
+  } | null;
   lines: LineInput[];
 }
 
@@ -71,6 +75,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
 
   let splitApt: string | null = null;
   let splitNights: number | null = null;
+  let splitAmount: number | null = null;
   let prepared: PreparedLine[];
 
   if (mode === "flat") {
@@ -95,11 +100,24 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
       payerEmail: l.payer_email,
     }));
   } else {
-    if (!split || !split.apartment_type || !split.nights)
+    if (!split) throw new Error("split config required");
+    let roomTotal: number;
+    if (split.apartment_type && split.nights) {
+      // Apartment-based split: price strictly from the catalog rates so a
+      // client can never tamper with the total.
+      splitApt = split.apartment_type;
+      splitNights = split.nights;
+      roomTotal = lineAmountMinor(splitApt, splitNights);
+    } else if (
+      Number.isInteger(split.amount_minor) &&
+      (split.amount_minor as number) > 0
+    ) {
+      // Open-value (gift) split: the total comes from the buyer's chosen amount.
+      splitAmount = split.amount_minor as number;
+      roomTotal = splitAmount;
+    } else {
       throw new Error("split config required");
-    splitApt = split.apartment_type;
-    splitNights = split.nights;
-    const roomTotal = lineAmountMinor(splitApt, splitNights);
+    }
     const n = lines.length;
     const explicit = lines.every((l) => Number.isInteger(l.share_minor));
     if (explicit) {
@@ -141,6 +159,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
         organiserEmail: organiser_email,
         splitApartmentType: splitApt,
         splitNights: splitNights,
+        splitAmountMinor: splitAmount,
         currency: CURRENCY,
         dueBy: due_by ? new Date(due_by) : null,
         statusToken,
@@ -372,6 +391,10 @@ export async function getOrganiserView(statusToken: string) {
     due_by: order.dueBy ? order.dueBy.toISOString() : null,
     split_apartment_type: order.splitApartmentType,
     split_nights: order.splitNights,
+    split_amount_major:
+      order.splitAmountMinor != null
+        ? Number(order.splitAmountMinor) / MINOR_PER_MAJOR
+        : null,
     split_voucher_code: order.splitVoucherCode,
     paid_count: lines.filter((l) => l.status === "paid").length,
     total_count: lines.length,

@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type SplitConfigApartmentType = typeof SplitConfigApartmentType[keyof typeof SplitConfigApartmentType];
+/**
+ * @nullable
+ */
+export type SplitConfigApartmentType = typeof SplitConfigApartmentType[keyof typeof SplitConfigApartmentType] | null;
 
 
 export const SplitConfigApartmentType = {

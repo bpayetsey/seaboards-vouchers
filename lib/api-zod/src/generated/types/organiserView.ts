@@ -18,6 +18,11 @@ export interface OrganiserView {
   split_apartment_type?: string | null;
   /** @nullable */
   split_nights?: number | null;
+  /**
+     * Open-value (gift) split total in major units, when applicable
+     * @nullable
+     */
+  split_amount_major?: number | null;
   /** @nullable */
   split_voucher_code?: string | null;
   paid_count: number;

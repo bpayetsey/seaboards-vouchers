@@ -1011,14 +1011,23 @@ components:
             $ref: "#/components/schemas/LineInput"
     SplitConfig:
       type: object
-      required: [apartment_type, nights]
+      description: >-
+        Defines the single voucher being split. Provide either apartment_type +
+        nights (apartment package, priced server-side from the catalog) or
+        amount_minor (open-value gift voucher total from the buyer).
       properties:
         apartment_type:
-          type: string
-          enum: [one_bedroom, two_bedroom]
+          type: ["string", "null"]
+          enum: [one_bedroom, two_bedroom, null]
         nights:
-          type: integer
+          type: ["integer", "null"]
           minimum: 1
+        amount_minor:
+          type: ["integer", "null"]
+          minimum: 1
+          description: >-
+            Open-value split total in minor units (gift vouchers); used instead
+            of apartment_type + nights
     LineInput:
       type: object
       required: [payer_email]
@@ -1092,6 +1101,9 @@ components:
           type: ["string", "null"]
         split_nights:
           type: ["integer", "null"]
+        split_amount_major:
+          type: ["number", "null"]
+          description: Open-value (gift) split total in major units, when applicable
         split_voucher_code:
           type: ["string", "null"]
         paid_count:
