@@ -4,6 +4,7 @@ import {
   text,
   integer,
   bigint,
+  boolean,
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
@@ -85,6 +86,27 @@ export const storeVouchers = pgTable("store_voucher", {
     .defaultNow(),
 });
 
+/**
+ * Property photo gallery shown on the storefront ("A glimpse of The
+ * Seaboards"). Managed by staff from the admin dashboard: images are uploaded
+ * to object storage and referenced here by their object path.
+ */
+export const storeGalleryImages = pgTable(
+  "store_gallery_image",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    objectPath: text("object_path").notNull(),
+    alt: text("alt").notNull().default(""),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_store_gallery_sort").on(table.active, table.sortOrder)],
+);
+
 export type StoreOrder = typeof storeOrders.$inferSelect;
 export type StoreInstallment = typeof storeInstallments.$inferSelect;
 export type StoreVoucher = typeof storeVouchers.$inferSelect;
+export type StoreGalleryImage = typeof storeGalleryImages.$inferSelect;

@@ -18,6 +18,7 @@ import Dashboard from "@/pages/dashboard";
 import AdminOverview from "@/pages/admin/overview";
 import AdminOrders from "@/pages/admin/orders";
 import AdminVouchers from "@/pages/admin/vouchers";
+import AdminGallery from "@/pages/admin/gallery";
 
 const queryClient = new QueryClient();
 
@@ -193,6 +194,11 @@ function Router() {
       <Route path="/admin/vouchers">
         <ProtectedAdmin>
           <AdminVouchers />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/gallery">
+        <ProtectedAdmin>
+          <AdminGallery />
         </ProtectedAdmin>
       </Route>
       <Route path="/sign-in/*?" component={SignInPage} />

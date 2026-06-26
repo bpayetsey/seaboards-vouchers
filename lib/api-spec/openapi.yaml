@@ -22,6 +22,8 @@ tags:
     description: Authenticated client account dashboard
   - name: admin
     description: Staff admin dashboard (Clerk session + staff allow-list)
+  - name: Storage
+    description: Object storage upload and serving endpoints
 paths:
   /dashboard:
     get:
@@ -612,6 +614,265 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VoucherLookup"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [Storage]
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Failed to generate upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /storage/public-objects/{filePath}:
+    get:
+      operationId: getPublicObject
+      tags: [Storage]
+      summary: Serve a public asset
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [Storage]
+      summary: Serve an uploaded object entity
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /storefront/gallery:
+    get:
+      operationId: getStorefrontGallery
+      tags: [storefront]
+      summary: Public property photo gallery
+      description: Active gallery images for the storefront, ordered for display.
+      responses:
+        "200":
+          description: Gallery images
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryImageList"
+  /admin/gallery:
+    get:
+      operationId: getAdminGallery
+      tags: [admin]
+      summary: List all gallery images (staff)
+      responses:
+        "200":
+          description: Gallery images
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryImageList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: addGalleryImage
+      tags: [admin]
+      summary: Register an uploaded gallery image (staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddGalleryImageInput"
+      responses:
+        "200":
+          description: Created image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryImage"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/gallery/reorder:
+    post:
+      operationId: reorderGallery
+      tags: [admin]
+      summary: Reorder gallery images (staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderGalleryInput"
+      responses:
+        "200":
+          description: Updated gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryImageList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/gallery/{imageId}:
+    patch:
+      operationId: updateGalleryImage
+      tags: [admin]
+      summary: Update a gallery image's caption or visibility (staff)
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGalleryImageInput"
+      responses:
+        "200":
+          description: Updated image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryImage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteGalleryImage
+      tags: [admin]
+      summary: Delete a gallery image (staff)
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -628,6 +889,83 @@ components:
           type: string
       required:
         - error
+    OkResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+        objectPath:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    GalleryImage:
+      type: object
+      required: [id, object_path, url, alt, sort_order, active, created_at]
+      properties:
+        id:
+          type: string
+        object_path:
+          type: string
+        url:
+          type: string
+          description: Serving URL for the image, relative to the site origin
+        alt:
+          type: string
+        sort_order:
+          type: integer
+        active:
+          type: boolean
+        created_at:
+          type: string
+    GalleryImageList:
+      type: array
+      items:
+        $ref: "#/components/schemas/GalleryImage"
+    AddGalleryImageInput:
+      type: object
+      required: [object_path]
+      properties:
+        object_path:
+          type: string
+          minLength: 1
+        alt:
+          type: string
+    UpdateGalleryImageInput:
+      type: object
+      properties:
+        alt:
+          type: string
+        active:
+          type: boolean
+    ReorderGalleryInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
     RateTable:
       type: object
       required: [currency, minor_per_major, rates]

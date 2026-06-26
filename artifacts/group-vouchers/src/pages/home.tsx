@@ -13,6 +13,7 @@ import {
   useConfirmStoreOrder,
   useGetRates,
   useCreateGroupOrder,
+  useGetStorefrontGallery,
 } from "@workspace/api-client-react";
 import type {
   StorefrontConfig,
@@ -52,11 +53,10 @@ function money(symbol: string, value: number) {
   })}`;
 }
 
-// Property photo gallery. These are tasteful placeholder images stored in
-// `public/gallery/` — replace the files (keeping the same names) or edit this
-// list to swap in the resort's own photography later.
+// Fallback property photos, used until staff upload their own from the admin
+// dashboard (Gallery). Stored in `public/gallery/`.
 const galleryBase = import.meta.env.BASE_URL.replace(/\/$/, "");
-const GALLERY: { src: string; alt: string }[] = [
+const FALLBACK_GALLERY: { src: string; alt: string }[] = [
   { src: `${galleryBase}/gallery/01-exterior.jpg`, alt: "The Seaboards apartments exterior with palm trees and ocean view" },
   { src: `${galleryBase}/gallery/02-beach.jpg`, alt: "Pristine white-sand beach and turquoise water at Anse La Mouche" },
   { src: `${galleryBase}/gallery/03-bedroom.jpg`, alt: "Bright apartment bedroom with ocean view" },
@@ -66,6 +66,12 @@ const GALLERY: { src: string; alt: string }[] = [
 ];
 
 function PhotoGallery() {
+  const { data } = useGetStorefrontGallery();
+  const photos =
+    data && data.length > 0
+      ? data.map((img) => ({ src: img.url, alt: img.alt }))
+      : FALLBACK_GALLERY;
+
   return (
     <section className="mt-12" aria-labelledby="gallery-heading">
       <h2
@@ -78,7 +84,7 @@ function PhotoGallery() {
         Anse La Mouche, Mahé &middot; your island home for the Jubilee.
       </p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        {GALLERY.map((photo) => (
+        {photos.map((photo) => (
           <div
             key={photo.src}
             className="overflow-hidden rounded-xl border border-border bg-muted"

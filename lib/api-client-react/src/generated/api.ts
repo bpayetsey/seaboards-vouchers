@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddGalleryImageInput,
   AdminOrders,
   AdminOverview,
   AdminSession,
@@ -29,13 +30,17 @@ import type {
   ChargeInstalmentsResult,
   CheckoutSession,
   DashboardView,
+  GalleryImage,
+  GalleryImageList,
   GroupOrderCreated,
   GroupOrderInput,
   HealthStatus,
   IssueVoucherInput,
+  OkResult,
   OrganiserView,
   PayLine,
   RateTable,
+  ReorderGalleryInput,
   ResendResult,
   RetryInstalmentResult,
   StoreAdminOrders,
@@ -44,6 +49,9 @@ import type {
   StoreOrderInput,
   StorefrontConfig,
   SweepResult,
+  UpdateGalleryImageInput,
+  UploadUrlRequest,
+  UploadUrlResponse,
   VoucherLookup
 } from './api.schemas';
 
@@ -1702,5 +1710,669 @@ export const useRedeemVoucher = <TError = ErrorType<ApiError | VoucherLookup>,
         TContext
       > => {
       return useMutation(getRedeemVoucherMutationOptions(options));
+    }
+
+export const getRequestUploadUrlUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/request-url`
+}
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const requestUploadUrl = async (uploadUrlRequest: UploadUrlRequest, options?: RequestInit): Promise<UploadUrlResponse> => {
+
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      uploadUrlRequest,)
+  }
+);}
+
+
+
+
+export const getRequestUploadUrlMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext> => {
+
+const mutationKey = ['requestUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestUploadUrl>>, {data: BodyType<UploadUrlRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestUploadUrl>>>
+    export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>
+    export type RequestUploadUrlMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Request a presigned URL for file upload
+ */
+export const useRequestUploadUrl = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestUploadUrl>>,
+        TError,
+        {data: BodyType<UploadUrlRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestUploadUrlMutationOptions(options));
+    }
+
+export const getGetPublicObjectUrl = (filePath: string,) => {
+
+
+
+
+  return `/api/storage/public-objects/${filePath}`
+}
+
+/**
+ * @summary Serve a public asset
+ */
+export const getPublicObject = async (filePath: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPublicObjectUrl(filePath),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicObjectQueryKey = (filePath: string,) => {
+    return [
+    `/api/storage/public-objects/${filePath}`
+    ] as const;
+    }
+
+
+export const getGetPublicObjectQueryOptions = <TData = Awaited<ReturnType<typeof getPublicObject>>, TError = ErrorType<ApiError>>(filePath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicObjectQueryKey(filePath);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicObject>>> = ({ signal }) => getPublicObject(filePath, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(filePath), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicObject>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicObject>>>
+export type GetPublicObjectQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Serve a public asset
+ */
+
+export function useGetPublicObject<TData = Awaited<ReturnType<typeof getPublicObject>>, TError = ErrorType<ApiError>>(
+ filePath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicObjectQueryOptions(filePath,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetStorageObjectUrl = (objectPath: string,) => {
+
+
+
+
+  return `/api/storage/objects/${objectPath}`
+}
+
+/**
+ * @summary Serve an uploaded object entity
+ */
+export const getStorageObject = async (objectPath: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetStorageObjectUrl(objectPath),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorageObjectQueryKey = (objectPath: string,) => {
+    return [
+    `/api/storage/objects/${objectPath}`
+    ] as const;
+    }
+
+
+export const getGetStorageObjectQueryOptions = <TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<ApiError>>(objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorageObjectQueryKey(objectPath);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorageObject>>> = ({ signal }) => getStorageObject(objectPath, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(objectPath), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStorageObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getStorageObject>>>
+export type GetStorageObjectQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Serve an uploaded object entity
+ */
+
+export function useGetStorageObject<TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<ApiError>>(
+ objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStorageObjectQueryOptions(objectPath,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetStorefrontGalleryUrl = () => {
+
+
+
+
+  return `/api/storefront/gallery`
+}
+
+/**
+ * Active gallery images for the storefront, ordered for display.
+ * @summary Public property photo gallery
+ */
+export const getStorefrontGallery = async ( options?: RequestInit): Promise<GalleryImageList> => {
+
+  return customFetch<GalleryImageList>(getGetStorefrontGalleryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorefrontGalleryQueryKey = () => {
+    return [
+    `/api/storefront/gallery`
+    ] as const;
+    }
+
+
+export const getGetStorefrontGalleryQueryOptions = <TData = Awaited<ReturnType<typeof getStorefrontGallery>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorefrontGallery>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorefrontGalleryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorefrontGallery>>> = ({ signal }) => getStorefrontGallery({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorefrontGallery>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStorefrontGalleryQueryResult = NonNullable<Awaited<ReturnType<typeof getStorefrontGallery>>>
+export type GetStorefrontGalleryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public property photo gallery
+ */
+
+export function useGetStorefrontGallery<TData = Awaited<ReturnType<typeof getStorefrontGallery>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorefrontGallery>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStorefrontGalleryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminGalleryUrl = () => {
+
+
+
+
+  return `/api/admin/gallery`
+}
+
+/**
+ * @summary List all gallery images (staff)
+ */
+export const getAdminGallery = async ( options?: RequestInit): Promise<GalleryImageList> => {
+
+  return customFetch<GalleryImageList>(getGetAdminGalleryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminGalleryQueryKey = () => {
+    return [
+    `/api/admin/gallery`
+    ] as const;
+    }
+
+
+export const getGetAdminGalleryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminGallery>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGallery>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminGalleryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminGallery>>> = ({ signal }) => getAdminGallery({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminGallery>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminGalleryQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminGallery>>>
+export type GetAdminGalleryQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List all gallery images (staff)
+ */
+
+export function useGetAdminGallery<TData = Awaited<ReturnType<typeof getAdminGallery>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGallery>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminGalleryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddGalleryImageUrl = () => {
+
+
+
+
+  return `/api/admin/gallery`
+}
+
+/**
+ * @summary Register an uploaded gallery image (staff)
+ */
+export const addGalleryImage = async (addGalleryImageInput: AddGalleryImageInput, options?: RequestInit): Promise<GalleryImage> => {
+
+  return customFetch<GalleryImage>(getAddGalleryImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addGalleryImageInput,)
+  }
+);}
+
+
+
+
+export const getAddGalleryImageMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGalleryImage>>, TError,{data: BodyType<AddGalleryImageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addGalleryImage>>, TError,{data: BodyType<AddGalleryImageInput>}, TContext> => {
+
+const mutationKey = ['addGalleryImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addGalleryImage>>, {data: BodyType<AddGalleryImageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addGalleryImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddGalleryImageMutationResult = NonNullable<Awaited<ReturnType<typeof addGalleryImage>>>
+    export type AddGalleryImageMutationBody = BodyType<AddGalleryImageInput>
+    export type AddGalleryImageMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Register an uploaded gallery image (staff)
+ */
+export const useAddGalleryImage = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGalleryImage>>, TError,{data: BodyType<AddGalleryImageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addGalleryImage>>,
+        TError,
+        {data: BodyType<AddGalleryImageInput>},
+        TContext
+      > => {
+      return useMutation(getAddGalleryImageMutationOptions(options));
+    }
+
+export const getReorderGalleryUrl = () => {
+
+
+
+
+  return `/api/admin/gallery/reorder`
+}
+
+/**
+ * @summary Reorder gallery images (staff)
+ */
+export const reorderGallery = async (reorderGalleryInput: ReorderGalleryInput, options?: RequestInit): Promise<GalleryImageList> => {
+
+  return customFetch<GalleryImageList>(getReorderGalleryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderGalleryInput,)
+  }
+);}
+
+
+
+
+export const getReorderGalleryMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderGallery>>, TError,{data: BodyType<ReorderGalleryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderGallery>>, TError,{data: BodyType<ReorderGalleryInput>}, TContext> => {
+
+const mutationKey = ['reorderGallery'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderGallery>>, {data: BodyType<ReorderGalleryInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reorderGallery(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderGalleryMutationResult = NonNullable<Awaited<ReturnType<typeof reorderGallery>>>
+    export type ReorderGalleryMutationBody = BodyType<ReorderGalleryInput>
+    export type ReorderGalleryMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Reorder gallery images (staff)
+ */
+export const useReorderGallery = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderGallery>>, TError,{data: BodyType<ReorderGalleryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderGallery>>,
+        TError,
+        {data: BodyType<ReorderGalleryInput>},
+        TContext
+      > => {
+      return useMutation(getReorderGalleryMutationOptions(options));
+    }
+
+export const getUpdateGalleryImageUrl = (imageId: string,) => {
+
+
+
+
+  return `/api/admin/gallery/${imageId}`
+}
+
+/**
+ * @summary Update a gallery image's caption or visibility (staff)
+ */
+export const updateGalleryImage = async (imageId: string,
+    updateGalleryImageInput: UpdateGalleryImageInput, options?: RequestInit): Promise<GalleryImage> => {
+
+  return customFetch<GalleryImage>(getUpdateGalleryImageUrl(imageId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateGalleryImageInput,)
+  }
+);}
+
+
+
+
+export const getUpdateGalleryImageMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGalleryImage>>, TError,{imageId: string;data: BodyType<UpdateGalleryImageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGalleryImage>>, TError,{imageId: string;data: BodyType<UpdateGalleryImageInput>}, TContext> => {
+
+const mutationKey = ['updateGalleryImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGalleryImage>>, {imageId: string;data: BodyType<UpdateGalleryImageInput>}> = (props) => {
+          const {imageId,data} = props ?? {};
+
+          return  updateGalleryImage(imageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGalleryImageMutationResult = NonNullable<Awaited<ReturnType<typeof updateGalleryImage>>>
+    export type UpdateGalleryImageMutationBody = BodyType<UpdateGalleryImageInput>
+    export type UpdateGalleryImageMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update a gallery image's caption or visibility (staff)
+ */
+export const useUpdateGalleryImage = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGalleryImage>>, TError,{imageId: string;data: BodyType<UpdateGalleryImageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateGalleryImage>>,
+        TError,
+        {imageId: string;data: BodyType<UpdateGalleryImageInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateGalleryImageMutationOptions(options));
+    }
+
+export const getDeleteGalleryImageUrl = (imageId: string,) => {
+
+
+
+
+  return `/api/admin/gallery/${imageId}`
+}
+
+/**
+ * @summary Delete a gallery image (staff)
+ */
+export const deleteGalleryImage = async (imageId: string, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getDeleteGalleryImageUrl(imageId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteGalleryImageMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGalleryImage>>, TError,{imageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteGalleryImage>>, TError,{imageId: string}, TContext> => {
+
+const mutationKey = ['deleteGalleryImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteGalleryImage>>, {imageId: string}> = (props) => {
+          const {imageId} = props ?? {};
+
+          return  deleteGalleryImage(imageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteGalleryImageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteGalleryImage>>>
+
+    export type DeleteGalleryImageMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete a gallery image (staff)
+ */
+export const useDeleteGalleryImage = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGalleryImage>>, TError,{imageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteGalleryImage>>,
+        TError,
+        {imageId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteGalleryImageMutationOptions(options));
     }
 

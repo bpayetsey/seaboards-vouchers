@@ -2,12 +2,13 @@ import { Link, useLocation, Redirect } from "wouter";
 import { useGetAdminMe } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Spinner } from "@/components/ui/spinner";
-import { LayoutGrid, Receipt, Ticket } from "lucide-react";
+import { LayoutGrid, Receipt, Ticket, Image } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutGrid },
   { href: "/admin/orders", label: "Orders & Payments", icon: Receipt },
   { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
+  { href: "/admin/gallery", label: "Gallery", icon: Image },
 ];
 
 function AdminNav() {

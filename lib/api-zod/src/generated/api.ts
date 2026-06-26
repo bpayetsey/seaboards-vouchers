@@ -485,3 +485,156 @@ export const RedeemVoucherResponse = zod.object({
 })
 
 
+/**
+ * @summary Request a presigned URL for file upload
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+}).optional()
+})
+
+
+/**
+ * @summary Serve a public asset
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string()
+})
+
+
+/**
+ * @summary Serve an uploaded object entity
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
+})
+
+
+/**
+ * Active gallery images for the storefront, ordered for display.
+ * @summary Public property photo gallery
+ */
+export const GetStorefrontGalleryResponseItem = zod.object({
+  "id": zod.string(),
+  "object_path": zod.string(),
+  "url": zod.string().describe('Serving URL for the image, relative to the site origin'),
+  "alt": zod.string(),
+  "sort_order": zod.number(),
+  "active": zod.boolean(),
+  "created_at": zod.string()
+})
+export const GetStorefrontGalleryResponse = zod.array(GetStorefrontGalleryResponseItem)
+
+
+/**
+ * @summary List all gallery images (staff)
+ */
+export const GetAdminGalleryResponseItem = zod.object({
+  "id": zod.string(),
+  "object_path": zod.string(),
+  "url": zod.string().describe('Serving URL for the image, relative to the site origin'),
+  "alt": zod.string(),
+  "sort_order": zod.number(),
+  "active": zod.boolean(),
+  "created_at": zod.string()
+})
+export const GetAdminGalleryResponse = zod.array(GetAdminGalleryResponseItem)
+
+
+/**
+ * @summary Register an uploaded gallery image (staff)
+ */
+
+
+
+export const AddGalleryImageBody = zod.object({
+  "object_path": zod.string().min(1),
+  "alt": zod.string().optional()
+})
+
+export const AddGalleryImageResponse = zod.object({
+  "id": zod.string(),
+  "object_path": zod.string(),
+  "url": zod.string().describe('Serving URL for the image, relative to the site origin'),
+  "alt": zod.string(),
+  "sort_order": zod.number(),
+  "active": zod.boolean(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Reorder gallery images (staff)
+ */
+export const ReorderGalleryBody = zod.object({
+  "ids": zod.array(zod.string())
+})
+
+export const ReorderGalleryResponseItem = zod.object({
+  "id": zod.string(),
+  "object_path": zod.string(),
+  "url": zod.string().describe('Serving URL for the image, relative to the site origin'),
+  "alt": zod.string(),
+  "sort_order": zod.number(),
+  "active": zod.boolean(),
+  "created_at": zod.string()
+})
+export const ReorderGalleryResponse = zod.array(ReorderGalleryResponseItem)
+
+
+/**
+ * @summary Update a gallery image's caption or visibility (staff)
+ */
+export const UpdateGalleryImageParams = zod.object({
+  "imageId": zod.coerce.string()
+})
+
+export const UpdateGalleryImageBody = zod.object({
+  "alt": zod.string().optional(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdateGalleryImageResponse = zod.object({
+  "id": zod.string(),
+  "object_path": zod.string(),
+  "url": zod.string().describe('Serving URL for the image, relative to the site origin'),
+  "alt": zod.string(),
+  "sort_order": zod.number(),
+  "active": zod.boolean(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Delete a gallery image (staff)
+ */
+export const DeleteGalleryImageParams = zod.object({
+  "imageId": zod.coerce.string()
+})
+
+export const DeleteGalleryImageResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+

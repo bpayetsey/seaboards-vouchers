@@ -13,6 +13,53 @@ export interface ApiError {
   error: string;
 }
 
+export interface OkResult {
+  ok: boolean;
+}
+
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface GalleryImage {
+  id: string;
+  object_path: string;
+  /** Serving URL for the image, relative to the site origin */
+  url: string;
+  alt: string;
+  sort_order: number;
+  active: boolean;
+  created_at: string;
+}
+
+export type GalleryImageList = GalleryImage[];
+
+export interface AddGalleryImageInput {
+  /** @minLength 1 */
+  object_path: string;
+  alt?: string;
+}
+
+export interface UpdateGalleryImageInput {
+  alt?: string;
+  active?: boolean;
+}
+
+export interface ReorderGalleryInput {
+  ids: string[];
+}
+
 export type RateTableRates = {
   one_bedroom: number;
   two_bedroom: number;

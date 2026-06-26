@@ -1,3 +1,4 @@
 - [Group Vouchers app](group-vouchers.md) — Seaboards Golden Jubilee group-voucher app: modes, pricing, Stripe dynamic price_data, sweep/expiry rules.
 - [RHF + zod.coerce typing](rhf-zod-coerce-typing.md) — useFieldArray needs `control: form.control`; z.coerce makes input≠output, type useForm with three generics.
 - [stripe-replit-sync setup](stripe-replit-sync-setup.md) — connector exposes `secret`/`publishable` (not `_key`), verify via sync.processWebhook, externalize stripe-replit-sync in esbuild or migrations silently skip.
+- [Object storage upload auth](object-storage-upload-auth.md) — storage template ships request-url route unauthenticated; gate it or public-serve routes become an open file host.

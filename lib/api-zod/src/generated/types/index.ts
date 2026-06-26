@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './addGalleryImageInput';
 export * from './adminInstalment';
 export * from './adminOrder';
 export * from './adminOrders';
@@ -25,6 +26,8 @@ export * from './dashboardView';
 export * from './dashboardVoucher';
 export * from './dashboardVoucherKind';
 export * from './dashboardVoucherSource';
+export * from './galleryImage';
+export * from './galleryImageList';
 export * from './groupOrderCreated';
 export * from './groupOrderInput';
 export * from './groupOrderInputMode';
@@ -32,11 +35,13 @@ export * from './healthStatus';
 export * from './issueVoucherInput';
 export * from './lineInput';
 export * from './lineInputApartmentType';
+export * from './okResult';
 export * from './organiserLine';
 export * from './organiserView';
 export * from './payLine';
 export * from './rateTable';
 export * from './rateTableRates';
+export * from './reorderGalleryInput';
 export * from './resendResult';
 export * from './retryInstalmentResult';
 export * from './splitConfig';
@@ -53,4 +58,7 @@ export * from './storeOrderInput';
 export * from './storeOrderInputType';
 export * from './storeVoucherSummary';
 export * from './sweepResult';
+export * from './updateGalleryImageInput';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './voucherLookup';
