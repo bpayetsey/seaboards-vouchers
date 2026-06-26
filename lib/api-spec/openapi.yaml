@@ -947,6 +947,78 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/catalog-prices:
+    get:
+      operationId: getAdminCatalogPrices
+      tags: [admin]
+      summary: List editable voucher prices (staff)
+      responses:
+        "200":
+          description: Editable catalog prices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCatalogPrices"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/catalog-prices/{itemId}:
+    put:
+      operationId: updateCatalogPrice
+      tags: [admin]
+      summary: Update a voucher's price (staff)
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCatalogPriceInput"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCatalogPriceItem"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -969,6 +1041,42 @@ components:
       properties:
         ok:
           type: boolean
+    AdminCatalogPriceItem:
+      type: object
+      required: [id, name, rate, was, min_nights]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        rate:
+          type: number
+          description: Per-night price in the storefront currency
+        was:
+          type: number
+          description: Original per-night price (struck through)
+        min_nights:
+          type: integer
+    AdminCatalogPrices:
+      type: object
+      required: [currency, symbol, items]
+      properties:
+        currency:
+          type: string
+        symbol:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCatalogPriceItem"
+    UpdateCatalogPriceInput:
+      type: object
+      required: [rate, was]
+      properties:
+        rate:
+          type: number
+        was:
+          type: number
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]

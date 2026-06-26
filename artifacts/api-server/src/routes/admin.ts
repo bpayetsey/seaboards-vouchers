@@ -14,6 +14,10 @@ import {
   LookupVoucherResponse,
   RedeemVoucherParams,
   RedeemVoucherResponse,
+  GetAdminCatalogPricesResponse,
+  UpdateCatalogPriceBody,
+  UpdateCatalogPriceParams,
+  UpdateCatalogPriceResponse,
 } from "@workspace/api-zod";
 import { requireStaff, type StaffRequest } from "../middlewares/requireStaff";
 import {
@@ -26,6 +30,10 @@ import {
   lookupVoucher,
   redeemVoucher,
 } from "../lib/admin";
+import {
+  listCatalogPrices,
+  updateCatalogPrice,
+} from "../lib/catalogPrices";
 
 const router: IRouter = Router();
 
@@ -151,5 +159,41 @@ router.post(
     }
   },
 );
+
+router.get("/admin/catalog-prices", requireStaff, async (req, res) => {
+  try {
+    const prices = await listCatalogPrices();
+    return res.json(GetAdminCatalogPricesResponse.parse(prices));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load catalog prices");
+    return res.status(500).json({ error: "Could not load prices." });
+  }
+});
+
+router.put("/admin/catalog-prices/:itemId", requireStaff, async (req, res) => {
+  const { itemId } = UpdateCatalogPriceParams.parse(req.params);
+  const parsed = UpdateCatalogPriceBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid request." });
+  }
+  try {
+    const result = await updateCatalogPrice(itemId, {
+      rate: parsed.data.rate,
+      was: parsed.data.was,
+    });
+    if ("error" in result) {
+      if (result.error === "not_found") {
+        return res.status(404).json({ error: "Voucher not found." });
+      }
+      return res
+        .status(400)
+        .json({ error: "Prices must be whole positive amounts." });
+    }
+    return res.json(UpdateCatalogPriceResponse.parse(result.item));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update catalog price");
+    return res.status(500).json({ error: "Could not update the price." });
+  }
+});
 
 export default router;

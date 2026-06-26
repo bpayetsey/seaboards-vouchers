@@ -4,8 +4,8 @@ import { getRateTable } from "../lib/groupVouchers";
 
 const router: IRouter = Router();
 
-router.get("/rates", (_req, res) => {
-  const data = GetRatesResponse.parse(getRateTable());
+router.get("/rates", async (_req, res) => {
+  const data = GetRatesResponse.parse(await getRateTable());
   res.json(data);
 });
 

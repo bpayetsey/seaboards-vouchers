@@ -6,13 +6,37 @@ import {
   getUncachableStripeClient,
   fetchReceiptUrlForPaymentIntent,
 } from "./stripeClient";
+import { getEffectiveCatalog } from "./storeCatalog";
 
+// Default per-night rates; kept as a fallback when the catalog can't be read.
 export const RATES: Record<string, number> = {
   one_bedroom: 2300,
   two_bedroom: 3750,
 };
+// Group split uses underscore apartment_type keys; the storefront catalog uses
+// hyphenated ids. This maps catalog ids onto the apartment_type keys so prices
+// edited in the admin flow through to group pricing too.
+const CATALOG_ID_TO_APARTMENT_TYPE: Record<string, string> = {
+  "one-bedroom": "one_bedroom",
+  "two-bedroom": "two_bedroom",
+};
 export const CURRENCY = process.env.VOUCHER_CURRENCY || "SCR";
 export const MINOR_PER_MAJOR = 100;
+
+/** Effective per-night rates with any admin price overrides applied. */
+export async function getRates(): Promise<Record<string, number>> {
+  try {
+    const catalog = await getEffectiveCatalog();
+    const rates: Record<string, number> = { ...RATES };
+    for (const item of catalog) {
+      const key = CATALOG_ID_TO_APARTMENT_TYPE[item.id];
+      if (key) rates[key] = item.rate;
+    }
+    return rates;
+  } catch {
+    return { ...RATES };
+  }
+}
 
 const token = (n = 18): string => crypto.randomBytes(n).toString("base64url");
 const voucherCode = (): string =>
@@ -23,8 +47,9 @@ const creditCode = (): string =>
 export function lineAmountMinor(
   apartmentType: string | null | undefined,
   nights: number | null | undefined,
+  rates: Record<string, number> = RATES,
 ): number {
-  const rate = apartmentType ? RATES[apartmentType] : undefined;
+  const rate = apartmentType ? rates[apartmentType] : undefined;
   if (!rate) throw new Error(`Unknown apartment_type: ${apartmentType}`);
   const n = Number(nights);
   if (!Number.isInteger(n) || n < 1)
@@ -72,6 +97,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
     throw new Error("at least one payer required");
 
   const organiserName = organiser_name || organiser_email;
+  const rates = await getRates();
 
   let splitApt: string | null = null;
   let splitNights: number | null = null;
@@ -95,7 +121,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
     prepared = lines.map((l) => ({
       apartmentType: l.apartment_type ?? null,
       nights: l.nights ?? null,
-      amountMinor: lineAmountMinor(l.apartment_type, l.nights),
+      amountMinor: lineAmountMinor(l.apartment_type, l.nights, rates),
       payerName: l.payer_name || l.payer_email,
       payerEmail: l.payer_email,
     }));
@@ -107,7 +133,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
       // client can never tamper with the total.
       splitApt = split.apartment_type;
       splitNights = split.nights;
-      roomTotal = lineAmountMinor(splitApt, splitNights);
+      roomTotal = lineAmountMinor(splitApt, splitNights, rates);
     } else if (
       Number.isInteger(split.amount_minor) &&
       (split.amount_minor as number) > 0
@@ -564,13 +590,14 @@ export async function sweepExpired(now = new Date()) {
   return { swept: orders.length };
 }
 
-export function getRateTable() {
+export async function getRateTable() {
+  const rates = await getRates();
   return {
     currency: CURRENCY,
     minor_per_major: MINOR_PER_MAJOR,
     rates: {
-      one_bedroom: RATES.one_bedroom,
-      two_bedroom: RATES.two_bedroom,
+      one_bedroom: rates.one_bedroom,
+      two_bedroom: rates.two_bedroom,
     },
   };
 }

@@ -3,7 +3,14 @@
  * from /api/storefront/config so prices can never drift between the page and the
  * server. Prices are validated server-side from this file, so the client can't
  * tamper with them.
+ *
+ * Default rates/strike-through prices live here, but staff can override them
+ * per item from the admin (stored in `store_catalog_price`). `getEffectiveCatalog`
+ * merges any overrides onto these defaults, and all pricing goes through it so
+ * the storefront, order validation and group split pricing stay consistent.
  */
+
+import { db, storeCatalogPrices } from "@workspace/db";
 
 export const SYMBOLS: Record<string, string> = {
   eur: "€",
@@ -84,8 +91,29 @@ export const GIFT = {
   min: 50,
 };
 
+/**
+ * The catalog with any staff price overrides applied. Falls back to the
+ * built-in defaults if the overrides can't be read, so the storefront never
+ * goes dark over a transient DB issue.
+ */
+export async function getEffectiveCatalog(): Promise<CatalogItem[]> {
+  let overrides: Record<string, { rate: number; was: number }> = {};
+  try {
+    const rows = await db.select().from(storeCatalogPrices);
+    overrides = Object.fromEntries(
+      rows.map((r) => [r.itemId, { rate: r.rate, was: r.was }]),
+    );
+  } catch {
+    overrides = {};
+  }
+  return CATALOG.map((item) => {
+    const o = overrides[item.id];
+    return o ? { ...item, rate: o.rate, was: o.was } : item;
+  });
+}
+
 /** Validate an incoming order against the catalog so the price can't be tampered with. */
-export function priceFor({
+export async function priceFor({
   productId,
   type,
   amount,
@@ -95,13 +123,14 @@ export function priceFor({
   type?: string;
   amount?: number;
   nights?: number;
-}): number | null {
+}): Promise<number | null> {
   if (type === "gift") {
     const a = Number(amount);
     if (!Number.isFinite(a) || a < GIFT.min) return null;
     return Math.round(a * 100) / 100;
   }
-  const item = CATALOG.find((v) => v.id === productId);
+  const catalog = await getEffectiveCatalog();
+  const item = catalog.find((v) => v.id === productId);
   if (!item) return null;
   const n = Number(nights);
   if (!Number.isInteger(n) || n < item.minNights) return null;

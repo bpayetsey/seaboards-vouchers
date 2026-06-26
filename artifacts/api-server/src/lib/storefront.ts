@@ -13,10 +13,10 @@ import {
   fetchReceiptUrlForPaymentIntent,
 } from "./stripeClient";
 import {
-  CATALOG,
   GIFT,
   SETTINGS,
   SYMBOLS,
+  getEffectiveCatalog,
   priceFor,
   nameFor,
 } from "./storeCatalog";
@@ -44,7 +44,7 @@ export async function getStorefrontConfig() {
     symbol: SYMBOLS[CUR] ?? "",
     instalments: SETTINGS.instalments,
     interval_days: SETTINGS.intervalDays,
-    catalog: CATALOG,
+    catalog: await getEffectiveCatalog(),
     gift: GIFT,
   };
 }
@@ -72,7 +72,7 @@ export async function createStoreOrder(
   }
 
   // Price comes from the catalog, never from the client.
-  const total = priceFor({
+  const total = await priceFor({
     productId: product_id ?? undefined,
     type,
     amount: amount ?? undefined,

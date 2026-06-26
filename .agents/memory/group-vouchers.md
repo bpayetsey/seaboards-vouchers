@@ -14,7 +14,10 @@ Resort group-voucher offer for Seychelles, currency SCR. Lives in `artifacts/gro
 - **Names are optional:** `organiser_name`/`payer_name` are nullable in the API; server falls back to the email (`organiser_name || organiser_email`, `l.payer_name || l.payer_email`). The flat storefront form only collects emails + amount.
 
 ## Pricing
-Rates major units: `one_bedroom=2300`, `two_bedroom=3750` per night. `MINOR_PER_MAJOR=100`. Amount stored in minor units. `amount = rate * nights * 100`.
+Default rates major units: `one_bedroom=2300`, `two_bedroom=3750` per night. `MINOR_PER_MAJOR=100`. Amount stored in minor units. `amount = rate * nights * 100`.
+- **Editable prices are admin-overridable** via `store_catalog_price` (itemId PK, rate, was). `getEffectiveCatalog()` in `storeCatalog.ts` merges overrides onto the static `CATALOG` defaults (falls back to defaults on DB error). Only the two apartment packages are editable (rate + strikethrough `was`); gift-voucher amounts are buyer-chosen.
+- **Single source of truth, no drift:** the effective catalog must feed *every* pricing path. Storefront config + order validation (`priceFor`, async) AND group split pricing (`getRates`/`getRateTable`, async, mapped via `CATALOG_ID_TO_APARTMENT_TYPE`) all derive from it. Never read the static `CATALOG`/`RATES` constants directly in a new pricing flow — add to `getEffectiveCatalog` instead. **Why:** storefront and group order used to duplicate the same hardcoded numbers; an override that only updated one would silently mis-price the other.
+- Admin endpoints `GET /admin/catalog-prices` + `PUT /admin/catalog-prices/{itemId}` (staff-gated). Server rejects non-integer/non-positive prices (does NOT round) so behavior matches the "whole positive amounts" error text.
 
 ## Stripe
 - **Dynamic server-side `price_data` is intentional and correct here** — do NOT use a product catalog, despite the generic Stripe skill saying "never price_data".

@@ -17,6 +17,27 @@ export interface OkResult {
   ok: boolean;
 }
 
+export interface AdminCatalogPriceItem {
+  id: string;
+  name: string;
+  /** Per-night price in the storefront currency */
+  rate: number;
+  /** Original per-night price (struck through) */
+  was: number;
+  min_nights: number;
+}
+
+export interface AdminCatalogPrices {
+  currency: string;
+  symbol: string;
+  items: AdminCatalogPriceItem[];
+}
+
+export interface UpdateCatalogPriceInput {
+  rate: number;
+  was: number;
+}
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;

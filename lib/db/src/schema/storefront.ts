@@ -106,7 +106,25 @@ export const storeGalleryImages = pgTable(
   (table) => [index("idx_store_gallery_sort").on(table.active, table.sortOrder)],
 );
 
+/**
+ * Staff-editable price overrides for storefront catalog items, keyed by the
+ * catalog item id (e.g. "one-bedroom"). When a row exists it overrides the
+ * built-in default rate/was for that item across the storefront and the group
+ * split pricing, so prices stay in one place and can be edited from the admin.
+ * Values are whole-currency major units (the same representation the catalog
+ * uses), matching the resort's SCR pricing.
+ */
+export const storeCatalogPrices = pgTable("store_catalog_price", {
+  itemId: text("item_id").primaryKey(),
+  rate: integer("rate").notNull(),
+  was: integer("was").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type StoreOrder = typeof storeOrders.$inferSelect;
 export type StoreInstallment = typeof storeInstallments.$inferSelect;
 export type StoreVoucher = typeof storeVouchers.$inferSelect;
 export type StoreGalleryImage = typeof storeGalleryImages.$inferSelect;
+export type StoreCatalogPrice = typeof storeCatalogPrices.$inferSelect;

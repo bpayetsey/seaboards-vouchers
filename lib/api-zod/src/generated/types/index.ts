@@ -7,6 +7,8 @@
  */
 
 export * from './addGalleryImageInput';
+export * from './adminCatalogPriceItem';
+export * from './adminCatalogPrices';
 export * from './adminGroupOrder';
 export * from './adminGroupOrders';
 export * from './adminGroupParticipant';
@@ -63,6 +65,7 @@ export * from './storeOrderInput';
 export * from './storeOrderInputType';
 export * from './storeVoucherSummary';
 export * from './sweepResult';
+export * from './updateCatalogPriceInput';
 export * from './updateGalleryImageInput';
 export * from './uploadUrlRequest';
 export * from './uploadUrlResponse';

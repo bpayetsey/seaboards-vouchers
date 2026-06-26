@@ -21,6 +21,8 @@ import type {
 
 import type {
   AddGalleryImageInput,
+  AdminCatalogPriceItem,
+  AdminCatalogPrices,
   AdminGroupOrders,
   AdminOrders,
   AdminOverview,
@@ -50,6 +52,7 @@ import type {
   StoreOrderInput,
   StorefrontConfig,
   SweepResult,
+  UpdateCatalogPriceInput,
   UpdateGalleryImageInput,
   UploadUrlRequest,
   UploadUrlResponse,
@@ -2527,5 +2530,154 @@ export const useDeleteGalleryImage = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getDeleteGalleryImageMutationOptions(options));
+    }
+
+export const getGetAdminCatalogPricesUrl = () => {
+
+
+
+
+  return `/api/admin/catalog-prices`
+}
+
+/**
+ * @summary List editable voucher prices (staff)
+ */
+export const getAdminCatalogPrices = async ( options?: RequestInit): Promise<AdminCatalogPrices> => {
+
+  return customFetch<AdminCatalogPrices>(getGetAdminCatalogPricesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCatalogPricesQueryKey = () => {
+    return [
+    `/api/admin/catalog-prices`
+    ] as const;
+    }
+
+
+export const getGetAdminCatalogPricesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCatalogPrices>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCatalogPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCatalogPricesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCatalogPrices>>> = ({ signal }) => getAdminCatalogPrices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCatalogPrices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCatalogPricesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCatalogPrices>>>
+export type GetAdminCatalogPricesQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List editable voucher prices (staff)
+ */
+
+export function useGetAdminCatalogPrices<TData = Awaited<ReturnType<typeof getAdminCatalogPrices>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCatalogPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCatalogPricesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateCatalogPriceUrl = (itemId: string,) => {
+
+
+
+
+  return `/api/admin/catalog-prices/${itemId}`
+}
+
+/**
+ * @summary Update a voucher's price (staff)
+ */
+export const updateCatalogPrice = async (itemId: string,
+    updateCatalogPriceInput: UpdateCatalogPriceInput, options?: RequestInit): Promise<AdminCatalogPriceItem> => {
+
+  return customFetch<AdminCatalogPriceItem>(getUpdateCatalogPriceUrl(itemId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateCatalogPriceInput,)
+  }
+);}
+
+
+
+
+export const getUpdateCatalogPriceMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalogPrice>>, TError,{itemId: string;data: BodyType<UpdateCatalogPriceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCatalogPrice>>, TError,{itemId: string;data: BodyType<UpdateCatalogPriceInput>}, TContext> => {
+
+const mutationKey = ['updateCatalogPrice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCatalogPrice>>, {itemId: string;data: BodyType<UpdateCatalogPriceInput>}> = (props) => {
+          const {itemId,data} = props ?? {};
+
+          return  updateCatalogPrice(itemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCatalogPriceMutationResult = NonNullable<Awaited<ReturnType<typeof updateCatalogPrice>>>
+    export type UpdateCatalogPriceMutationBody = BodyType<UpdateCatalogPriceInput>
+    export type UpdateCatalogPriceMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update a voucher's price (staff)
+ */
+export const useUpdateCatalogPrice = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCatalogPrice>>, TError,{itemId: string;data: BodyType<UpdateCatalogPriceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCatalogPrice>>,
+        TError,
+        {itemId: string;data: BodyType<UpdateCatalogPriceInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCatalogPriceMutationOptions(options));
     }
 

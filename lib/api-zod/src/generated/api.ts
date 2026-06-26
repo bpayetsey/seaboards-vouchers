@@ -722,3 +722,40 @@ export const DeleteGalleryImageResponse = zod.object({
 })
 
 
+/**
+ * @summary List editable voucher prices (staff)
+ */
+export const GetAdminCatalogPricesResponse = zod.object({
+  "currency": zod.string(),
+  "symbol": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "rate": zod.number().describe('Per-night price in the storefront currency'),
+  "was": zod.number().describe('Original per-night price (struck through)'),
+  "min_nights": zod.number()
+}))
+})
+
+
+/**
+ * @summary Update a voucher's price (staff)
+ */
+export const UpdateCatalogPriceParams = zod.object({
+  "itemId": zod.coerce.string()
+})
+
+export const UpdateCatalogPriceBody = zod.object({
+  "rate": zod.number(),
+  "was": zod.number()
+})
+
+export const UpdateCatalogPriceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "rate": zod.number().describe('Per-night price in the storefront currency'),
+  "was": zod.number().describe('Original per-night price (struck through)'),
+  "min_nights": zod.number()
+})
+
+

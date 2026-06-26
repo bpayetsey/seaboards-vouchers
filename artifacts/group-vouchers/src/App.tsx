@@ -20,6 +20,7 @@ import AdminOverview from "@/pages/admin/overview";
 import AdminOrders from "@/pages/admin/orders";
 import AdminGroupOrders from "@/pages/admin/group-orders";
 import AdminVouchers from "@/pages/admin/vouchers";
+import AdminPricing from "@/pages/admin/pricing";
 import AdminGallery from "@/pages/admin/gallery";
 
 const queryClient = new QueryClient();
@@ -234,6 +235,11 @@ function Router() {
       <Route path="/admin/vouchers">
         <ProtectedAdmin>
           <AdminVouchers />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/pricing">
+        <ProtectedAdmin>
+          <AdminPricing />
         </ProtectedAdmin>
       </Route>
       <Route path="/admin/gallery">
