@@ -1,9 +1,7 @@
-import type { StoreOrder, StoreInstallment, StoreVoucher } from "@workspace/db";
+import type { StoreOrder, StoreInstallment } from "@workspace/db";
 import { RESORT } from "@workspace/voucher-content";
 import { logger } from "./logger";
-import { SYMBOLS } from "./storeCatalog";
-import { sendEmail, type EmailAttachment } from "./sendgridClient";
-import { resolveVoucherByCode, buildVoucherPdf } from "./voucherPdf";
+import { sendEmail, type SendEmailInput } from "./sendgridClient";
 
 /**
  * Absolute base URL of the public app (group-vouchers is served at root "/").
@@ -20,15 +18,6 @@ function appBaseUrl(): string {
   const dev = process.env.REPLIT_DEV_DOMAIN;
   if (dev) return `https://${dev}`;
   return "";
-}
-
-function formatMoney(valueMinor: number, currency: string): string {
-  const symbol = SYMBOLS[currency.toLowerCase()] ?? `${currency.toUpperCase()} `;
-  const major = (valueMinor / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-  return `${symbol}${major}`;
 }
 
 const BRAND = "#1F3A5F";
@@ -62,66 +51,39 @@ function dashboardCta(): { html: string; text: string } {
   return { html, text };
 }
 
-/** Best-effort build of the voucher PDF attachment. Null on any failure. */
-async function buildVoucherAttachment(
-  code: string,
-): Promise<EmailAttachment | null> {
+/**
+ * Best-effort send for the non-critical instalment / deposit lifecycle emails.
+ * The voucher PDF email (issued-voucher path) uses its own throwing sender in
+ * `voucherEmail.ts`; here a delivery failure must never break the payment /
+ * charge flow, so we swallow and log. Returns whether the send succeeded so
+ * callers that guard with an idempotency claim can release it for a retry.
+ */
+async function sendBestEffort(input: SendEmailInput): Promise<boolean> {
   try {
-    const resolved = await resolveVoucherByCode(code);
-    if (!resolved) return null;
-    const bytes = await buildVoucherPdf(resolved);
-    return {
-      filename: `seaboards-voucher-${code}.pdf`,
-      content: bytes,
-      type: "application/pdf",
-    };
+    await sendEmail(input);
+    return true;
   } catch (err) {
-    logger.warn({ err, code }, "Could not build voucher PDF for email");
-    return null;
+    logger.warn({ err, to: input.to }, "Lifecycle email not sent");
+    return false;
   }
 }
 
-export async function sendVoucherEmail(
+/**
+ * Deposit-policy issuance: the Pay-in-3 plan has started but the voucher is not
+ * active until fully paid. Confirm receipt and set expectations; no PDF yet —
+ * the redeemable voucher PDF is emailed on the final payment (voucherEmail.ts).
+ */
+export async function sendDepositReceivedEmail(
   order: StoreOrder,
-  voucher: StoreVoucher,
-  fullyPaid: boolean,
 ): Promise<boolean> {
   const cta = dashboardCta();
-  const value = formatMoney(Number(voucher.valueMinor), voucher.currency);
-
-  if (fullyPaid) {
-    const attachment = await buildVoucherAttachment(voucher.code);
-    const codeBlock = `<div style="margin:20px 0;text-align:center;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6B7280;">Your voucher code</div>
-      <div style="font-family:'Courier New',monospace;font-size:24px;font-weight:bold;color:${BRAND};margin-top:6px;">${voucher.code}</div>
-      <div style="font-size:14px;color:#6B7280;margin-top:6px;">Value: ${value}</div>
-    </div>`;
-    const note = attachment
-      ? `<p style="font-size:14px;color:#6B7280;">Your voucher is attached as a PDF. Keep it safe — you'll need the code when booking.</p>`
-      : `<p style="font-size:14px;color:#6B7280;">Keep this code safe — you'll need it when booking.</p>`;
-    const html = emailShell(
-      "Your voucher is ready",
-      `<p style="font-size:15px;">Thank you for your purchase. Your ${RESORT.offerTitle} is now active.</p>${codeBlock}${note}${cta.html}`,
-    );
-    const text = `Your ${RESORT.offerTitle} is ready.\n\nVoucher code: ${voucher.code}\nValue: ${value}\n\nKeep this code safe — you'll need it when booking.${cta.text}`;
-    return sendEmail({
-      to: order.buyerEmail,
-      subject: `Your ${RESORT.offerTitle} is ready`,
-      html,
-      text,
-      attachments: attachment ? [attachment] : undefined,
-    });
-  }
-
-  // Deposit-policy issuance: the plan has started but the voucher is not active
-  // until fully paid. Confirm receipt and set expectations; no PDF yet.
   const html = emailShell(
     "Payment received — your plan has started",
     `<p style="font-size:15px;">Thank you. We've received your first payment for your ${RESORT.offerTitle} and will charge the remaining instalments automatically.</p>
      <p style="font-size:14px;color:#6B7280;">Your voucher activates once your plan is fully paid — we'll email you the voucher PDF then.</p>${cta.html}`,
   );
   const text = `Thank you. We've received your first payment for your ${RESORT.offerTitle} and will charge the remaining instalments automatically.\n\nYour voucher activates once your plan is fully paid — we'll email you the voucher PDF then.${cta.text}`;
-  return sendEmail({
+  return sendBestEffort({
     to: order.buyerEmail,
     subject: `Payment received — ${RESORT.offerTitle}`,
     html,
@@ -140,7 +102,7 @@ export async function sendActionRequiredEmail(
      <p style="font-size:14px;color:#6B7280;">Please complete the verification so we can process your payment. If you've already done this, you can ignore this message.</p>${cta.html}`,
   );
   const text = `Your bank needs to confirm instalment ${inst.number} of your ${RESORT.offerTitle} payment plan. Please complete the verification so we can process your payment.${cta.text}`;
-  await sendEmail({
+  await sendBestEffort({
     to: order.buyerEmail,
     subject: `Action needed — ${RESORT.offerTitle} payment`,
     html,
@@ -159,7 +121,7 @@ export async function sendPaymentFailedEmail(
      <p style="font-size:14px;color:#6B7280;">We'll try again automatically. To avoid delays, please check that your card details are up to date.</p>${cta.html}`,
   );
   const text = `Instalment ${inst.number} of your ${RESORT.offerTitle} payment plan didn't go through. We'll try again automatically. Please check that your card details are up to date.${cta.text}`;
-  await sendEmail({
+  await sendBestEffort({
     to: order.buyerEmail,
     subject: `Payment issue — ${RESORT.offerTitle}`,
     html,

@@ -81,10 +81,13 @@ export const storeVouchers = pgTable("store_voucher", {
   status: text("status").notNull().default("pending"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
-  // Idempotency guards so the same milestone email is never sent twice across
-  // retries / duplicate webhook + order-confirm processing of one payment.
+  // Idempotency claim for the deposit ("plan started") notice sent on the first
+  // Pay-in-3 payment, so it is never sent twice across webhook + confirm retries.
   pendingEmailedAt: timestamp("pending_emailed_at", { withTimezone: true }),
-  activeEmailedAt: timestamp("active_emailed_at", { withTimezone: true }),
+  // Set the first time the issued voucher PDF is emailed to the buyer (the
+  // fully-paid "active" milestone). Idempotency claim so webhook retries /
+  // confirm fallbacks never re-send.
+  voucherEmailedAt: timestamp("voucher_emailed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -18,6 +18,11 @@ export const groupOrders = pgTable("group_order", {
   splitNights: integer("split_nights"),
   splitAmountMinor: bigint("split_amount_minor", { mode: "number" }),
   splitVoucherCode: text("split_voucher_code"),
+  // Set the first time the released split "master" voucher is emailed to the
+  // organiser. Idempotency claim so webhook retries never re-send.
+  splitVoucherEmailedAt: timestamp("split_voucher_emailed_at", {
+    withTimezone: true,
+  }),
   currency: text("currency").notNull().default("SCR"),
   dueBy: timestamp("due_by", { withTimezone: true }),
   statusToken: text("status_token").notNull().unique(),
@@ -47,6 +52,9 @@ export const voucherLines = pgTable(
     receiptUrl: text("receipt_url"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     voucherCode: text("voucher_code"),
+    // Set the first time this paid line's voucher PDF is emailed to the payer.
+    // Idempotency claim so webhook retries never re-send.
+    voucherEmailedAt: timestamp("voucher_emailed_at", { withTimezone: true }),
     creditCode: text("credit_code"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

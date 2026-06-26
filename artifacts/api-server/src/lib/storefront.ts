@@ -22,10 +22,11 @@ import {
 } from "./storeCatalog";
 import { logger } from "./logger";
 import {
-  sendVoucherEmail,
   sendActionRequiredEmail,
   sendPaymentFailedEmail,
+  sendDepositReceivedEmail,
 } from "./storeEmail";
+import { sendIssuedVoucherEmail } from "./voucherEmail";
 
 const CUR = SETTINGS.currency;
 const toMinor = (major: number): number => Math.round(Number(major) * 100);
@@ -190,9 +191,18 @@ export async function confirmStoreOrder(
   };
 }
 
-/** Shared, idempotent: a PaymentIntent (any instalment) has succeeded. */
+/**
+ * Shared, idempotent: a PaymentIntent (any instalment) has succeeded.
+ *
+ * `propagateEmailError` controls what happens if the voucher email send fails:
+ * the webhook passes `true` so the failure surfaces (non-2xx) and Stripe retries
+ * the event, guaranteeing eventual delivery. Buyer/admin-facing callers (confirm
+ * fallback, admin retry) leave it `false` so a transient email outage never
+ * fails their request — the webhook is the durable retrier.
+ */
 export async function processPaidIntent(
   pi: Stripe.PaymentIntent,
+  { propagateEmailError = false }: { propagateEmailError?: boolean } = {},
 ): Promise<void> {
   const orderId = pi.metadata?.orderId;
   if (!orderId) return;
@@ -337,36 +347,83 @@ export async function processPaidIntent(
       .returning();
   }
 
-  // Send each milestone email at most once. processPaidIntent runs from both
-  // the Stripe webhook and order-confirm paths (and may run concurrently), so
-  // we atomically *claim* the milestone with a conditional UPDATE before
-  // sending: only the caller whose UPDATE actually flips the NULL flag gets the
-  // row back and sends. If delivery fails we clear the flag again so a later
-  // run (e.g. the daily charge job or a webhook retry) can re-attempt.
-  const milestone = fullyPaid ? "active" : "pending";
-  const flagCol = fullyPaid
-    ? storeVouchers.activeEmailedAt
-    : storeVouchers.pendingEmailedAt;
-
-  const [claimed] = await db
-    .update(storeVouchers)
-    .set(fullyPaid ? { activeEmailedAt: new Date() } : { pendingEmailedAt: new Date() })
-    .where(and(eq(storeVouchers.id, voucher.id), isNull(flagCol)))
-    .returning({ id: storeVouchers.id });
-
-  if (claimed) {
-    const delivered = await sendVoucherEmail(order, voucher, fullyPaid);
-    if (!delivered) {
-      // Roll back the claim so the email can be retried later.
-      await db
-        .update(storeVouchers)
-        .set(fullyPaid ? { activeEmailedAt: null } : { pendingEmailedAt: null })
-        .where(eq(storeVouchers.id, voucher.id));
-      logger.warn(
-        { voucherId: voucher.id, milestone },
-        "voucher milestone email failed to send; claim rolled back for retry",
-      );
+  // Deposit ("plan started") milestone, best-effort. Under the deposit-issue
+  // policy the voucher exists as "pending" after the first payment; let the
+  // buyer know their plan has started. Claim the milestone with a conditional
+  // UPDATE so the notice is sent at most once across webhook + confirm retries;
+  // on failure clear the claim so a later run can re-attempt.
+  if (!fullyPaid && voucher.status === "pending") {
+    const [claimed] = await db
+      .update(storeVouchers)
+      .set({ pendingEmailedAt: new Date() })
+      .where(
+        and(
+          eq(storeVouchers.id, voucher.id),
+          isNull(storeVouchers.pendingEmailedAt),
+        ),
+      )
+      .returning({ id: storeVouchers.id });
+    if (claimed) {
+      const delivered = await sendDepositReceivedEmail(order);
+      if (!delivered) {
+        await db
+          .update(storeVouchers)
+          .set({ pendingEmailedAt: null })
+          .where(eq(storeVouchers.id, voucher.id));
+        logger.warn(
+          { voucherId: voucher.id },
+          "deposit email failed to send; claim rolled back for retry",
+        );
+      }
     }
+  }
+
+  // Email the voucher PDF once the voucher is fully usable (active). For
+  // deposit-issue policy the row exists earlier as "pending"; we wait until the
+  // final instalment clears so the buyer receives a redeemable voucher.
+  if (voucher.status === "active") {
+    await emailVoucherOnce(
+      voucher.id,
+      order.buyerEmail,
+      order.buyerName,
+      voucher.code,
+      propagateEmailError,
+    );
+  }
+}
+
+/**
+ * Atomically claim the storefront voucher's email slot and send the PDF exactly
+ * once. The conditional UPDATE (…WHERE voucher_emailed_at IS NULL) means a
+ * concurrent webhook retry or confirm fallback that loses the race sends
+ * nothing. If the send fails the claim is released so a later retry can resend.
+ */
+async function emailVoucherOnce(
+  voucherId: string,
+  to: string,
+  recipientName: string | null,
+  code: string,
+  propagateError: boolean,
+): Promise<void> {
+  const claimed = await db
+    .update(storeVouchers)
+    .set({ voucherEmailedAt: new Date() })
+    .where(
+      and(eq(storeVouchers.id, voucherId), isNull(storeVouchers.voucherEmailedAt)),
+    )
+    .returning({ id: storeVouchers.id });
+  if (claimed.length === 0) return;
+
+  try {
+    await sendIssuedVoucherEmail({ to, recipientName, code });
+  } catch (err) {
+    // Release the claim so a later attempt (webhook retry) can resend.
+    await db
+      .update(storeVouchers)
+      .set({ voucherEmailedAt: null })
+      .where(eq(storeVouchers.id, voucherId));
+    logger.error({ err, code }, "Failed to email storefront voucher PDF");
+    if (propagateError) throw err;
   }
 }
 

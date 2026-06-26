@@ -25,9 +25,14 @@ export async function processWebhook(
   // own business-logic side effects (group vouchers + storefront instalments).
   const event = JSON.parse(payload.toString("utf8")) as Stripe.Event;
 
+  // Webhook is the durable retrier: pass propagateEmailError so a failed voucher
+  // email surfaces as a non-2xx response and Stripe retries the event (with
+  // backoff for up to ~3 days), guaranteeing eventual delivery. Buyer/admin
+  // request paths intentionally do not propagate, so a transient email outage
+  // never breaks their flow — the webhook covers the retry.
   if (event.type === "checkout.session.completed") {
-    await handleSessionCompleted(event.data.object);
+    await handleSessionCompleted(event.data.object, { propagateEmailError: true });
   } else if (event.type === "payment_intent.succeeded") {
-    await processPaidIntent(event.data.object);
+    await processPaidIntent(event.data.object, { propagateEmailError: true });
   }
 }

@@ -7,6 +7,8 @@ import {
   fetchReceiptUrlForPaymentIntent,
 } from "./stripeClient";
 import { getEffectiveCatalog } from "./storeCatalog";
+import { sendIssuedVoucherEmail } from "./voucherEmail";
+import { logger } from "./logger";
 
 // Default per-night rates; kept as a fallback when the catalog can't be read.
 export const RATES: Record<string, number> = {
@@ -301,6 +303,7 @@ export async function startCheckout(
 
 export async function handleSessionCompleted(
   session: Stripe.Checkout.Session,
+  { propagateEmailError = false }: { propagateEmailError?: boolean } = {},
 ): Promise<void> {
   const lineId = session.metadata?.line_id;
   if (!lineId) return;
@@ -323,6 +326,12 @@ export async function handleSessionCompleted(
     }
   }
 
+  // Transition the line (and possibly the order) to paid/complete. We never
+  // send email inside the transaction (a network call would hold row locks, and
+  // the email could fire while the tx later rolls back). The transition is
+  // guarded so only a still-pending line moves forward; a webhook replay of an
+  // already-paid line is a no-op here and falls through to the state-based email
+  // step below.
   await db.transaction(async (tx) => {
     const [line] = await tx
       .select()
@@ -394,6 +403,125 @@ export async function handleSessionCompleted(
       }
     }
   });
+
+  // Decide what to email from the CURRENT persisted state, not from whether this
+  // particular call performed the transition. This is what makes a webhook
+  // retry recover a previously failed send: if an earlier attempt issued the
+  // voucher but the email failed (and released its claim), the replay re-reads
+  // the same paid/complete state and sends it. The claim UPDATEs below keep it
+  // exactly-once. `propagateEmailError` (webhook only) rethrows so Stripe retries.
+  const [freshLine] = await db
+    .select()
+    .from(voucherLines)
+    .where(eq(voucherLines.id, lineId));
+  if (!freshLine) return;
+
+  // independent/flat: each paid line carries its own voucher code. Split lines
+  // never get a per-line code (only the organiser's master voucher), so this
+  // condition naturally skips them.
+  if (
+    freshLine.status === "paid" &&
+    freshLine.voucherCode &&
+    freshLine.voucherEmailedAt === null
+  ) {
+    await emailLineVoucherOnce(
+      freshLine.id,
+      freshLine.payerEmail,
+      freshLine.payerName,
+      freshLine.voucherCode,
+      propagateEmailError,
+    );
+  }
+
+  // split: the master voucher belongs to the organiser and is emailed once the
+  // order is complete. Triggered by whichever line's event finishes the order.
+  const [freshOrder] = await db
+    .select()
+    .from(groupOrders)
+    .where(eq(groupOrders.id, freshLine.groupOrderId));
+  if (
+    freshOrder &&
+    freshOrder.mode === "split" &&
+    freshOrder.status === "complete" &&
+    freshOrder.splitVoucherCode &&
+    freshOrder.splitVoucherEmailedAt === null
+  ) {
+    await emailSplitVoucherOnce(
+      freshOrder.id,
+      freshOrder.organiserEmail,
+      freshOrder.organiserName,
+      freshOrder.splitVoucherCode,
+      propagateEmailError,
+    );
+  }
+}
+
+/**
+ * Atomically claim a paid line's email slot and send its voucher PDF exactly
+ * once. The conditional UPDATE (…WHERE voucher_emailed_at IS NULL) means a
+ * webhook retry that loses the race sends nothing; a failed send releases the
+ * claim so a later retry can resend.
+ */
+async function emailLineVoucherOnce(
+  lineId: string,
+  to: string,
+  name: string | null,
+  code: string,
+  propagateError: boolean,
+): Promise<void> {
+  const claimed = await db
+    .update(voucherLines)
+    .set({ voucherEmailedAt: new Date() })
+    .where(
+      and(eq(voucherLines.id, lineId), isNull(voucherLines.voucherEmailedAt)),
+    )
+    .returning({ id: voucherLines.id });
+  if (claimed.length === 0) return;
+
+  try {
+    await sendIssuedVoucherEmail({ to, recipientName: name, code });
+  } catch (err) {
+    // Release the claim so a later attempt (webhook retry) can resend.
+    await db
+      .update(voucherLines)
+      .set({ voucherEmailedAt: null })
+      .where(eq(voucherLines.id, lineId));
+    logger.error({ err, code }, "Failed to email group line voucher PDF");
+    if (propagateError) throw err;
+  }
+}
+
+/** Same idempotent claim-then-send, for a completed split master voucher. */
+async function emailSplitVoucherOnce(
+  orderId: string,
+  to: string,
+  name: string | null,
+  code: string,
+  propagateError: boolean,
+): Promise<void> {
+  const claimed = await db
+    .update(groupOrders)
+    .set({ splitVoucherEmailedAt: new Date() })
+    .where(
+      and(
+        eq(groupOrders.id, orderId),
+        isNull(groupOrders.splitVoucherEmailedAt),
+      ),
+    )
+    .returning({ id: groupOrders.id });
+  if (claimed.length === 0) return;
+
+  try {
+    await sendIssuedVoucherEmail({ to, recipientName: name, code });
+  } catch (err) {
+    // Release the claim so a later attempt (webhook retry) can resend.
+    await db
+      .update(groupOrders)
+      .set({ splitVoucherEmailedAt: null })
+      .where(eq(groupOrders.id, orderId));
+    logger.error({ err, code }, "Failed to email split master voucher PDF");
+    if (propagateError) throw err;
+  }
 }
 
 export async function getOrganiserView(statusToken: string) {
