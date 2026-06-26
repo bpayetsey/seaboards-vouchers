@@ -129,7 +129,7 @@ function AboutSection() {
         Tucked into the verdant tropical vegetation of southern Mahé, The
         Seaboards is a tranquil boutique retreat with great mountain views.
         Unwind by the swimming pool, stretch out on the day beds, and dine at
-        the in-house restaurant &amp; bar — your island home for the Jubilee.
+        the in-house restaurant &amp; bar.
       </p>
     </section>
   );
