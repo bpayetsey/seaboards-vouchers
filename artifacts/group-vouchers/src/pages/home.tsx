@@ -774,6 +774,15 @@ function CheckoutView({
             email it to you.
           </p>
         )}
+        <div className="mt-8 pt-6 border-t border-border/60">
+          <p className="text-sm text-muted-foreground mb-3">
+            We&rsquo;ve emailed your confirmation. Create an account or sign in
+            to keep track of your vouchers, payments and receipts.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/dashboard">Access your dashboard</Link>
+          </Button>
+        </div>
       </div>
     );
   }

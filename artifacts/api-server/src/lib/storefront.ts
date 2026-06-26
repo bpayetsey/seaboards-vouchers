@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, asc, desc, eq, inArray, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lte, ne } from "drizzle-orm";
 import {
   db,
   storeOrders,
@@ -299,11 +299,17 @@ export async function processPaidIntent(
       .where(eq(storeOrders.id, order.id));
   }
 
-  // Issue / activate the voucher per policy.
-  const shouldIssue =
-    (SETTINGS.issueOn === "deposit" && instalmentNo === 1) ||
-    (SETTINGS.issueOn === "paid" && fullyPaid);
-  if (!shouldIssue) return;
+  // Decide whether a voucher should exist yet, and in which state.
+  //  - Fully paid: the voucher must exist and be "active" (regardless of the
+  //    issue policy). This is the key Pay-in-3 "fully paid" moment.
+  //  - Deposit policy, first instalment, not yet fully paid: issue a "pending"
+  //    voucher so the buyer knows their plan has started.
+  // Any other intermediate instalment under the "paid" policy issues nothing.
+  const shouldExist =
+    fullyPaid || (SETTINGS.issueOn === "deposit" && instalmentNo === 1);
+  if (!shouldExist) return;
+
+  const targetStatus = fullyPaid ? "active" : "pending";
 
   const [existing] = await db
     .select()
@@ -314,7 +320,7 @@ export async function processPaidIntent(
   if (existing) {
     [voucher] = await db
       .update(storeVouchers)
-      .set({ status: fullyPaid ? "active" : "pending" })
+      .set({ status: targetStatus })
       .where(eq(storeVouchers.id, existing.id))
       .returning();
   } else {
@@ -325,12 +331,43 @@ export async function processPaidIntent(
         code: newCode(),
         valueMinor: Number(order.totalMinor),
         currency: order.currency,
-        status: fullyPaid ? "active" : "pending",
+        status: targetStatus,
         expiresAt: new Date(Date.now() + 365 * 864e5),
       })
       .returning();
   }
-  await sendVoucherEmail(order, voucher, fullyPaid);
+
+  // Send each milestone email at most once. processPaidIntent runs from both
+  // the Stripe webhook and order-confirm paths (and may run concurrently), so
+  // we atomically *claim* the milestone with a conditional UPDATE before
+  // sending: only the caller whose UPDATE actually flips the NULL flag gets the
+  // row back and sends. If delivery fails we clear the flag again so a later
+  // run (e.g. the daily charge job or a webhook retry) can re-attempt.
+  const milestone = fullyPaid ? "active" : "pending";
+  const flagCol = fullyPaid
+    ? storeVouchers.activeEmailedAt
+    : storeVouchers.pendingEmailedAt;
+
+  const [claimed] = await db
+    .update(storeVouchers)
+    .set(fullyPaid ? { activeEmailedAt: new Date() } : { pendingEmailedAt: new Date() })
+    .where(and(eq(storeVouchers.id, voucher.id), isNull(flagCol)))
+    .returning({ id: storeVouchers.id });
+
+  if (claimed) {
+    const delivered = await sendVoucherEmail(order, voucher, fullyPaid);
+    if (!delivered) {
+      // Roll back the claim so the email can be retried later.
+      await db
+        .update(storeVouchers)
+        .set(fullyPaid ? { activeEmailedAt: null } : { pendingEmailedAt: null })
+        .where(eq(storeVouchers.id, voucher.id));
+      logger.warn(
+        { voucherId: voucher.id, milestone },
+        "voucher milestone email failed to send; claim rolled back for retry",
+      );
+    }
+  }
 }
 
 /** Daily job: charge due instalments off-session. */

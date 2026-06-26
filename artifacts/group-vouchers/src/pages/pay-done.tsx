@@ -132,7 +132,17 @@ export default function PayDone() {
               </Card>
             )}
 
-            <Button variant="outline" className="mt-8" onClick={() => setLocation(`/pay/${payToken}`)}>
+            <div className="mt-8 pt-6 border-t border-border/60">
+              <p className="text-sm text-muted-foreground mb-3">
+                Create an account or sign in to keep track of your vouchers,
+                payments and receipts.
+              </p>
+              <Button variant="default" onClick={() => setLocation("/dashboard")}>
+                Access your dashboard
+              </Button>
+            </div>
+
+            <Button variant="outline" className="mt-6" onClick={() => setLocation(`/pay/${payToken}`)}>
               Return to Summary
             </Button>
           </div>
