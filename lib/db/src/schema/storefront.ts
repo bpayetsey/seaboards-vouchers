@@ -138,8 +138,33 @@ export const storeCatalogPrices = pgTable("store_catalog_price", {
     .defaultNow(),
 });
 
+/**
+ * Privacy-preserving page-view log for the in-house site visitor counter.
+ * Each row is one public page view: the normalized path, a salted day-bucketed
+ * visitor hash (HMAC of IP + user agent with a daily-rotating salt — never the
+ * raw IP), and a timestamp. No PII or tracking cookies are involved; the hash
+ * cannot be reversed to an IP and rotates every day so it is not a stable
+ * cross-day identifier.
+ */
+export const pageViews = pgTable(
+  "page_view",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    path: text("path").notNull(),
+    visitorHash: text("visitor_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_page_view_created").on(table.createdAt),
+    index("idx_page_view_visitor").on(table.visitorHash),
+  ],
+);
+
 export type StoreOrder = typeof storeOrders.$inferSelect;
 export type StoreInstallment = typeof storeInstallments.$inferSelect;
 export type StoreVoucher = typeof storeVouchers.$inferSelect;
 export type StoreGalleryImage = typeof storeGalleryImages.$inferSelect;
 export type StoreCatalogPrice = typeof storeCatalogPrices.$inferSelect;
+export type PageView = typeof pageViews.$inferSelect;

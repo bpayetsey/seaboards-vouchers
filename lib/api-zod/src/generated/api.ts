@@ -421,6 +421,41 @@ export const GetAdminMeResponse = zod.object({
 
 
 /**
+ * Unauthenticated, fire-and-forget visitor counter. Computes a salted, day-bucketed visitor hash from the request IP + user agent server-side, skips obvious bots, and never stores raw IPs or sets tracking cookies.
+
+ * @summary Record a single public page view
+ */
+export const TrackPageViewBody = zod.object({
+  "path": zod.string().describe('The public client-side path that was visited')
+})
+
+export const TrackPageViewResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * Total/today page views, approximate unique visitors, a ~30-day daily series and a top-paths tally.
+ * @summary Site visitor analytics
+ */
+export const GetAdminVisitorsResponse = zod.object({
+  "total_views": zod.number(),
+  "today_views": zod.number(),
+  "unique_today": zod.number().describe('Approximate unique visitors today (salted day-bucketed hash)'),
+  "unique_all_time": zod.number().describe('Approximate distinct daily visitors across all time'),
+  "daily": zod.array(zod.object({
+  "date": zod.string().describe('Calendar day (UTC), YYYY-MM-DD'),
+  "views": zod.number(),
+  "uniques": zod.number()
+})).describe('Daily views and unique visitors over the last ~30 days'),
+  "top_paths": zod.array(zod.object({
+  "path": zod.string(),
+  "views": zod.number()
+})).describe('Most-visited normalized paths')
+})
+
+
+/**
  * Revenue by currency, voucher counts by status, and outstanding/failed instalment totals.
  * @summary Admin overview statistics
  */

@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import { Router, type IRouter, type Request } from "express";
-import { CreateStoreOrderBody, ConfirmStoreOrderParams } from "@workspace/api-zod";
+import {
+  CreateStoreOrderBody,
+  ConfirmStoreOrderParams,
+  TrackPageViewBody,
+} from "@workspace/api-zod";
 import {
   getStorefrontConfig,
   createStoreOrder,
@@ -8,6 +12,7 @@ import {
   chargeDueInstalments,
   getAdminOrders,
 } from "../lib/storefront";
+import { recordPageView } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -26,6 +31,21 @@ function isAuthorized(req: Request): boolean | "unconfigured" {
 
 router.get("/storefront/config", async (_req, res) => {
   return res.json(await getStorefrontConfig());
+});
+
+// Public, fire-and-forget visitor counter. Always responds 200 — recording is
+// best-effort and must never break or block a page load.
+router.post("/track/page-view", async (req, res) => {
+  const parsed = TrackPageViewBody.safeParse(req.body);
+  if (parsed.success) {
+    const userAgent = req.get("user-agent") ?? "";
+    await recordPageView({
+      path: parsed.data.path,
+      ip: req.ip ?? "",
+      userAgent,
+    });
+  }
+  return res.json({ ok: true });
 });
 
 router.post("/storefront/orders", async (req, res) => {

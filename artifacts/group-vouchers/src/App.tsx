@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
-import { useGetAdminMe } from "@workspace/api-client-react";
+import { useGetAdminMe, trackPageView } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -206,6 +206,18 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+// Fire-and-forget visitor beacon: records one page view per public route
+// change. Admin routes are excluded so internal staff use never inflates the
+// counts; failures are swallowed so tracking can never break the UI.
+function PageViewTracker() {
+  const [location] = useLocation();
+  useEffect(() => {
+    if (location.startsWith("/admin")) return;
+    void trackPageView({ path: location }).catch(() => {});
+  }, [location]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -284,6 +296,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
+          <PageViewTracker />
           <Router />
           <Toaster />
         </TooltipProvider>

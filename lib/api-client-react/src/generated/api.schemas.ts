@@ -599,6 +599,40 @@ export interface CurrencyCount {
   amount_minor: number;
 }
 
+export interface PageViewInput {
+  /** The public client-side path that was visited */
+  path: string;
+}
+
+export interface TrackResult {
+  ok: boolean;
+}
+
+export interface VisitorDay {
+  /** Calendar day (UTC), YYYY-MM-DD */
+  date: string;
+  views: number;
+  uniques: number;
+}
+
+export interface VisitorPath {
+  path: string;
+  views: number;
+}
+
+export interface VisitorAnalytics {
+  total_views: number;
+  today_views: number;
+  /** Approximate unique visitors today (salted day-bucketed hash) */
+  unique_today: number;
+  /** Approximate distinct daily visitors across all time */
+  unique_all_time: number;
+  /** Daily views and unique visitors over the last ~30 days */
+  daily: VisitorDay[];
+  /** Most-visited normalized paths */
+  top_paths: VisitorPath[];
+}
+
 export interface AdminOverview {
   /** Collected revenue grouped by currency */
   revenue: CurrencyAmount[];

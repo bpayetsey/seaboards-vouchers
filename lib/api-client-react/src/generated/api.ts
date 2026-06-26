@@ -41,6 +41,7 @@ import type {
   IssueVoucherInput,
   OkResult,
   OrganiserView,
+  PageViewInput,
   PayInstalmentsBody,
   PayInstalmentsResult,
   PayLine,
@@ -54,10 +55,12 @@ import type {
   StoreOrderInput,
   StorefrontConfig,
   SweepResult,
+  TrackResult,
   UpdateCatalogPriceInput,
   UpdateGalleryImageInput,
   UploadUrlRequest,
   UploadUrlResponse,
+  VisitorAnalytics,
   VoucherLookup
 } from './api.schemas';
 
@@ -1334,6 +1337,157 @@ export function useGetAdminMe<TData = Awaited<ReturnType<typeof getAdminMe>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getTrackPageViewUrl = () => {
+
+
+
+
+  return `/api/track/page-view`
+}
+
+/**
+ * Unauthenticated, fire-and-forget visitor counter. Computes a salted, day-bucketed visitor hash from the request IP + user agent server-side, skips obvious bots, and never stores raw IPs or sets tracking cookies.
+
+ * @summary Record a single public page view
+ */
+export const trackPageView = async (pageViewInput: PageViewInput, options?: RequestInit): Promise<TrackResult> => {
+
+  return customFetch<TrackResult>(getTrackPageViewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      pageViewInput,)
+  }
+);}
+
+
+
+
+export const getTrackPageViewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewInput>}, TContext> => {
+
+const mutationKey = ['trackPageView'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof trackPageView>>, {data: BodyType<PageViewInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  trackPageView(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TrackPageViewMutationResult = NonNullable<Awaited<ReturnType<typeof trackPageView>>>
+    export type TrackPageViewMutationBody = BodyType<PageViewInput>
+    export type TrackPageViewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a single public page view
+ */
+export const useTrackPageView = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackPageView>>, TError,{data: BodyType<PageViewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof trackPageView>>,
+        TError,
+        {data: BodyType<PageViewInput>},
+        TContext
+      > => {
+      return useMutation(getTrackPageViewMutationOptions(options));
+    }
+
+export const getGetAdminVisitorsUrl = () => {
+
+
+
+
+  return `/api/admin/visitors`
+}
+
+/**
+ * Total/today page views, approximate unique visitors, a ~30-day daily series and a top-paths tally.
+ * @summary Site visitor analytics
+ */
+export const getAdminVisitors = async ( options?: RequestInit): Promise<VisitorAnalytics> => {
+
+  return customFetch<VisitorAnalytics>(getGetAdminVisitorsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVisitorsQueryKey = () => {
+    return [
+    `/api/admin/visitors`
+    ] as const;
+    }
+
+
+export const getGetAdminVisitorsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVisitors>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVisitors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVisitorsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVisitors>>> = ({ signal }) => getAdminVisitors({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVisitors>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminVisitorsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVisitors>>>
+export type GetAdminVisitorsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Site visitor analytics
+ */
+
+export function useGetAdminVisitors<TData = Awaited<ReturnType<typeof getAdminVisitors>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVisitors>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminVisitorsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -18,6 +18,7 @@ import {
   UpdateCatalogPriceBody,
   UpdateCatalogPriceParams,
   UpdateCatalogPriceResponse,
+  GetAdminVisitorsResponse,
 } from "@workspace/api-zod";
 import { requireStaff, type StaffRequest } from "../middlewares/requireStaff";
 import {
@@ -34,6 +35,7 @@ import {
   listCatalogPrices,
   updateCatalogPrice,
 } from "../lib/catalogPrices";
+import { getVisitorAnalytics } from "../lib/analytics";
 
 const router: IRouter = Router();
 
@@ -49,6 +51,16 @@ router.get("/admin/overview", requireStaff, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to build admin overview");
     return res.status(500).json({ error: "Could not load the overview." });
+  }
+});
+
+router.get("/admin/visitors", requireStaff, async (req, res) => {
+  try {
+    const analytics = await getVisitorAnalytics();
+    return res.json(GetAdminVisitorsResponse.parse(analytics));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load visitor analytics");
+    return res.status(500).json({ error: "Could not load visitor analytics." });
   }
 });
 

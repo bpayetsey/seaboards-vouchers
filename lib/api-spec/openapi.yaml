@@ -463,6 +463,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /track/page-view:
+    post:
+      operationId: trackPageView
+      tags: [storefront]
+      summary: Record a single public page view
+      description: >
+        Unauthenticated, fire-and-forget visitor counter. Computes a salted,
+        day-bucketed visitor hash from the request IP + user agent server-side,
+        skips obvious bots, and never stores raw IPs or sets tracking cookies.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageViewInput"
+      responses:
+        "200":
+          description: Recorded (always succeeds; failures are swallowed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackResult"
+  /admin/visitors:
+    get:
+      operationId: getAdminVisitors
+      tags: [admin]
+      summary: Site visitor analytics
+      description: Total/today page views, approximate unique visitors, a ~30-day daily series and a top-paths tally.
+      responses:
+        "200":
+          description: Visitor analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorAnalytics"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/overview:
     get:
       operationId: getAdminOverview
@@ -1893,6 +1940,68 @@ components:
           type: integer
         amount_minor:
           type: integer
+    PageViewInput:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+          description: The public client-side path that was visited
+    TrackResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+    VisitorDay:
+      type: object
+      required: [date, views, uniques]
+      properties:
+        date:
+          type: string
+          description: Calendar day (UTC), YYYY-MM-DD
+        views:
+          type: integer
+        uniques:
+          type: integer
+    VisitorPath:
+      type: object
+      required: [path, views]
+      properties:
+        path:
+          type: string
+        views:
+          type: integer
+    VisitorAnalytics:
+      type: object
+      required:
+        - total_views
+        - today_views
+        - unique_today
+        - unique_all_time
+        - daily
+        - top_paths
+      properties:
+        total_views:
+          type: integer
+        today_views:
+          type: integer
+        unique_today:
+          type: integer
+          description: Approximate unique visitors today (salted day-bucketed hash)
+        unique_all_time:
+          type: integer
+          description: Approximate distinct daily visitors across all time
+        daily:
+          type: array
+          description: Daily views and unique visitors over the last ~30 days
+          items:
+            $ref: "#/components/schemas/VisitorDay"
+        top_paths:
+          type: array
+          description: Most-visited normalized paths
+          items:
+            $ref: "#/components/schemas/VisitorPath"
     AdminOverview:
       type: object
       required:
