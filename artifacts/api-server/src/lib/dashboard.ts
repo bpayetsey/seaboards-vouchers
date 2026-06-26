@@ -1,4 +1,4 @@
-import { eq, sql, type SQL } from "drizzle-orm";
+import { asc, eq, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import {
   db,
@@ -41,10 +41,40 @@ export interface DashboardPayment {
   receipt_url: string | null;
 }
 
+export interface DashboardOrganisedLine {
+  id: string;
+  payer_name: string;
+  payer_email: string;
+  amount_minor: number;
+  status: string;
+  voucher_code: string | null;
+  credit_code: string | null;
+  apartment_type: string | null;
+  nights: number | null;
+  pay_link: string;
+}
+
+export interface DashboardOrganisedOrder {
+  id: string;
+  mode: string;
+  status: string;
+  currency: string;
+  due_by: string | null;
+  paid_count: number;
+  total_count: number;
+  paid_minor: number;
+  total_minor: number;
+  master_voucher_code: string | null;
+  split_apartment_type: string | null;
+  split_nights: number | null;
+  lines: DashboardOrganisedLine[];
+}
+
 export interface DashboardView {
   email: string;
   vouchers: DashboardVoucher[];
   payments: DashboardPayment[];
+  organised_orders: DashboardOrganisedOrder[];
 }
 
 const iso = (d: Date | null | undefined): string | null =>
@@ -290,11 +320,18 @@ export async function getDashboardForEmail(
     });
   }
 
-  // Organiser-held split voucher (the combined code for a fully-paid split order).
+  // ---- Organiser flow -----------------------------------------------------
+  // Every group order this account created, in any status (including orders
+  // with zero payments). Surfaces the combined split voucher code for the
+  // vouchers list, and builds the manageable "organised orders" view.
   const organiserOrders = await db
     .select()
     .from(groupOrders)
-    .where(matches(groupOrders.organiserEmail));
+    .where(matches(groupOrders.organiserEmail))
+    .orderBy(asc(groupOrders.createdAt));
+
+  const organised_orders: DashboardOrganisedOrder[] = [];
+
   for (const order of organiserOrders) {
     if (order.splitVoucherCode && !seenSplitCodes.has(order.splitVoucherCode)) {
       seenSplitCodes.add(order.splitVoucherCode);
@@ -309,14 +346,64 @@ export async function getDashboardForEmail(
         created_at: iso(order.createdAt),
       });
     }
+
+    const lines = await db
+      .select()
+      .from(voucherLines)
+      .where(eq(voucherLines.groupOrderId, order.id))
+      .orderBy(asc(voucherLines.createdAt));
+
+    let paidCount = 0;
+    let paidMinor = 0;
+    let totalMinor = 0;
+    const orderLines: DashboardOrganisedLine[] = lines.map((l) => {
+      const amount = Number(l.amountMinor);
+      totalMinor += amount;
+      if (l.status === "paid") {
+        paidCount += 1;
+        paidMinor += amount;
+      }
+      return {
+        id: l.id,
+        payer_name: l.payerName,
+        payer_email: l.payerEmail,
+        amount_minor: amount,
+        status: l.status,
+        voucher_code: l.voucherCode,
+        credit_code: l.creditCode,
+        apartment_type: l.apartmentType,
+        nights: l.nights,
+        pay_link: `/pay/${l.payToken}`,
+      };
+    });
+
+    organised_orders.push({
+      id: order.id,
+      mode: order.mode,
+      status: order.status,
+      currency: order.currency,
+      due_by: iso(order.dueBy),
+      paid_count: paidCount,
+      total_count: lines.length,
+      paid_minor: paidMinor,
+      total_minor: totalMinor,
+      master_voucher_code:
+        order.status === "complete" ? order.splitVoucherCode : null,
+      split_apartment_type: order.splitApartmentType,
+      split_nights: order.splitNights,
+      lines: orderLines,
+    });
   }
+
+  // Newest organised orders first.
+  organised_orders.reverse();
 
   payments.sort((a, b) => (b.paid_at ?? "").localeCompare(a.paid_at ?? ""));
   vouchers.sort((a, b) =>
     (b.created_at ?? "").localeCompare(a.created_at ?? ""),
   );
 
-  return { email: normalized, vouchers, payments };
+  return { email: normalized, vouchers, payments, organised_orders };
 }
 
 async function fetchPiReceipt(paymentIntentId: string): Promise<string | null> {

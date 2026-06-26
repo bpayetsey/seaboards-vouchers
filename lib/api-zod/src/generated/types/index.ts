@@ -23,6 +23,8 @@ export * from './checkoutSession';
 export * from './createdLine';
 export * from './currencyAmount';
 export * from './currencyCount';
+export * from './dashboardOrganisedLine';
+export * from './dashboardOrganisedOrder';
 export * from './dashboardPayment';
 export * from './dashboardPaymentSource';
 export * from './dashboardView';

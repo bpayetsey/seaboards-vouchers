@@ -473,6 +473,48 @@ export async function resendLine(statusToken: string, lineId: string) {
   };
 }
 
+/**
+ * Owner-scoped reminder: re-surfaces a participant's payment link for a group
+ * order the authenticated organiser owns. The order is matched by its id AND
+ * the verified organiser email (case-insensitive), so an organiser can only
+ * ever act on their own orders. Returns null if the order isn't owned by this
+ * email or the line doesn't belong to it.
+ */
+export async function resendLineForOrganiser(
+  organiserEmail: string,
+  orderId: string,
+  lineId: string,
+) {
+  const normalized = organiserEmail.trim().toLowerCase();
+  const [order] = await db
+    .select()
+    .from(groupOrders)
+    .where(
+      and(
+        eq(groupOrders.id, orderId),
+        eq(sql`lower(${groupOrders.organiserEmail})`, normalized),
+      ),
+    );
+  if (!order) return null;
+
+  const [line] = await db
+    .select()
+    .from(voucherLines)
+    .where(
+      and(
+        eq(voucherLines.id, lineId),
+        eq(voucherLines.groupOrderId, order.id),
+      ),
+    );
+  if (!line) return null;
+
+  return {
+    pay_link: `/pay/${line.payToken}`,
+    payer_email: line.payerEmail,
+    status: line.status,
+  };
+}
+
 export async function sweepExpired(now = new Date()) {
   const orders = await db
     .select()

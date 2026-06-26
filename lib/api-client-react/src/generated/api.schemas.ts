@@ -434,11 +434,59 @@ export interface DashboardPayment {
   receipt_url?: string | null;
 }
 
+export interface DashboardOrganisedLine {
+  id: string;
+  payer_name: string;
+  payer_email: string;
+  /** Share amount in minor units */
+  amount_minor: number;
+  /** paid / pending / expired */
+  status: string;
+  /** @nullable */
+  voucher_code?: string | null;
+  /** @nullable */
+  credit_code?: string | null;
+  /** @nullable */
+  apartment_type?: string | null;
+  /** @nullable */
+  nights?: number | null;
+  /** Relative payment link for this participant's share */
+  pay_link: string;
+}
+
+export interface DashboardOrganisedOrder {
+  /** Group order id, used to send owner-scoped reminders */
+  id: string;
+  mode: string;
+  status: string;
+  currency: string;
+  /** @nullable */
+  due_by?: string | null;
+  paid_count: number;
+  total_count: number;
+  /** Sum of paid shares in minor units */
+  paid_minor: number;
+  /** Sum of all shares in minor units */
+  total_minor: number;
+  /**
+     * The combined master voucher code, present once a split order is complete
+     * @nullable
+     */
+  master_voucher_code?: string | null;
+  /** @nullable */
+  split_apartment_type?: string | null;
+  /** @nullable */
+  split_nights?: number | null;
+  lines: DashboardOrganisedLine[];
+}
+
 export interface DashboardView {
   /** The verified account email all records are scoped to */
   email: string;
   vouchers: DashboardVoucher[];
   payments: DashboardPayment[];
+  /** Group orders this account created as the organiser, any status */
+  organised_orders: DashboardOrganisedOrder[];
 }
 
 export interface AdminSession {

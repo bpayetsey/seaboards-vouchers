@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DashboardOrganisedOrder } from './dashboardOrganisedOrder';
 import type { DashboardPayment } from './dashboardPayment';
 import type { DashboardVoucher } from './dashboardVoucher';
 
@@ -13,4 +14,6 @@ export interface DashboardView {
   email: string;
   vouchers: DashboardVoucher[];
   payments: DashboardPayment[];
+  /** Group orders this account created as the organiser, any status */
+  organised_orders: DashboardOrganisedOrder[];
 }

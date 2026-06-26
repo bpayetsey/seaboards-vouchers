@@ -35,7 +35,33 @@ export const GetDashboardResponse = zod.object({
   "status": zod.string(),
   "paid_at": zod.string().nullish(),
   "receipt_url": zod.string().nullish().describe('Hosted Stripe receipt URL, when available')
+})),
+  "organised_orders": zod.array(zod.object({
+  "id": zod.string().describe('Group order id, used to send owner-scoped reminders'),
+  "mode": zod.string(),
+  "status": zod.string(),
+  "currency": zod.string(),
+  "due_by": zod.string().nullish(),
+  "paid_count": zod.number(),
+  "total_count": zod.number(),
+  "paid_minor": zod.number().describe('Sum of paid shares in minor units'),
+  "total_minor": zod.number().describe('Sum of all shares in minor units'),
+  "master_voucher_code": zod.string().nullish().describe('The combined master voucher code, present once a split order is complete'),
+  "split_apartment_type": zod.string().nullish(),
+  "split_nights": zod.number().nullish(),
+  "lines": zod.array(zod.object({
+  "id": zod.string(),
+  "payer_name": zod.string(),
+  "payer_email": zod.string(),
+  "amount_minor": zod.number().describe('Share amount in minor units'),
+  "status": zod.string().describe('paid \/ pending \/ expired'),
+  "voucher_code": zod.string().nullish(),
+  "credit_code": zod.string().nullish(),
+  "apartment_type": zod.string().nullish(),
+  "nights": zod.number().nullish(),
+  "pay_link": zod.string().describe('Relative payment link for this participant\'s share')
 }))
+})).describe('Group orders this account created as the organiser, any status')
 })
 
 
@@ -137,6 +163,23 @@ export const ResendLineParams = zod.object({
 })
 
 export const ResendLineResponse = zod.object({
+  "pay_link": zod.string(),
+  "payer_email": zod.string(),
+  "status": zod.string()
+})
+
+
+/**
+ * Re-surfaces a participant's payment link for a group order owned by the authenticated organiser. Scoped strictly to the verified account email — the organiser must own the order. Requires a Clerk session.
+
+ * @summary Send a participant reminder for an order you organised
+ */
+export const ResendOrganisedLineParams = zod.object({
+  "orderId": zod.coerce.string(),
+  "lineId": zod.coerce.string()
+})
+
+export const ResendOrganisedLineResponse = zod.object({
   "pay_link": zod.string(),
   "payer_email": zod.string(),
   "status": zod.string()

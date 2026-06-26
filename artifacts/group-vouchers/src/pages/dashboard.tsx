@@ -1,15 +1,24 @@
-import { useGetDashboard } from "@workspace/api-client-react";
+import {
+  useGetDashboard,
+  useResendOrganisedLine,
+  getGetDashboardQueryKey,
+} from "@workspace/api-client-react";
 import type {
   DashboardVoucher,
   DashboardPayment,
+  DashboardOrganisedOrder,
+  DashboardOrganisedLine,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
+import { useToast } from "@/hooks/use-toast";
 import {
   Ticket,
   Wallet,
@@ -18,6 +27,11 @@ import {
   Gift,
   CreditCard,
   Clock,
+  Users,
+  Mail,
+  Copy,
+  Check,
+  CheckCircle2,
 } from "lucide-react";
 
 function fromMinor(amountMinor: number) {
@@ -81,6 +95,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <>
+            <OrganisedOrdersSection orders={data?.organised_orders ?? []} />
             <VouchersSection vouchers={data?.vouchers ?? []} />
             <PaymentsSection payments={data?.payments ?? []} />
             <ReceiptsSection payments={data?.payments ?? []} />
@@ -110,6 +125,257 @@ function SectionHeading({
         {count}
       </span>
     </div>
+  );
+}
+
+function payUrlFor(payLink: string) {
+  return (
+    window.location.origin +
+    import.meta.env.BASE_URL.replace(/\/$/, "") +
+    payLink
+  );
+}
+
+function lineStatusLabel(status: string) {
+  const s = status.toLowerCase();
+  if (s === "paid") return "Paid";
+  if (s === "expired") return "Expired";
+  return "Pending";
+}
+
+function OrganisedLineRow({
+  order,
+  line,
+}: {
+  order: DashboardOrganisedOrder;
+  line: DashboardOrganisedLine;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const resend = useResendOrganisedLine();
+  const [copied, setCopied] = useState(false);
+
+  const payUrl = payUrlFor(line.pay_link);
+  const isPaid = line.status === "paid";
+  const isExpired = line.status === "expired";
+  const actionable = !isPaid && !isExpired;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(payUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Payment link copied" });
+  };
+
+  const sendReminder = () => {
+    resend.mutate(
+      { orderId: order.id, lineId: line.id },
+      {
+        onSuccess: () => {
+          toast({ title: `Reminder sent to ${line.payer_email}` });
+          queryClient.invalidateQueries({
+            queryKey: getGetDashboardQueryKey(),
+          });
+        },
+        onError: (err: unknown) => {
+          const message =
+            err && typeof err === "object" && "error" in err
+              ? String((err as { error?: unknown }).error)
+              : "Please try again.";
+          toast({
+            title: "Couldn't send reminder",
+            description: message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:gap-4">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium text-foreground truncate">
+            {line.payer_name}
+          </p>
+          <Badge
+            variant="outline"
+            className={`capitalize ${statusTone(line.status)}`}
+          >
+            {lineStatusLabel(line.status)}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground truncate">
+          {line.payer_email}
+        </p>
+        {(line.voucher_code || line.credit_code) && (
+          <div className="mt-2 space-y-1 text-xs">
+            {line.voucher_code && (
+              <p>
+                <span className="text-muted-foreground">Voucher: </span>
+                <span className="font-mono tracking-wider text-primary">
+                  {line.voucher_code}
+                </span>
+              </p>
+            )}
+            {line.credit_code && (
+              <p>
+                <span className="text-muted-foreground">Credit: </span>
+                <span className="font-mono tracking-wider text-accent-foreground">
+                  {line.credit_code}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="font-semibold text-foreground sm:text-right">
+        {formatMoney(fromMinor(line.amount_minor), order.currency)}
+      </div>
+
+      {actionable && (
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+          <Button asChild size="sm" className="gap-1.5">
+            <a href={payUrl}>
+              <CreditCard className="h-3.5 w-3.5" />
+              Pay
+            </a>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="gap-1.5"
+            onClick={sendReminder}
+            disabled={resend.isPending}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Remind
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={copyLink}
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+            {copied ? "Copied" : "Link"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrganisedOrderCard({ order }: { order: DashboardOrganisedOrder }) {
+  const isComplete = order.status === "complete";
+  const progress =
+    order.total_minor > 0
+      ? Math.round((order.paid_minor / order.total_minor) * 100)
+      : 0;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="border-b border-border bg-muted/30 p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`capitalize ${statusTone(order.status)}`}
+              >
+                {isComplete
+                  ? "Complete"
+                  : order.status === "expired"
+                    ? "Expired"
+                    : "In progress"}
+              </Badge>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {order.mode} order
+              </span>
+            </div>
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              {order.due_by ? `Due ${formatDate(order.due_by)}` : "No due date"}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {order.paid_count} of {order.total_count} paid
+              </span>
+              <span className="font-medium text-foreground">
+                {formatMoney(fromMinor(order.paid_minor), order.currency)} /{" "}
+                {formatMoney(fromMinor(order.total_minor), order.currency)}
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {isComplete && order.master_voucher_code && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Master voucher:</span>
+              <span className="font-mono font-semibold tracking-wider text-primary break-all">
+                {order.master_voucher_code}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="divide-y divide-border">
+          {order.lines.length === 0 ? (
+            <p className="p-5 text-sm text-muted-foreground">
+              No participants on this order.
+            </p>
+          ) : (
+            order.lines.map((line) => (
+              <OrganisedLineRow key={line.id} order={order} line={line} />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrganisedOrdersSection({
+  orders,
+}: {
+  orders: DashboardOrganisedOrder[];
+}) {
+  return (
+    <section>
+      <SectionHeading
+        icon={<Users className="h-4 w-4" />}
+        title="Group orders you organised"
+        count={orders.length}
+      />
+      {orders.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            You haven&rsquo;t organised any group orders yet.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {orders.map((order) => (
+            <OrganisedOrderCard key={order.id} order={order} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

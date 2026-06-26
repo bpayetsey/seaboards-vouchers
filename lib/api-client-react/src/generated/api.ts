@@ -525,6 +525,80 @@ export const useResendLine = <TError = ErrorType<ApiError>,
       return useMutation(getResendLineMutationOptions(options));
     }
 
+export const getResendOrganisedLineUrl = (orderId: string,
+    lineId: string,) => {
+
+
+
+
+  return `/api/dashboard/group-orders/${orderId}/lines/${lineId}/resend`
+}
+
+/**
+ * Re-surfaces a participant's payment link for a group order owned by the authenticated organiser. Scoped strictly to the verified account email — the organiser must own the order. Requires a Clerk session.
+
+ * @summary Send a participant reminder for an order you organised
+ */
+export const resendOrganisedLine = async (orderId: string,
+    lineId: string, options?: RequestInit): Promise<ResendResult> => {
+
+  return customFetch<ResendResult>(getResendOrganisedLineUrl(orderId,lineId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendOrganisedLineMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganisedLine>>, TError,{orderId: string;lineId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrganisedLine>>, TError,{orderId: string;lineId: string}, TContext> => {
+
+const mutationKey = ['resendOrganisedLine'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrganisedLine>>, {orderId: string;lineId: string}> = (props) => {
+          const {orderId,lineId} = props ?? {};
+
+          return  resendOrganisedLine(orderId,lineId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendOrganisedLineMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrganisedLine>>>
+
+    export type ResendOrganisedLineMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Send a participant reminder for an order you organised
+ */
+export const useResendOrganisedLine = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganisedLine>>, TError,{orderId: string;lineId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendOrganisedLine>>,
+        TError,
+        {orderId: string;lineId: string},
+        TContext
+      > => {
+      return useMutation(getResendOrganisedLineMutationOptions(options));
+    }
+
 export const getGetPayLineUrl = (payToken: string,) => {
 
 

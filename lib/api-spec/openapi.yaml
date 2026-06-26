@@ -159,6 +159,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /dashboard/group-orders/{orderId}/lines/{lineId}/resend:
+    post:
+      operationId: resendOrganisedLine
+      tags: [dashboard]
+      summary: Send a participant reminder for an order you organised
+      description: >
+        Re-surfaces a participant's payment link for a group order owned by the
+        authenticated organiser. Scoped strictly to the verified account email —
+        the organiser must own the order. Requires a Clerk session.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resend result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResendResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /pay/{payToken}:
     get:
       operationId: getPayLine
@@ -1473,9 +1518,81 @@ components:
         receipt_url:
           type: ["string", "null"]
           description: Hosted Stripe receipt URL, when available
+    DashboardOrganisedLine:
+      type: object
+      required: [id, payer_name, payer_email, amount_minor, status, pay_link]
+      properties:
+        id:
+          type: string
+        payer_name:
+          type: string
+        payer_email:
+          type: string
+        amount_minor:
+          type: integer
+          description: Share amount in minor units
+        status:
+          type: string
+          description: paid / pending / expired
+        voucher_code:
+          type: ["string", "null"]
+        credit_code:
+          type: ["string", "null"]
+        apartment_type:
+          type: ["string", "null"]
+        nights:
+          type: ["integer", "null"]
+        pay_link:
+          type: string
+          description: Relative payment link for this participant's share
+    DashboardOrganisedOrder:
+      type: object
+      required:
+        - id
+        - mode
+        - status
+        - currency
+        - paid_count
+        - total_count
+        - paid_minor
+        - total_minor
+        - lines
+      properties:
+        id:
+          type: string
+          description: Group order id, used to send owner-scoped reminders
+        mode:
+          type: string
+        status:
+          type: string
+        currency:
+          type: string
+        due_by:
+          type: ["string", "null"]
+        paid_count:
+          type: integer
+        total_count:
+          type: integer
+        paid_minor:
+          type: integer
+          description: Sum of paid shares in minor units
+        total_minor:
+          type: integer
+          description: Sum of all shares in minor units
+        master_voucher_code:
+          type: ["string", "null"]
+          description: The combined master voucher code, present once a split order is complete
+        split_apartment_type:
+          type: ["string", "null"]
+        split_nights:
+          type: ["integer", "null"]
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardOrganisedLine"
     DashboardView:
       type: object
-      required: [email, vouchers, payments]
+      required: [email, vouchers, payments, organised_orders]
       properties:
         email:
           type: string
@@ -1488,6 +1605,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DashboardPayment"
+        organised_orders:
+          type: array
+          description: Group orders this account created as the organiser, any status
+          items:
+            $ref: "#/components/schemas/DashboardOrganisedOrder"
     AdminSession:
       type: object
       required: [email, staff]
