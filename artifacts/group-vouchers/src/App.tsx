@@ -55,7 +55,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/seaboards-logo.jpg`,
   },
   variables: {
     colorPrimary: "hsl(215 51% 25%)",
@@ -85,8 +85,8 @@ const clerkAppearance = {
     identityPreviewEditButton: "text-[#1F3A5F]",
     formFieldSuccessText: "text-[#1F3A5F]",
     alertText: "text-[#2A2E35]",
-    logoBox: "h-10 flex justify-center",
-    logoImage: "h-10 w-auto",
+    logoBox: "h-12 flex justify-center",
+    logoImage: "h-12 w-auto",
     socialButtonsBlockButton:
       "border border-[#E4E0D8] hover:bg-[#F8F6F1]",
     formButtonPrimary:
