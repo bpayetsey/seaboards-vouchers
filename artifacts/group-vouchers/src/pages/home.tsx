@@ -674,7 +674,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         <PhotoGallery />
 
         <p className="text-[12.5px] text-muted-foreground mt-10">
-          Offer open 29 June &ndash; 30 September 2026, while allocation lasts.
+          Offer open 29 June &ndash; 30 June 2026, while allocation lasts.
           Blackout dates apply. Full{" "}
           <Link
             href="/terms"
