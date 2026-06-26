@@ -61,6 +61,12 @@ API returns RELATIVE links (`/pay/{token}`, `/group/{token}`); Stripe success/ca
 - Cancel = flip order to `cancelled` + set remaining `scheduled/failed/needs_action/charging` instalments to `cancelled`; the charge job only selects `['scheduled','failed']`, so cancelled rows are never re-charged. **No refunds** anywhere in admin.
 - Redeem is atomic: `UPDATE … SET status='redeemed' WHERE code=? AND status='active' RETURNING` (then a post-check reverts if the matched row was expired) — two concurrent redeems can't both win.
 
+## api-server dev has no watch (build-once)
+The api-server dev script is `build && start` (esbuild bundle, then `node`), with **no file watcher**. Editing server/route code does nothing until you `restart_workflow "artifacts/api-server: API Server"` to force a rebuild. Only the web artifact (Vite) hot-reloads. **Why:** a route added to the running server returned 404 until the workflow was restarted — easy to misread as a routing bug.
+
+## Binary (PDF) endpoints live outside Orval
+Voucher PDF download endpoints stream `application/pdf` and are intentionally NOT in the OpenAPI spec / Orval JSON hooks. The web client hits them directly via `fetch(url, {credentials:"include"})` → blob → anchor download (see `artifacts/group-vouchers/src/lib/voucherPdf.ts`). Public confirmation variant `/api/vouchers/:code/pdf` treats the code as a capability token (knowing the code already grants redemption); dashboard variant `/api/dashboard/vouchers/:code/pdf` is `requireAuth` + owner-scoped (404 if the verified email isn't in the voucher's authorized emails). Shared voucher copy (terms, resort constants) lives in `lib/voucher-content`.
+
 ## "Pay in N" instalments are NOT a Stripe subscription
 First payment saves the card to a Stripe Customer (`setup_future_usage: off_session`) and charges 1/N. Instalments 2..N live in the app DB (`storeInstallments`, due dates `INTERVAL_DAYS` apart), NOT in Stripe — there is no Stripe Subscription/Schedule object. Each future instalment becomes its own off-session PaymentIntent when charged.
 **Critical:** the charge job (`chargeDueInstalments`) has NO built-in scheduler. It only runs when something POSTs to `/api/storefront/jobs/charge-instalments` (Bearer = `SESSION_SECRET`). Without an external daily trigger, instalments 2..N are NEVER collected.

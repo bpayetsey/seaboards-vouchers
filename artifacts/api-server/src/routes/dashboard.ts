@@ -6,6 +6,8 @@ import {
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 import { getDashboardForEmail } from "../lib/dashboard";
 import { resendLineForOrganiser } from "../lib/groupVouchers";
+import { resolveVoucherByCode, buildVoucherPdf } from "../lib/voucherPdf";
+import { sendVoucherPdf } from "./vouchers";
 
 const router: IRouter = Router();
 
@@ -38,6 +40,34 @@ router.post(
       return res
         .status(500)
         .json({ error: "Could not send the reminder right now." });
+    }
+  },
+);
+
+/**
+ * Owner-scoped voucher PDF download. The voucher is resolved by code and only
+ * served when the authenticated, verified account email is one of the voucher's
+ * authorised owners. Anything else returns 404 so the route never reveals
+ * whether a code exists for vouchers the caller does not own.
+ */
+router.get(
+  "/dashboard/vouchers/:code/pdf",
+  requireAuth,
+  async (req, res) => {
+    const { userEmail } = req as AuthedRequest;
+    const code = String(req.params.code);
+    try {
+      const voucher = await resolveVoucherByCode(code);
+      if (!voucher || !voucher.authorizedEmails.includes(userEmail)) {
+        return res.status(404).json({ error: "Voucher not found" });
+      }
+      const pdf = await buildVoucherPdf(voucher);
+      return sendVoucherPdf(res, voucher.code, pdf);
+    } catch (err) {
+      req.log.error({ err }, "Failed to build voucher PDF for dashboard");
+      return res
+        .status(500)
+        .json({ error: "Could not generate the voucher PDF." });
     }
   },
 );

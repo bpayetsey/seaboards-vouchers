@@ -29,6 +29,11 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
+  downloadVoucherPdf,
+  publicVoucherPdfUrl,
+  voucherPdfFilename,
+} from "@/lib/voucherPdf";
+import {
   Check,
   CreditCard,
   CalendarClock,
@@ -46,6 +51,7 @@ import {
   UtensilsCrossed,
   Waves,
   Car,
+  Download,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -760,6 +766,7 @@ function CheckoutView({
             <div className="text-2xl font-mono tracking-widest font-bold bg-muted/50 py-3 rounded-lg">
               {result.voucher.code}
             </div>
+            <DownloadVoucherButton code={result.voucher.code} />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -818,6 +825,41 @@ function CheckoutView({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function DownloadVoucherButton({ code }: { code: string }) {
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadVoucherPdf(
+        publicVoucherPdfUrl(code),
+        voucherPdfFilename(code),
+      );
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "We couldn't generate your voucher PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full mt-4"
+      disabled={downloading}
+      onClick={handleDownload}
+    >
+      <Download className="w-4 h-4 mr-2" />
+      {downloading ? "Preparing…" : "Download voucher (PDF)"}
+    </Button>
   );
 }
 

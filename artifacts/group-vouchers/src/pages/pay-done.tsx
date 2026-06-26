@@ -3,10 +3,51 @@ import { useParams, useLocation } from "wouter";
 import { useGetPayLine } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShieldCheck, Loader2, RefreshCw } from "lucide-react";
+import { ShieldCheck, Loader2, RefreshCw, Download } from "lucide-react";
 import { getGetPayLineQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  downloadVoucherPdf,
+  publicVoucherPdfUrl,
+  voucherPdfFilename,
+} from "@/lib/voucherPdf";
+
+function DownloadVoucherButton({ code }: { code: string }) {
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadVoucherPdf(
+        publicVoucherPdfUrl(code),
+        voucherPdfFilename(code),
+      );
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "We couldn't generate your voucher PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full mt-4"
+      disabled={downloading}
+      onClick={handleDownload}
+    >
+      <Download className="w-4 h-4 mr-2" />
+      {downloading ? "Preparing…" : "Download voucher (PDF)"}
+    </Button>
+  );
+}
 
 export default function PayDone() {
   const params = useParams();
@@ -75,6 +116,7 @@ export default function PayDone() {
                     {line.voucher_code}
                   </div>
                   <p className="text-xs text-muted-foreground mt-4">Keep this code safe. You'll need it when booking.</p>
+                  <DownloadVoucherButton code={line.voucher_code} />
                 </CardContent>
               </Card>
             )}

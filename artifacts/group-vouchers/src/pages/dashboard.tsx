@@ -20,6 +20,11 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import {
+  downloadVoucherPdf,
+  dashboardVoucherPdfUrl,
+  voucherPdfFilename,
+} from "@/lib/voucherPdf";
+import {
   Ticket,
   Wallet,
   ReceiptText,
@@ -36,6 +41,42 @@ import {
 
 function fromMinor(amountMinor: number) {
   return amountMinor / 100;
+}
+
+function DownloadVoucherButton({ code }: { code: string }) {
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadVoucherPdf(
+        dashboardVoucherPdfUrl(code),
+        voucherPdfFilename(code),
+      );
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "We couldn't generate your voucher PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full"
+      disabled={downloading}
+      onClick={handleDownload}
+    >
+      <Download className="h-3.5 w-3.5 mr-2" />
+      {downloading ? "Preparing…" : "Download voucher (PDF)"}
+    </Button>
+  );
 }
 
 function formatDate(iso: string | null | undefined) {
@@ -470,6 +511,9 @@ function VouchersSection({ vouchers }: { vouchers: DashboardVoucher[] }) {
                           : "Storefront"}
                     </span>
                   </div>
+                  {v.kind === "voucher" && v.code && (
+                    <DownloadVoucherButton code={v.code} />
+                  )}
                 </CardContent>
               </Card>
             ),
