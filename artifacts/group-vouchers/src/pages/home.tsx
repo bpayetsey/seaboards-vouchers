@@ -45,6 +45,7 @@ import {
   Wifi,
   UtensilsCrossed,
   Waves,
+  Car,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -150,6 +151,11 @@ const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
     icon: Waves,
     title: "Swimming pool",
     desc: "A pool and day beds for slow island afternoons.",
+  },
+  {
+    icon: Car,
+    title: "Car rental",
+    desc: "Explore Mahé at your own pace.",
   },
 ];
 
