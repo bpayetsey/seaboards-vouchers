@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Show, useClerk } from "@clerk/react";
-import { LayoutDashboard, LogOut, LogIn } from "lucide-react";
+import { LayoutDashboard, LogOut, LogIn, Home } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -9,6 +9,13 @@ function AuthNav() {
 
   return (
     <nav className="flex items-center gap-5">
+      <Link
+        href="/"
+        className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
+      >
+        <Home className="h-3.5 w-3.5" />
+        Home
+      </Link>
       <Link
         href="/terms"
         className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
