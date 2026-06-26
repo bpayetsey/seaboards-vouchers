@@ -371,3 +371,116 @@ export interface DashboardView {
   payments: DashboardPayment[];
 }
 
+export interface AdminSession {
+  email: string;
+  staff: boolean;
+}
+
+export interface CurrencyAmount {
+  currency: string;
+  amount_minor: number;
+}
+
+export interface CurrencyCount {
+  currency: string;
+  count: number;
+  amount_minor: number;
+}
+
+export interface AdminOverview {
+  /** Collected revenue grouped by currency */
+  revenue: CurrencyAmount[];
+  vouchers_issued: number;
+  vouchers_active: number;
+  vouchers_redeemed: number;
+  /** Count of scheduled (not yet charged) instalments */
+  outstanding_count: number;
+  /** Scheduled instalment totals grouped by currency */
+  outstanding: CurrencyCount[];
+  /** Count of failed / needs-action instalments */
+  failed_count: number;
+  /** Failed / needs-action instalment totals grouped by currency */
+  failed: CurrencyCount[];
+}
+
+export interface AdminInstalment {
+  id: string;
+  number: number;
+  amount_minor: number;
+  currency: string;
+  due_at: string;
+  status: string;
+  attempts: number;
+  /** @nullable */
+  last_error?: string | null;
+}
+
+export interface AdminOrder {
+  id: string;
+  product_name: string;
+  buyer_name: string;
+  buyer_email: string;
+  currency: string;
+  total_minor: number;
+  installments: number;
+  paid_instalments: number;
+  status: string;
+  created_at: string;
+  first_payment: AdminInstalment;
+  /** Scheduled instalments 2..N (excludes the first payment) */
+  instalments: AdminInstalment[];
+  voucher?: StoreVoucherSummary | null;
+}
+
+export interface AdminOrders {
+  orders: AdminOrder[];
+}
+
+export interface RetryInstalmentResult {
+  /** Outcome — paid, processing, failed or needs_action */
+  status: string;
+  /** @nullable */
+  message?: string | null;
+}
+
+export interface CancelOrderResult {
+  status: string;
+  cancelled_instalments: number;
+}
+
+export interface IssueVoucherInput {
+  /** @minimum 1 */
+  value_minor: number;
+  /** @minLength 1 */
+  currency: string;
+  /** ISO 8601 expiry date */
+  expires_at: string;
+}
+
+export interface AdminVoucher {
+  id: string;
+  code: string;
+  value_minor: number;
+  currency: string;
+  status: string;
+  /** @nullable */
+  expires_at: string | null;
+  /** @nullable */
+  redeemed_at?: string | null;
+  created_at: string;
+  /** @nullable */
+  order_id?: string | null;
+}
+
+export interface VoucherLookup {
+  found: boolean;
+  /** Whether the voucher can be redeemed right now */
+  valid: boolean;
+  /**
+     * Why the voucher is invalid (not_found, expired, already_redeemed, not_active)
+     * @nullable
+     */
+  reason?: string | null;
+  voucher?: AdminVoucher | null;
+}
+

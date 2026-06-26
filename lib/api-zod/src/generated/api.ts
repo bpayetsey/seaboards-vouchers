@@ -297,3 +297,191 @@ export const SweepOrdersResponse = zod.object({
 })
 
 
+/**
+ * Returns the staff member's email when the Clerk session belongs to an allow-listed staff email; 403 otherwise.
+ * @summary Confirm the signed-in user is approved staff
+ */
+export const GetAdminMeResponse = zod.object({
+  "email": zod.string(),
+  "staff": zod.boolean()
+})
+
+
+/**
+ * Revenue by currency, voucher counts by status, and outstanding/failed instalment totals.
+ * @summary Admin overview statistics
+ */
+export const GetAdminOverviewResponse = zod.object({
+  "revenue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount_minor": zod.number()
+})).describe('Collected revenue grouped by currency'),
+  "vouchers_issued": zod.number(),
+  "vouchers_active": zod.number(),
+  "vouchers_redeemed": zod.number(),
+  "outstanding_count": zod.number().describe('Count of scheduled (not yet charged) instalments'),
+  "outstanding": zod.array(zod.object({
+  "currency": zod.string(),
+  "count": zod.number(),
+  "amount_minor": zod.number()
+})).describe('Scheduled instalment totals grouped by currency'),
+  "failed_count": zod.number().describe('Count of failed \/ needs-action instalments'),
+  "failed": zod.array(zod.object({
+  "currency": zod.string(),
+  "count": zod.number(),
+  "amount_minor": zod.number()
+})).describe('Failed \/ needs-action instalment totals grouped by currency')
+})
+
+
+/**
+ * @summary All storefront orders with full instalment detail
+ */
+export const GetAdminOrdersDetailedResponse = zod.object({
+  "orders": zod.array(zod.object({
+  "id": zod.string(),
+  "product_name": zod.string(),
+  "buyer_name": zod.string(),
+  "buyer_email": zod.string(),
+  "currency": zod.string(),
+  "total_minor": zod.number(),
+  "installments": zod.number(),
+  "paid_instalments": zod.number(),
+  "status": zod.string(),
+  "created_at": zod.string(),
+  "first_payment": zod.object({
+  "id": zod.string(),
+  "number": zod.number(),
+  "amount_minor": zod.number(),
+  "currency": zod.string(),
+  "due_at": zod.string(),
+  "status": zod.string(),
+  "attempts": zod.number(),
+  "last_error": zod.string().nullish()
+}),
+  "instalments": zod.array(zod.object({
+  "id": zod.string(),
+  "number": zod.number(),
+  "amount_minor": zod.number(),
+  "currency": zod.string(),
+  "due_at": zod.string(),
+  "status": zod.string(),
+  "attempts": zod.number(),
+  "last_error": zod.string().nullish()
+})).describe('Scheduled instalments 2..N (excludes the first payment)'),
+  "voucher": zod.union([zod.object({
+  "code": zod.string(),
+  "status": zod.string()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
+ * Charges the saved card off-session for a specific failed/needs-action instalment. Idempotent per attempt.
+ * @summary Retry a failed instalment immediately
+ */
+export const RetryInstalmentParams = zod.object({
+  "orderId": zod.coerce.string(),
+  "instalmentId": zod.coerce.string()
+})
+
+export const RetryInstalmentResponse = zod.object({
+  "status": zod.string().describe('Outcome — paid, processing, failed or needs_action'),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * Marks the order cancelled and stops any scheduled/failed/needs-action instalments so no further charges are attempted. No refunds.
+ * @summary Cancel an order and stop its remaining instalments
+ */
+export const CancelOrderParams = zod.object({
+  "orderId": zod.coerce.string()
+})
+
+export const CancelOrderResponse = zod.object({
+  "status": zod.string(),
+  "cancelled_instalments": zod.number()
+})
+
+
+/**
+ * Generates a new active voucher with the given value, currency and expiry.
+ * @summary Manually issue a voucher
+ */
+
+
+
+
+export const IssueVoucherBody = zod.object({
+  "value_minor": zod.number().min(1),
+  "currency": zod.string().min(1),
+  "expires_at": zod.string().describe('ISO 8601 expiry date')
+})
+
+export const IssueVoucherResponse = zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "value_minor": zod.number(),
+  "currency": zod.string(),
+  "status": zod.string(),
+  "expires_at": zod.string().nullable(),
+  "redeemed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "order_id": zod.string().nullish()
+})
+
+
+/**
+ * Returns the voucher and a validity verdict (valid / invalid with a reason).
+ * @summary Look up a voucher by code
+ */
+export const LookupVoucherParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const LookupVoucherResponse = zod.object({
+  "found": zod.boolean(),
+  "valid": zod.boolean().describe('Whether the voucher can be redeemed right now'),
+  "reason": zod.string().nullish().describe('Why the voucher is invalid (not_found, expired, already_redeemed, not_active)'),
+  "voucher": zod.union([zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "value_minor": zod.number(),
+  "currency": zod.string(),
+  "status": zod.string(),
+  "expires_at": zod.string().nullable(),
+  "redeemed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "order_id": zod.string().nullish()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * Atomically marks a valid voucher redeemed with a timestamp. Fails for invalid, expired or already-redeemed vouchers.
+ * @summary Redeem a valid voucher (one-time full use)
+ */
+export const RedeemVoucherParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const RedeemVoucherResponse = zod.object({
+  "found": zod.boolean(),
+  "valid": zod.boolean().describe('Whether the voucher can be redeemed right now'),
+  "reason": zod.string().nullish().describe('Why the voucher is invalid (not_found, expired, already_redeemed, not_active)'),
+  "voucher": zod.union([zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "value_minor": zod.number(),
+  "currency": zod.string(),
+  "status": zod.string(),
+  "expires_at": zod.string().nullable(),
+  "redeemed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "order_id": zod.string().nullish()
+}),zod.null()]).optional()
+})
+
+

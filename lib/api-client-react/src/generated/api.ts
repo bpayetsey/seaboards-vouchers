@@ -20,23 +20,31 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminOrders,
+  AdminOverview,
+  AdminSession,
+  AdminVoucher,
   ApiError,
+  CancelOrderResult,
   ChargeInstalmentsResult,
   CheckoutSession,
   DashboardView,
   GroupOrderCreated,
   GroupOrderInput,
   HealthStatus,
+  IssueVoucherInput,
   OrganiserView,
   PayLine,
   RateTable,
   ResendResult,
+  RetryInstalmentResult,
   StoreAdminOrders,
   StoreOrderConfirmation,
   StoreOrderCreated,
   StoreOrderInput,
   StorefrontConfig,
-  SweepResult
+  SweepResult,
+  VoucherLookup
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1096,5 +1104,603 @@ export const useSweepOrders = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSweepOrdersMutationOptions(options));
+    }
+
+export const getGetAdminMeUrl = () => {
+
+
+
+
+  return `/api/admin/me`
+}
+
+/**
+ * Returns the staff member's email when the Clerk session belongs to an allow-listed staff email; 403 otherwise.
+ * @summary Confirm the signed-in user is approved staff
+ */
+export const getAdminMe = async ( options?: RequestInit): Promise<AdminSession> => {
+
+  return customFetch<AdminSession>(getGetAdminMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMeQueryKey = () => {
+    return [
+    `/api/admin/me`
+    ] as const;
+    }
+
+
+export const getGetAdminMeQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMe>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMe>>> = ({ signal }) => getAdminMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminMeQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMe>>>
+export type GetAdminMeQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Confirm the signed-in user is approved staff
+ */
+
+export function useGetAdminMe<TData = Awaited<ReturnType<typeof getAdminMe>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminOverviewUrl = () => {
+
+
+
+
+  return `/api/admin/overview`
+}
+
+/**
+ * Revenue by currency, voucher counts by status, and outstanding/failed instalment totals.
+ * @summary Admin overview statistics
+ */
+export const getAdminOverview = async ( options?: RequestInit): Promise<AdminOverview> => {
+
+  return customFetch<AdminOverview>(getGetAdminOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminOverviewQueryKey = () => {
+    return [
+    `/api/admin/overview`
+    ] as const;
+    }
+
+
+export const getGetAdminOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminOverview>>> = ({ signal }) => getAdminOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminOverview>>>
+export type GetAdminOverviewQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Admin overview statistics
+ */
+
+export function useGetAdminOverview<TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminOrdersDetailedUrl = () => {
+
+
+
+
+  return `/api/admin/orders`
+}
+
+/**
+ * @summary All storefront orders with full instalment detail
+ */
+export const getAdminOrdersDetailed = async ( options?: RequestInit): Promise<AdminOrders> => {
+
+  return customFetch<AdminOrders>(getGetAdminOrdersDetailedUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminOrdersDetailedQueryKey = () => {
+    return [
+    `/api/admin/orders`
+    ] as const;
+    }
+
+
+export const getGetAdminOrdersDetailedQueryOptions = <TData = Awaited<ReturnType<typeof getAdminOrdersDetailed>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOrdersDetailed>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminOrdersDetailedQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminOrdersDetailed>>> = ({ signal }) => getAdminOrdersDetailed({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminOrdersDetailed>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminOrdersDetailedQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminOrdersDetailed>>>
+export type GetAdminOrdersDetailedQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary All storefront orders with full instalment detail
+ */
+
+export function useGetAdminOrdersDetailed<TData = Awaited<ReturnType<typeof getAdminOrdersDetailed>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOrdersDetailed>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminOrdersDetailedQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRetryInstalmentUrl = (orderId: string,
+    instalmentId: string,) => {
+
+
+
+
+  return `/api/admin/orders/${orderId}/instalments/${instalmentId}/retry`
+}
+
+/**
+ * Charges the saved card off-session for a specific failed/needs-action instalment. Idempotent per attempt.
+ * @summary Retry a failed instalment immediately
+ */
+export const retryInstalment = async (orderId: string,
+    instalmentId: string, options?: RequestInit): Promise<RetryInstalmentResult> => {
+
+  return customFetch<RetryInstalmentResult>(getRetryInstalmentUrl(orderId,instalmentId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRetryInstalmentMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryInstalment>>, TError,{orderId: string;instalmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryInstalment>>, TError,{orderId: string;instalmentId: string}, TContext> => {
+
+const mutationKey = ['retryInstalment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryInstalment>>, {orderId: string;instalmentId: string}> = (props) => {
+          const {orderId,instalmentId} = props ?? {};
+
+          return  retryInstalment(orderId,instalmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryInstalmentMutationResult = NonNullable<Awaited<ReturnType<typeof retryInstalment>>>
+
+    export type RetryInstalmentMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Retry a failed instalment immediately
+ */
+export const useRetryInstalment = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryInstalment>>, TError,{orderId: string;instalmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retryInstalment>>,
+        TError,
+        {orderId: string;instalmentId: string},
+        TContext
+      > => {
+      return useMutation(getRetryInstalmentMutationOptions(options));
+    }
+
+export const getCancelOrderUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/admin/orders/${orderId}/cancel`
+}
+
+/**
+ * Marks the order cancelled and stops any scheduled/failed/needs-action instalments so no further charges are attempted. No refunds.
+ * @summary Cancel an order and stop its remaining instalments
+ */
+export const cancelOrder = async (orderId: string, options?: RequestInit): Promise<CancelOrderResult> => {
+
+  return customFetch<CancelOrderResult>(getCancelOrderUrl(orderId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelOrderMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrder>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelOrder>>, TError,{orderId: string}, TContext> => {
+
+const mutationKey = ['cancelOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelOrder>>, {orderId: string}> = (props) => {
+          const {orderId} = props ?? {};
+
+          return  cancelOrder(orderId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelOrderMutationResult = NonNullable<Awaited<ReturnType<typeof cancelOrder>>>
+
+    export type CancelOrderMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Cancel an order and stop its remaining instalments
+ */
+export const useCancelOrder = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrder>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelOrder>>,
+        TError,
+        {orderId: string},
+        TContext
+      > => {
+      return useMutation(getCancelOrderMutationOptions(options));
+    }
+
+export const getIssueVoucherUrl = () => {
+
+
+
+
+  return `/api/admin/vouchers`
+}
+
+/**
+ * Generates a new active voucher with the given value, currency and expiry.
+ * @summary Manually issue a voucher
+ */
+export const issueVoucher = async (issueVoucherInput: IssueVoucherInput, options?: RequestInit): Promise<AdminVoucher> => {
+
+  return customFetch<AdminVoucher>(getIssueVoucherUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      issueVoucherInput,)
+  }
+);}
+
+
+
+
+export const getIssueVoucherMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueVoucher>>, TError,{data: BodyType<IssueVoucherInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof issueVoucher>>, TError,{data: BodyType<IssueVoucherInput>}, TContext> => {
+
+const mutationKey = ['issueVoucher'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof issueVoucher>>, {data: BodyType<IssueVoucherInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  issueVoucher(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IssueVoucherMutationResult = NonNullable<Awaited<ReturnType<typeof issueVoucher>>>
+    export type IssueVoucherMutationBody = BodyType<IssueVoucherInput>
+    export type IssueVoucherMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Manually issue a voucher
+ */
+export const useIssueVoucher = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueVoucher>>, TError,{data: BodyType<IssueVoucherInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof issueVoucher>>,
+        TError,
+        {data: BodyType<IssueVoucherInput>},
+        TContext
+      > => {
+      return useMutation(getIssueVoucherMutationOptions(options));
+    }
+
+export const getLookupVoucherUrl = (code: string,) => {
+
+
+
+
+  return `/api/admin/vouchers/${code}`
+}
+
+/**
+ * Returns the voucher and a validity verdict (valid / invalid with a reason).
+ * @summary Look up a voucher by code
+ */
+export const lookupVoucher = async (code: string, options?: RequestInit): Promise<VoucherLookup> => {
+
+  return customFetch<VoucherLookup>(getLookupVoucherUrl(code),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getLookupVoucherQueryKey = (code: string,) => {
+    return [
+    `/api/admin/vouchers/${code}`
+    ] as const;
+    }
+
+
+export const getLookupVoucherQueryOptions = <TData = Awaited<ReturnType<typeof lookupVoucher>>, TError = ErrorType<ApiError>>(code: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupVoucher>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLookupVoucherQueryKey(code);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupVoucher>>> = ({ signal }) => lookupVoucher(code, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(code), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lookupVoucher>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type LookupVoucherQueryResult = NonNullable<Awaited<ReturnType<typeof lookupVoucher>>>
+export type LookupVoucherQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Look up a voucher by code
+ */
+
+export function useLookupVoucher<TData = Awaited<ReturnType<typeof lookupVoucher>>, TError = ErrorType<ApiError>>(
+ code: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupVoucher>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getLookupVoucherQueryOptions(code,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRedeemVoucherUrl = (code: string,) => {
+
+
+
+
+  return `/api/admin/vouchers/${code}/redeem`
+}
+
+/**
+ * Atomically marks a valid voucher redeemed with a timestamp. Fails for invalid, expired or already-redeemed vouchers.
+ * @summary Redeem a valid voucher (one-time full use)
+ */
+export const redeemVoucher = async (code: string, options?: RequestInit): Promise<VoucherLookup> => {
+
+  return customFetch<VoucherLookup>(getRedeemVoucherUrl(code),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRedeemVoucherMutationOptions = <TError = ErrorType<ApiError | VoucherLookup>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemVoucher>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof redeemVoucher>>, TError,{code: string}, TContext> => {
+
+const mutationKey = ['redeemVoucher'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemVoucher>>, {code: string}> = (props) => {
+          const {code} = props ?? {};
+
+          return  redeemVoucher(code,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RedeemVoucherMutationResult = NonNullable<Awaited<ReturnType<typeof redeemVoucher>>>
+
+    export type RedeemVoucherMutationError = ErrorType<ApiError | VoucherLookup>
+
+    /**
+ * @summary Redeem a valid voucher (one-time full use)
+ */
+export const useRedeemVoucher = <TError = ErrorType<ApiError | VoucherLookup>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemVoucher>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof redeemVoucher>>,
+        TError,
+        {code: string},
+        TContext
+      > => {
+      return useMutation(getRedeemVoucherMutationOptions(options));
     }
 

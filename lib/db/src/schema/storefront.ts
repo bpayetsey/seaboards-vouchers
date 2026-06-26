@@ -70,8 +70,8 @@ export const storeInstallments = pgTable(
 
 export const storeVouchers = pgTable("store_voucher", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Nullable: vouchers issued manually by staff have no originating order.
   orderId: uuid("order_id")
-    .notNull()
     .unique()
     .references(() => storeOrders.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),

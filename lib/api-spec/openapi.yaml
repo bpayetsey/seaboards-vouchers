@@ -20,6 +20,8 @@ tags:
     description: Direct voucher storefront with Pay-in-3 instalments
   - name: dashboard
     description: Authenticated client account dashboard
+  - name: admin
+    description: Staff admin dashboard (Clerk session + staff allow-list)
 paths:
   /dashboard:
     get:
@@ -340,6 +342,276 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SweepResult"
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [admin]
+      summary: Confirm the signed-in user is approved staff
+      description: Returns the staff member's email when the Clerk session belongs to an allow-listed staff email; 403 otherwise.
+      responses:
+        "200":
+          description: Staff session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      summary: Admin overview statistics
+      description: Revenue by currency, voucher counts by status, and outstanding/failed instalment totals.
+      responses:
+        "200":
+          description: Overview stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/orders:
+    get:
+      operationId: getAdminOrdersDetailed
+      tags: [admin]
+      summary: All storefront orders with full instalment detail
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrders"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/orders/{orderId}/instalments/{instalmentId}/retry:
+    post:
+      operationId: retryInstalment
+      tags: [admin]
+      summary: Retry a failed instalment immediately
+      description: Charges the saved card off-session for a specific failed/needs-action instalment. Idempotent per attempt.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: instalmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Retry result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetryInstalmentResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Instalment not in a retryable state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/orders/{orderId}/cancel:
+    post:
+      operationId: cancelOrder
+      tags: [admin]
+      summary: Cancel an order and stop its remaining instalments
+      description: Marks the order cancelled and stops any scheduled/failed/needs-action instalments so no further charges are attempted. No refunds.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancel result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelOrderResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/vouchers:
+    post:
+      operationId: issueVoucher
+      tags: [admin]
+      summary: Manually issue a voucher
+      description: Generates a new active voucher with the given value, currency and expiry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueVoucherInput"
+      responses:
+        "200":
+          description: Voucher issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVoucher"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/vouchers/{code}:
+    get:
+      operationId: lookupVoucher
+      tags: [admin]
+      summary: Look up a voucher by code
+      description: Returns the voucher and a validity verdict (valid / invalid with a reason).
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherLookup"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/vouchers/{code}/redeem:
+    post:
+      operationId: redeemVoucher
+      tags: [admin]
+      summary: Redeem a valid voucher (one-time full use)
+      description: Atomically marks a valid voucher redeemed with a timestamp. Fails for invalid, expired or already-redeemed vouchers.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Redeem result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherLookup"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Voucher cannot be redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherLookup"
 components:
   schemas:
     HealthStatus:
@@ -831,3 +1103,211 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DashboardPayment"
+    AdminSession:
+      type: object
+      required: [email, staff]
+      properties:
+        email:
+          type: string
+        staff:
+          type: boolean
+    CurrencyAmount:
+      type: object
+      required: [currency, amount_minor]
+      properties:
+        currency:
+          type: string
+        amount_minor:
+          type: integer
+    CurrencyCount:
+      type: object
+      required: [currency, count, amount_minor]
+      properties:
+        currency:
+          type: string
+        count:
+          type: integer
+        amount_minor:
+          type: integer
+    AdminOverview:
+      type: object
+      required:
+        - revenue
+        - vouchers_issued
+        - vouchers_active
+        - vouchers_redeemed
+        - outstanding_count
+        - outstanding
+        - failed_count
+        - failed
+      properties:
+        revenue:
+          type: array
+          description: Collected revenue grouped by currency
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        vouchers_issued:
+          type: integer
+        vouchers_active:
+          type: integer
+        vouchers_redeemed:
+          type: integer
+        outstanding_count:
+          type: integer
+          description: Count of scheduled (not yet charged) instalments
+        outstanding:
+          type: array
+          description: Scheduled instalment totals grouped by currency
+          items:
+            $ref: "#/components/schemas/CurrencyCount"
+        failed_count:
+          type: integer
+          description: Count of failed / needs-action instalments
+        failed:
+          type: array
+          description: Failed / needs-action instalment totals grouped by currency
+          items:
+            $ref: "#/components/schemas/CurrencyCount"
+    AdminInstalment:
+      type: object
+      required: [id, number, amount_minor, currency, due_at, status, attempts]
+      properties:
+        id:
+          type: string
+        number:
+          type: integer
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        due_at:
+          type: string
+        status:
+          type: string
+        attempts:
+          type: integer
+        last_error:
+          type: ["string", "null"]
+    AdminOrder:
+      type: object
+      required:
+        - id
+        - product_name
+        - buyer_name
+        - buyer_email
+        - currency
+        - total_minor
+        - installments
+        - paid_instalments
+        - status
+        - created_at
+        - first_payment
+        - instalments
+      properties:
+        id:
+          type: string
+        product_name:
+          type: string
+        buyer_name:
+          type: string
+        buyer_email:
+          type: string
+        currency:
+          type: string
+        total_minor:
+          type: integer
+        installments:
+          type: integer
+        paid_instalments:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+        first_payment:
+          $ref: "#/components/schemas/AdminInstalment"
+        instalments:
+          type: array
+          description: Scheduled instalments 2..N (excludes the first payment)
+          items:
+            $ref: "#/components/schemas/AdminInstalment"
+        voucher:
+          anyOf:
+            - $ref: "#/components/schemas/StoreVoucherSummary"
+            - type: "null"
+    AdminOrders:
+      type: object
+      required: [orders]
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminOrder"
+    RetryInstalmentResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Outcome — paid, processing, failed or needs_action
+        message:
+          type: ["string", "null"]
+    CancelOrderResult:
+      type: object
+      required: [status, cancelled_instalments]
+      properties:
+        status:
+          type: string
+        cancelled_instalments:
+          type: integer
+    IssueVoucherInput:
+      type: object
+      required: [value_minor, currency, expires_at]
+      properties:
+        value_minor:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          minLength: 1
+        expires_at:
+          type: string
+          description: ISO 8601 expiry date
+    AdminVoucher:
+      type: object
+      required: [id, code, value_minor, currency, status, expires_at, created_at]
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        value_minor:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+        expires_at:
+          type: ["string", "null"]
+        redeemed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        order_id:
+          type: ["string", "null"]
+    VoucherLookup:
+      type: object
+      required: [found, valid]
+      properties:
+        found:
+          type: boolean
+        valid:
+          type: boolean
+          description: Whether the voucher can be redeemed right now
+        reason:
+          type: ["string", "null"]
+          description: Why the voucher is invalid (not_found, expired, already_redeemed, not_active)
+        voucher:
+          anyOf:
+            - $ref: "#/components/schemas/AdminVoucher"
+            - type: "null"

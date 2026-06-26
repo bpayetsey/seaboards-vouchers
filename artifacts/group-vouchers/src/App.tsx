@@ -15,6 +15,9 @@ import PayLine from "@/pages/pay";
 import PayDone from "@/pages/pay-done";
 import Terms from "@/pages/terms";
 import Dashboard from "@/pages/dashboard";
+import AdminOverview from "@/pages/admin/overview";
+import AdminOrders from "@/pages/admin/orders";
+import AdminVouchers from "@/pages/admin/vouchers";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +133,19 @@ function ProtectedDashboard() {
   );
 }
 
+// Admin pages require a signed-in session; the AdminShell then verifies staff
+// allow-list membership via /admin/me and redirects non-staff away.
+function ProtectedAdmin({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">{children}</Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
 // Invalidate the query cache when the signed-in user changes, so cached
 // account data never leaks across sessions.
 function ClerkQueryClientCacheInvalidator() {
@@ -164,6 +180,21 @@ function Router() {
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />
       <Route path="/dashboard" component={ProtectedDashboard} />
+      <Route path="/admin">
+        <ProtectedAdmin>
+          <AdminOverview />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/orders">
+        <ProtectedAdmin>
+          <AdminOrders />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/vouchers">
+        <ProtectedAdmin>
+          <AdminVouchers />
+        </ProtectedAdmin>
+      </Route>
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route component={NotFound} />
