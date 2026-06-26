@@ -113,7 +113,7 @@ export default function PayLine() {
               <div className="bg-muted/50 rounded-lg p-4 flex items-start gap-3">
                 <Lock className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Payment is processed securely by Stripe. Your card details are never stored on our servers.
+                  Payment is processed securely. Your card details are never stored on our servers.
                 </p>
               </div>
 
