@@ -79,7 +79,7 @@ export const CATALOG: CatalogItem[] = [
 export const GIFT = {
   id: "gift",
   type: "gift" as const,
-  name: "Jubilee Gift Voucher",
+  name: "Gift Voucher for Ezzy Foods - On Site Dine In",
   amounts: [100, 200, 350, 500],
   min: 50,
 };
