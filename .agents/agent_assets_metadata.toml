@@ -41,3 +41,9 @@ id = "t7llbdplcE01KeM1JTcGk"
 uri = "file://artifacts/group-vouchers/src/assets/resort-hero.jpg"
 type = "image"
 title = "luxury seychelles resort island ocean view golden hour high quality photograph"
+
+[[outputs]]
+id = "gjDpbMU6xmDD0bvkeHGpw"
+uri = "file://exports/sey_offer_720p.mp4"
+type = "video"
+title = "Seychelles Offer — 720p (11.5 MB, WhatsApp-ready)"
