@@ -885,6 +885,14 @@ export async function processWhatsappWebhook(payload: unknown): Promise<void> {
       if (!value) continue;
 
       for (const status of value.statuses ?? []) {
+        logger.info(
+          {
+            providerMessageId: status.id,
+            deliveryStatus: status.status,
+            errors: status.errors,
+          },
+          "WhatsApp delivery status received",
+        );
         await applyStatusUpdate(status);
       }
 
