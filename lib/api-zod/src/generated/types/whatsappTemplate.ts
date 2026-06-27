@@ -12,4 +12,6 @@ export interface WhatsappTemplate {
   category: string;
   body: string;
   variable_count: number;
+  /** Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT */
+  header_format: string;
 }

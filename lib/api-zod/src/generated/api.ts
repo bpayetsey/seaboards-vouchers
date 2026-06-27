@@ -875,7 +875,8 @@ export const GetWhatsappConfigResponse = zod.object({
   "language": zod.string(),
   "category": zod.string(),
   "body": zod.string(),
-  "variable_count": zod.number()
+  "variable_count": zod.number(),
+  "header_format": zod.string().describe('Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT')
 }))
 })
 
@@ -1065,7 +1066,10 @@ export const CreateWhatsappCampaignBody = zod.object({
   "template_language": zod.string(),
   "variables": zod.array(zod.string()).optional(),
   "mode": zod.enum(['draft', 'now', 'schedule']).optional().describe('draft saves only; now sends immediately; schedule defers to scheduled_at'),
-  "scheduled_at": zod.string().nullish()
+  "scheduled_at": zod.string().nullish(),
+  "daily_limit": zod.number().nullish().describe('Max messages to send per rolling 24h. When set, the campaign sends up to this many per day and automatically resumes the next day until the whole audience is reached. Null = send the entire audience at once.\n'),
+  "header_media_id": zod.string().nullish().describe('Pre-uploaded Meta media id for the template header (from \/admin\/whatsapp\/media)'),
+  "header_media_type": zod.string().nullish().describe('Header media kind — image, video, or document')
 })
 
 export const CreateWhatsappCampaignResponse = zod.object({

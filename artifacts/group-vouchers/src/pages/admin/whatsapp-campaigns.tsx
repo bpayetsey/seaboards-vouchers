@@ -106,16 +106,78 @@ function ComposerCard({
   const [templateName, setTemplateName] = useState("");
   const [vars, setVars] = useState<string[]>([]);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [dailyLimit, setDailyLimit] = useState("2000");
+  const [mediaId, setMediaId] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<string | null>(null);
+  const [mediaName, setMediaName] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const template = useMemo(
     () => templates.find((t) => t.name === templateName),
     [templates, templateName],
   );
 
+  const mediaFormat = (template?.header_format ?? "NONE").toUpperCase();
+  const needsMedia =
+    mediaFormat === "IMAGE" ||
+    mediaFormat === "VIDEO" ||
+    mediaFormat === "DOCUMENT";
+  const mediaAccept =
+    mediaFormat === "VIDEO"
+      ? "video/*"
+      : mediaFormat === "IMAGE"
+        ? "image/*"
+        : undefined;
+
+  const resetMedia = () => {
+    setMediaId(null);
+    setMediaType(null);
+    setMediaName("");
+  };
+
   const onTemplateChange = (value: string) => {
     setTemplateName(value);
     const t = templates.find((x) => x.name === value);
     setVars(Array(t?.variable_count ?? 0).fill(""));
+    resetMedia();
+  };
+
+  const onMediaSelected = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const resp = await fetch("/api/admin/whatsapp/media", {
+        method: "POST",
+        headers: {
+          "content-type": file.type || "application/octet-stream",
+          "x-filename": file.name,
+        },
+        body: file,
+      });
+      if (!resp.ok) {
+        const err = (await resp.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(err.error ?? `Upload failed (${resp.status})`);
+      }
+      const data = (await resp.json()) as {
+        media_id: string;
+        media_type: string;
+      };
+      setMediaId(data.media_id);
+      setMediaType(data.media_type);
+      setMediaName(file.name);
+      toast({ title: "Media uploaded" });
+    } catch (e) {
+      resetMedia();
+      toast({
+        title: "Could not upload media",
+        description: e instanceof Error ? e.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const submit = (mode: "draft" | "now" | "schedule") => {
@@ -135,6 +197,15 @@ function ComposerCard({
       toast({ title: "Pick a send time", variant: "destructive" });
       return;
     }
+    if (needsMedia && !mediaId) {
+      toast({
+        title: "Upload the header media",
+        description: "This template requires a header image/video.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const parsedLimit = Number.parseInt(dailyLimit, 10);
     create.mutate(
       {
         data: {
@@ -146,6 +217,10 @@ function ComposerCard({
           mode,
           scheduled_at:
             mode === "schedule" ? new Date(scheduledAt).toISOString() : null,
+          daily_limit:
+            Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : null,
+          header_media_id: needsMedia ? mediaId : null,
+          header_media_type: needsMedia ? mediaType : null,
         },
       },
       {
@@ -161,6 +236,7 @@ function ComposerCard({
           setName("");
           setVars(Array(template.variable_count).fill(""));
           setScheduledAt("");
+          resetMedia();
           qc.invalidateQueries({
             queryKey: getGetWhatsappCampaignsQueryKey(),
           });
@@ -262,6 +338,39 @@ function ComposerCard({
           </div>
         ) : null}
 
+        {needsMedia ? (
+          <div className="space-y-1.5">
+            <Label>
+              Header {mediaFormat.toLowerCase()}{" "}
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="file"
+              accept={mediaAccept}
+              disabled={uploading}
+              onChange={(e) => {
+                void onMediaSelected(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            {uploading ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Uploading to WhatsApp…
+              </p>
+            ) : mediaId ? (
+              <p className="flex items-center gap-1.5 text-xs text-primary">
+                <CheckCircle2 className="h-3 w-3" />
+                {mediaName} uploaded
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Required by this template. Max 16MB for video.
+              </p>
+            )}
+          </div>
+        ) : null}
+
         {template ? (
           <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
             <p className="mb-1 font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -273,13 +382,29 @@ function ComposerCard({
           </div>
         ) : null}
 
-        <div className="space-y-1.5">
-          <Label>Schedule for (optional)</Label>
-          <Input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Daily send limit</Label>
+            <Input
+              type="number"
+              min={1}
+              placeholder="2000"
+              value={dailyLimit}
+              onChange={(e) => setDailyLimit(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Sends up to this many per day, then resumes automatically the next
+              day. Leave blank to send the whole audience at once.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Schedule for (optional)</Label>
+            <Input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -294,12 +419,15 @@ function ComposerCard({
           <Button
             variant="outline"
             onClick={() => submit("schedule")}
-            disabled={create.isPending || !configured || !scheduledAt}
+            disabled={create.isPending || uploading || !configured || !scheduledAt}
           >
             <Clock className="mr-2 h-4 w-4" />
             Schedule
           </Button>
-          <Button onClick={() => submit("now")} disabled={create.isPending || !configured}>
+          <Button
+            onClick={() => submit("now")}
+            disabled={create.isPending || uploading || !configured}
+          >
             {create.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

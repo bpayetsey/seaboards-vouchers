@@ -2730,7 +2730,7 @@ components:
             - type: "null"
     WhatsappTemplate:
       type: object
-      required: [name, language, category, body, variable_count]
+      required: [name, language, category, body, variable_count, header_format]
       properties:
         name:
           type: string
@@ -2742,6 +2742,9 @@ components:
           type: string
         variable_count:
           type: integer
+        header_format:
+          type: string
+          description: Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT
     WhatsappConfig:
       type: object
       required: [configured, templates]
@@ -2903,6 +2906,18 @@ components:
           description: draft saves only; now sends immediately; schedule defers to scheduled_at
         scheduled_at:
           type: ["string", "null"]
+        daily_limit:
+          type: ["integer", "null"]
+          description: >
+            Max messages to send per rolling 24h. When set, the campaign sends up
+            to this many per day and automatically resumes the next day until the
+            whole audience is reached. Null = send the entire audience at once.
+        header_media_id:
+          type: ["string", "null"]
+          description: Pre-uploaded Meta media id for the template header (from /admin/whatsapp/media)
+        header_media_type:
+          type: ["string", "null"]
+          description: Header media kind — image, video, or document
     SendCampaignInput:
       type: object
       required: [mode]

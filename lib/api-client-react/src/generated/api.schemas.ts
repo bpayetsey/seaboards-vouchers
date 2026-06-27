@@ -808,6 +808,8 @@ export interface WhatsappTemplate {
   category: string;
   body: string;
   variable_count: number;
+  /** Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT */
+  header_format: string;
 }
 
 export interface WhatsappConfig {
@@ -920,6 +922,22 @@ export interface CreateCampaignInput {
   mode?: CreateCampaignInputMode;
   /** @nullable */
   scheduled_at?: string | null;
+  /**
+     * Max messages to send per rolling 24h. When set, the campaign sends up to this many per day and automatically resumes the next day until the whole audience is reached. Null = send the entire audience at once.
+
+     * @nullable
+     */
+  daily_limit?: number | null;
+  /**
+     * Pre-uploaded Meta media id for the template header (from /admin/whatsapp/media)
+     * @nullable
+     */
+  header_media_id?: string | null;
+  /**
+     * Header media kind — image, video, or document
+     * @nullable
+     */
+  header_media_type?: string | null;
 }
 
 export type SendCampaignInputMode = typeof SendCampaignInputMode[keyof typeof SendCampaignInputMode];

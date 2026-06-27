@@ -1,6 +1,17 @@
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   db,
+  pool,
   whatsappContacts,
   whatsappAudiences,
   whatsappAudienceMembers,
@@ -75,6 +86,7 @@ export async function getConfig() {
       category: t.category,
       body: t.body,
       variable_count: t.variableCount,
+      header_format: t.headerFormat,
     })),
   };
 }
@@ -546,6 +558,9 @@ export async function createCampaign(input: {
   variables?: string[];
   mode?: "draft" | "now" | "schedule";
   scheduled_at?: string | null;
+  daily_limit?: number | null;
+  header_media_id?: string | null;
+  header_media_type?: string | null;
 }): Promise<CreateCampaignResult> {
   const audience = await db
     .select({ id: whatsappAudiences.id })
@@ -582,6 +597,15 @@ export async function createCampaign(input: {
       templateLanguage: input.template_language.trim() || "en_US",
       variables: input.variables ?? [],
       status,
+      dailyLimit:
+        input.daily_limit != null && input.daily_limit > 0
+          ? Math.floor(input.daily_limit)
+          : null,
+      headerMediaId: input.header_media_id?.trim() || null,
+      headerMediaType: ((): string | null => {
+        const t = input.header_media_type?.trim().toLowerCase();
+        return t === "image" || t === "video" || t === "document" ? t : null;
+      })(),
       scheduledAt,
       startedAt,
     })
@@ -654,6 +678,37 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * + only sends rows still queued).
  */
 export async function dispatchCampaign(campaignId: string): Promise<void> {
+  // Serialize dispatch per campaign with a Postgres session advisory lock held
+  // on a dedicated connection for the whole run. This makes the daily-cap
+  // headroom calculation safe: without it, two overlapping dispatchers (e.g. a
+  // manual "send now" racing the daily scheduler) could each read the same
+  // remaining budget and together overshoot the cap. If the lock is already
+  // held, another dispatcher is running this campaign — skip; it covers the work
+  // (and remaining queued rows are picked up on the next scheduled run).
+  const client = await pool.connect();
+  try {
+    const locked = await client.query<{ ok: boolean }>(
+      "SELECT pg_try_advisory_lock(hashtext('whatsapp_dispatch'), hashtext($1)) AS ok",
+      [campaignId],
+    );
+    if (!locked.rows[0]?.ok) {
+      logger.info({ campaignId }, "Dispatch already running; skipping");
+      return;
+    }
+    try {
+      await runDispatch(campaignId);
+    } finally {
+      await client.query(
+        "SELECT pg_advisory_unlock(hashtext('whatsapp_dispatch'), hashtext($1))",
+        [campaignId],
+      );
+    }
+  } finally {
+    client.release();
+  }
+}
+
+async function runDispatch(campaignId: string): Promise<void> {
   const [campaign] = await db
     .select()
     .from(whatsappCampaigns)
@@ -731,7 +786,37 @@ export async function dispatchCampaign(campaignId: string): Promise<void> {
   const configured = isWhatsappConfigured();
   const delay = sendDelayMs();
 
+  // Daily cap: count successful sends in the trailing 24h and only send up to
+  // the remaining headroom this run. A capped campaign therefore sends at most
+  // dailyLimit per rolling day and is resumed by the next scheduled dispatch
+  // (it stays in `sending` while rows remain queued). NULL = unlimited.
+  let remaining = Number.POSITIVE_INFINITY;
+  if (campaign.dailyLimit != null) {
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [{ sentInWindow }] = await db
+      .select({ sentInWindow: sql<number>`count(*)::int` })
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.campaignId, campaignId),
+          isNotNull(whatsappMessages.sentAt),
+          gte(whatsappMessages.sentAt, windowStart),
+        ),
+      );
+    remaining = Math.max(0, campaign.dailyLimit - sentInWindow);
+  }
+
+  const headerMedia =
+    campaign.headerMediaId && campaign.headerMediaType
+      ? {
+          type: campaign.headerMediaType as "image" | "video" | "document",
+          id: campaign.headerMediaId,
+        }
+      : null;
+
+  let sentThisRun = 0;
   for (const msg of queued) {
+    if (sentThisRun >= remaining) break;
     const claimed = await db
       .update(whatsappMessages)
       .set({ status: "sending", updatedAt: new Date() })
@@ -761,9 +846,13 @@ export async function dispatchCampaign(campaignId: string): Promise<void> {
       templateName: campaign.templateName,
       languageCode: campaign.templateLanguage,
       variables: campaign.variables ?? [],
+      headerMedia,
     });
 
     if (result.ok) {
+      // Only successful sends count toward the daily cap (matches Meta, which
+      // doesn't count failed/undelivered marketing messages against the limit).
+      sentThisRun += 1;
       await db
         .update(whatsappMessages)
         .set({

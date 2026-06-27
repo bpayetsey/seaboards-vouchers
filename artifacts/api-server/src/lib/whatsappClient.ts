@@ -45,11 +45,14 @@ export interface WhatsappTemplate {
   category: string;
   body: string;
   variableCount: number;
+  /** Header media requirement: NONE | TEXT | IMAGE | VIDEO | DOCUMENT. */
+  headerFormat: string;
 }
 
 interface GraphTemplateComponent {
   type?: string;
   text?: string;
+  format?: string;
 }
 
 interface GraphTemplate {
@@ -108,6 +111,9 @@ export async function fetchApprovedTemplates(): Promise<WhatsappTemplate[]> {
     const bodyComp = (t.components ?? []).find(
       (c) => (c.type ?? "").toUpperCase() === "BODY",
     );
+    const headerComp = (t.components ?? []).find(
+      (c) => (c.type ?? "").toUpperCase() === "HEADER",
+    );
     const body = bodyComp?.text ?? "";
     templates.push({
       name: t.name,
@@ -115,6 +121,7 @@ export async function fetchApprovedTemplates(): Promise<WhatsappTemplate[]> {
       category: t.category ?? "MARKETING",
       body,
       variableCount: countVariables(body),
+      headerFormat: (headerComp?.format ?? "NONE").toUpperCase(),
     });
   }
   return templates;
@@ -134,22 +141,31 @@ export async function sendTemplateMessage(input: {
   templateName: string;
   languageCode: string;
   variables: string[];
+  headerMedia?: { type: "image" | "video" | "document"; id: string } | null;
 }): Promise<SendResult> {
   const creds = getCredentials();
   if (!creds) return { ok: false, error: "not_configured" };
 
-  const components =
-    input.variables.length > 0
-      ? [
-          {
-            type: "body",
-            parameters: input.variables.map((text) => ({
-              type: "text",
-              text,
-            })),
-          },
-        ]
-      : [];
+  const components: Array<Record<string, unknown>> = [];
+  if (input.headerMedia) {
+    // Header media is referenced by a pre-uploaded media id (not a link), which
+    // avoids Meta's "media upload error" (131053) when it can't fetch a URL.
+    components.push({
+      type: "header",
+      parameters: [
+        {
+          type: input.headerMedia.type,
+          [input.headerMedia.type]: { id: input.headerMedia.id },
+        },
+      ],
+    });
+  }
+  if (input.variables.length > 0) {
+    components.push({
+      type: "body",
+      parameters: input.variables.map((text) => ({ type: "text", text })),
+    });
+  }
 
   const payload = {
     messaging_product: "whatsapp",
@@ -191,6 +207,59 @@ export async function sendTemplateMessage(input: {
   const messageId = data.messages?.[0]?.id;
   if (!messageId) return { ok: false, error: "no_message_id" };
   return { ok: true, messageId };
+}
+
+export type UploadMediaResult =
+  | { ok: true; mediaId: string }
+  | { ok: false; error: string };
+
+/**
+ * Upload a media file (image/video/document) to the WhatsApp media API and
+ * return a reusable media id (~30 day validity) for use as a template header.
+ * Uploading once and referencing the id avoids per-send link fetches that Meta
+ * can fail to retrieve (error 131053).
+ */
+export async function uploadMedia(input: {
+  data: Buffer;
+  mimeType: string;
+  filename: string;
+}): Promise<UploadMediaResult> {
+  const creds = getCredentials();
+  if (!creds) return { ok: false, error: "not_configured" };
+
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", input.mimeType);
+  form.append(
+    "file",
+    new Blob([new Uint8Array(input.data)], { type: input.mimeType }),
+    input.filename,
+  );
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${GRAPH_BASE}/${creds.phoneNumberId}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${creds.accessToken}` },
+      body: form,
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch (err) {
+    return { ok: false, error: `network_error: ${String(err)}` };
+  }
+
+  const data = (await resp.json().catch(() => ({}))) as {
+    id?: string;
+    error?: { message?: string };
+  };
+  if (!resp.ok) {
+    return {
+      ok: false,
+      error: data.error?.message ?? `${resp.status} ${resp.statusText}`.trim(),
+    };
+  }
+  if (!data.id) return { ok: false, error: "no_media_id" };
+  return { ok: true, mediaId: data.id };
 }
 
 /**

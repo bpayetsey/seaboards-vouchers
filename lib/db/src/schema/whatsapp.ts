@@ -5,6 +5,7 @@ import {
   boolean,
   jsonb,
   timestamp,
+  integer,
   index,
   unique,
 } from "drizzle-orm/pg-core";
@@ -85,6 +86,14 @@ export const whatsappCampaigns = pgTable(
     templateLanguage: text("template_language").notNull().default("en_US"),
     variables: jsonb("variables").$type<string[]>().notNull().default([]),
     status: text("status").notNull().default("draft"),
+    // Max messages successfully sent per rolling 24h window. NULL = no cap (send
+    // the whole audience in one run). When set, dispatchCampaign sends only up to
+    // the remaining headroom and leaves the rest queued for the next daily run.
+    dailyLimit: integer("daily_limit"),
+    // Optional template header media, pre-uploaded to Meta's media API. The id is
+    // a reusable media handle (~30 day validity) and type is image|video|document.
+    headerMediaId: text("header_media_id"),
+    headerMediaType: text("header_media_type"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

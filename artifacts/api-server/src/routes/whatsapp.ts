@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { Router, type IRouter, type Request } from "express";
+import express, { Router, type IRouter, type Request } from "express";
 import {
   GetWhatsappConfigResponse,
   GetWhatsappContactsQueryParams,
@@ -44,7 +44,11 @@ import {
   sendCampaign,
   dispatchDueCampaigns,
 } from "../lib/whatsappCampaigns";
+import { uploadMedia } from "../lib/whatsappClient";
 import { logger } from "../lib/logger";
+
+// WhatsApp media size limits (bytes): images 5MB, video/document 16MB.
+const MAX_MEDIA_BYTES = 16 * 1024 * 1024;
 
 const router: IRouter = Router();
 
@@ -242,6 +246,9 @@ router.post("/admin/whatsapp/campaigns", requireStaff, async (req, res) => {
       variables: parsed.data.variables,
       mode: parsed.data.mode,
       scheduled_at: parsed.data.scheduled_at,
+      daily_limit: parsed.data.daily_limit,
+      header_media_id: parsed.data.header_media_id,
+      header_media_type: parsed.data.header_media_type,
     });
     if (!result.ok) {
       const status = result.error === "audience_not_found" ? 400 : 400;
@@ -302,6 +309,48 @@ router.post(
     } catch (err) {
       req.log.error({ err }, "Failed to send WhatsApp campaign");
       return res.status(500).json({ error: "Could not send campaign." });
+    }
+  },
+);
+
+// Upload a template header media file (image/video/document) to Meta and return
+// a reusable media id. Body is the raw file bytes; the content-type header is the
+// file's mime type and x-filename carries the original name. Sent as raw binary
+// (not multipart/base64) so large videos avoid JSON inflation and parser limits.
+router.post(
+  "/admin/whatsapp/media",
+  requireStaff,
+  express.raw({ type: () => true, limit: "20mb" }),
+  async (req, res) => {
+    const body = req.body as unknown;
+    if (!Buffer.isBuffer(body) || body.length === 0) {
+      return res.status(400).json({ error: "Empty upload." });
+    }
+    if (body.length > MAX_MEDIA_BYTES) {
+      return res
+        .status(413)
+        .json({ error: "File too large (max 16MB for video)." });
+    }
+    const mimeType = (req.get("content-type") ?? "").split(";", 1)[0].trim();
+    if (!mimeType) {
+      return res.status(400).json({ error: "Missing content-type." });
+    }
+    const mediaType = mimeType.startsWith("video/")
+      ? "video"
+      : mimeType.startsWith("image/")
+        ? "image"
+        : "document";
+    const filename = req.get("x-filename") || `upload.${mediaType}`;
+    try {
+      const result = await uploadMedia({ data: body, mimeType, filename });
+      if (!result.ok) {
+        req.log.error({ error: result.error }, "WhatsApp media upload failed");
+        return res.status(502).json({ error: result.error });
+      }
+      return res.json({ media_id: result.mediaId, media_type: mediaType });
+    } catch (err) {
+      req.log.error({ err }, "WhatsApp media upload threw");
+      return res.status(500).json({ error: "Could not upload media." });
     }
   },
 );
