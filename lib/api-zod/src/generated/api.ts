@@ -862,3 +862,333 @@ export const UpdateCatalogPriceResponse = zod.object({
 })
 
 
+/**
+ * Reports whether the WhatsApp Cloud API is configured and returns the approved marketing templates fetched from Meta for the campaign composer.
+
+ * @summary WhatsApp sender status and approved templates
+ */
+export const GetWhatsappConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "from_number": zod.string().nullish(),
+  "templates": zod.array(zod.object({
+  "name": zod.string(),
+  "language": zod.string(),
+  "category": zod.string(),
+  "body": zod.string(),
+  "variable_count": zod.number()
+}))
+})
+
+
+/**
+ * @summary List/search WhatsApp contacts
+ */
+export const GetWhatsappContactsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "audienceId": zod.coerce.string().optional()
+})
+
+export const GetWhatsappContactsResponse = zod.object({
+  "contacts": zod.array(zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "consent": zod.string(),
+  "opted_out": zod.boolean(),
+  "opted_out_at": zod.string().nullish(),
+  "source": zod.string(),
+  "created_at": zod.string()
+})),
+  "total": zod.number(),
+  "eligible": zod.number().describe('Contacts that are consented and not opted-out')
+})
+
+
+/**
+ * Validates and normalizes phone numbers to E.164, de-duplicates against existing contacts and within the batch, and returns a per-row summary.
+
+ * @summary Bulk import contacts from a parsed CSV
+ */
+export const ImportWhatsappContactsBody = zod.object({
+  "rows": zod.array(zod.object({
+  "phone": zod.string(),
+  "name": zod.string().nullish()
+})),
+  "default_country": zod.string().nullish().describe('ISO 3166-1 alpha-2 code used for numbers without a country code (e.g. SC)'),
+  "consent": zod.boolean().optional().describe('Whether these contacts have consented to marketing (defaults true)'),
+  "audience_id": zod.string().nullish().describe('Optionally add all imported\/matched contacts to this audience')
+})
+
+export const ImportWhatsappContactsResponse = zod.object({
+  "total": zod.number(),
+  "imported": zod.number(),
+  "duplicates": zod.number(),
+  "rejected": zod.array(zod.object({
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "reason": zod.string()
+}))
+})
+
+
+/**
+ * @summary Manually mark a contact opted-out
+ */
+export const OptOutWhatsappContactParams = zod.object({
+  "contactId": zod.coerce.string()
+})
+
+export const OptOutWhatsappContactResponse = zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "consent": zod.string(),
+  "opted_out": zod.boolean(),
+  "opted_out_at": zod.string().nullish(),
+  "source": zod.string(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Remove a contact
+ */
+export const DeleteWhatsappContactParams = zod.object({
+  "contactId": zod.coerce.string()
+})
+
+export const DeleteWhatsappContactResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary List audiences with member counts
+ */
+export const GetWhatsappAudiencesResponse = zod.object({
+  "audiences": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create an audience
+ */
+export const CreateWhatsappAudienceBody = zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_ids": zod.array(zod.string()).optional()
+})
+
+export const CreateWhatsappAudienceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Delete an audience
+ */
+export const DeleteWhatsappAudienceParams = zod.object({
+  "audienceId": zod.coerce.string()
+})
+
+export const DeleteWhatsappAudienceResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Add or remove contacts from an audience
+ */
+export const UpdateWhatsappAudienceMembersParams = zod.object({
+  "audienceId": zod.coerce.string()
+})
+
+export const UpdateWhatsappAudienceMembersBody = zod.object({
+  "add": zod.array(zod.string()).optional(),
+  "remove": zod.array(zod.string()).optional()
+})
+
+export const UpdateWhatsappAudienceMembersResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary List campaigns with delivery stats
+ */
+export const GetWhatsappCampaignsResponse = zod.object({
+  "campaigns": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "read": zod.number(),
+  "failed": zod.number()
+})
+}))
+})
+
+
+/**
+ * @summary Create a campaign and optionally send or schedule it
+ */
+export const CreateWhatsappCampaignBody = zod.object({
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "variables": zod.array(zod.string()).optional(),
+  "mode": zod.enum(['draft', 'now', 'schedule']).optional().describe('draft saves only; now sends immediately; schedule defers to scheduled_at'),
+  "scheduled_at": zod.string().nullish()
+})
+
+export const CreateWhatsappCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "read": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Campaign detail with per-recipient delivery status
+ */
+export const GetWhatsappCampaignParams = zod.object({
+  "campaignId": zod.coerce.string()
+})
+
+export const GetWhatsappCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "read": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send or schedule an existing draft campaign
+ */
+export const SendWhatsappCampaignParams = zod.object({
+  "campaignId": zod.coerce.string()
+})
+
+export const SendWhatsappCampaignBody = zod.object({
+  "mode": zod.enum(['now', 'schedule']),
+  "scheduled_at": zod.string().nullish()
+})
+
+export const SendWhatsappCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "read": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+

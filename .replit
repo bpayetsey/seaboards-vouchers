@@ -28,3 +28,5 @@ channel = "stable-25_05"
 [userenv.shared]
 STORE_BASE_URL = "https://attached-assets-bazaarinvestmen.replit.app"
 STAFF_EMAILS = "info@theseaboards.com"
+SENDGRID_FROM_EMAIL = "info@theseaboards.com"
+SENDGRID_FROM_NAME = "The Seaboards"

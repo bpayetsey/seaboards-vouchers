@@ -9,6 +9,7 @@ import adminRouter from "./admin";
 import storageRouter from "./storage";
 import galleryRouter from "./gallery";
 import vouchersRouter from "./vouchers";
+import whatsappRouter from "./whatsapp";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(adminRouter);
 router.use(storageRouter);
 router.use(galleryRouter);
 router.use(vouchersRouter);
+router.use(whatsappRouter);
 
 export default router;

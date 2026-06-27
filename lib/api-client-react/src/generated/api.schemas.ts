@@ -802,3 +802,209 @@ export interface VoucherLookup {
   voucher?: AdminVoucher | null;
 }
 
+export interface WhatsappTemplate {
+  name: string;
+  language: string;
+  category: string;
+  body: string;
+  variable_count: number;
+}
+
+export interface WhatsappConfig {
+  configured: boolean;
+  /** @nullable */
+  from_number?: string | null;
+  templates: WhatsappTemplate[];
+}
+
+export interface WhatsappContact {
+  id: string;
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  consent: string;
+  opted_out: boolean;
+  /** @nullable */
+  opted_out_at?: string | null;
+  source: string;
+  created_at: string;
+}
+
+export interface WhatsappContactList {
+  contacts: WhatsappContact[];
+  total: number;
+  /** Contacts that are consented and not opted-out */
+  eligible: number;
+}
+
+export interface ImportContactRow {
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+}
+
+export interface ImportContactsInput {
+  rows: ImportContactRow[];
+  /**
+     * ISO 3166-1 alpha-2 code used for numbers without a country code (e.g. SC)
+     * @nullable
+     */
+  default_country?: string | null;
+  /** Whether these contacts have consented to marketing (defaults true) */
+  consent?: boolean;
+  /**
+     * Optionally add all imported/matched contacts to this audience
+     * @nullable
+     */
+  audience_id?: string | null;
+}
+
+export interface RejectedRow {
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  reason: string;
+}
+
+export interface ImportContactsResult {
+  total: number;
+  imported: number;
+  duplicates: number;
+  rejected: RejectedRow[];
+}
+
+export interface CreateAudienceInput {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  contact_ids?: string[];
+}
+
+export interface WhatsappAudience {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  contact_count: number;
+  created_at: string;
+}
+
+export interface WhatsappAudienceList {
+  audiences: WhatsappAudience[];
+}
+
+export interface UpdateAudienceMembersInput {
+  add?: string[];
+  remove?: string[];
+}
+
+/**
+ * draft saves only; now sends immediately; schedule defers to scheduled_at
+ */
+export type CreateCampaignInputMode = typeof CreateCampaignInputMode[keyof typeof CreateCampaignInputMode];
+
+
+export const CreateCampaignInputMode = {
+  draft: 'draft',
+  now: 'now',
+  schedule: 'schedule',
+} as const;
+
+export interface CreateCampaignInput {
+  name: string;
+  audience_id: string;
+  template_name: string;
+  template_language: string;
+  variables?: string[];
+  /** draft saves only; now sends immediately; schedule defers to scheduled_at */
+  mode?: CreateCampaignInputMode;
+  /** @nullable */
+  scheduled_at?: string | null;
+}
+
+export type SendCampaignInputMode = typeof SendCampaignInputMode[keyof typeof SendCampaignInputMode];
+
+
+export const SendCampaignInputMode = {
+  now: 'now',
+  schedule: 'schedule',
+} as const;
+
+export interface SendCampaignInput {
+  mode: SendCampaignInputMode;
+  /** @nullable */
+  scheduled_at?: string | null;
+}
+
+export interface WhatsappCampaignStats {
+  total: number;
+  queued: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+}
+
+export interface WhatsappCampaignSummary {
+  id: string;
+  name: string;
+  audience_id: string;
+  audience_name: string;
+  template_name: string;
+  template_language: string;
+  status: string;
+  /** @nullable */
+  scheduled_at?: string | null;
+  /** @nullable */
+  started_at?: string | null;
+  /** @nullable */
+  completed_at?: string | null;
+  created_at: string;
+  stats: WhatsappCampaignStats;
+}
+
+export interface WhatsappCampaignList {
+  campaigns: WhatsappCampaignSummary[];
+}
+
+export interface WhatsappCampaignRecipient {
+  id: string;
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  status: string;
+  /** @nullable */
+  provider_message_id?: string | null;
+  /** @nullable */
+  error?: string | null;
+  /** @nullable */
+  sent_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhatsappCampaignDetail {
+  id: string;
+  name: string;
+  audience_id: string;
+  audience_name: string;
+  template_name: string;
+  template_language: string;
+  variables: string[];
+  status: string;
+  /** @nullable */
+  scheduled_at?: string | null;
+  /** @nullable */
+  started_at?: string | null;
+  /** @nullable */
+  completed_at?: string | null;
+  created_at: string;
+  stats: WhatsappCampaignStats;
+  recipients: WhatsappCampaignRecipient[];
+}
+
+export type GetWhatsappContactsParams = {
+search?: string;
+audienceId?: string;
+};
+

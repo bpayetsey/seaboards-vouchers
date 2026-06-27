@@ -1115,6 +1115,447 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/config:
+    get:
+      operationId: getWhatsappConfig
+      tags: [admin]
+      summary: WhatsApp sender status and approved templates
+      description: >
+        Reports whether the WhatsApp Cloud API is configured and returns the
+        approved marketing templates fetched from Meta for the campaign composer.
+      responses:
+        "200":
+          description: Config and templates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappConfig"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/contacts:
+    get:
+      operationId: getWhatsappContacts
+      tags: [admin]
+      summary: List/search WhatsApp contacts
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: audienceId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappContactList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/contacts/import:
+    post:
+      operationId: importWhatsappContacts
+      tags: [admin]
+      summary: Bulk import contacts from a parsed CSV
+      description: >
+        Validates and normalizes phone numbers to E.164, de-duplicates against
+        existing contacts and within the batch, and returns a per-row summary.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportContactsInput"
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportContactsResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/contacts/{contactId}/opt-out:
+    post:
+      operationId: optOutWhatsappContact
+      tags: [admin]
+      summary: Manually mark a contact opted-out
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappContact"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/contacts/{contactId}:
+    delete:
+      operationId: deleteWhatsappContact
+      tags: [admin]
+      summary: Remove a contact
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/audiences:
+    get:
+      operationId: getWhatsappAudiences
+      tags: [admin]
+      summary: List audiences with member counts
+      responses:
+        "200":
+          description: Audiences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappAudienceList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createWhatsappAudience
+      tags: [admin]
+      summary: Create an audience
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAudienceInput"
+      responses:
+        "200":
+          description: Created audience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappAudience"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/audiences/{audienceId}:
+    delete:
+      operationId: deleteWhatsappAudience
+      tags: [admin]
+      summary: Delete an audience
+      parameters:
+        - name: audienceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/audiences/{audienceId}/members:
+    post:
+      operationId: updateWhatsappAudienceMembers
+      tags: [admin]
+      summary: Add or remove contacts from an audience
+      parameters:
+        - name: audienceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAudienceMembersInput"
+      responses:
+        "200":
+          description: Updated audience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappAudience"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/campaigns:
+    get:
+      operationId: getWhatsappCampaigns
+      tags: [admin]
+      summary: List campaigns with delivery stats
+      responses:
+        "200":
+          description: Campaigns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappCampaignList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createWhatsappCampaign
+      tags: [admin]
+      summary: Create a campaign and optionally send or schedule it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCampaignInput"
+      responses:
+        "200":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappCampaignDetail"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/campaigns/{campaignId}:
+    get:
+      operationId: getWhatsappCampaign
+      tags: [admin]
+      summary: Campaign detail with per-recipient delivery status
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Campaign detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappCampaignDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/campaigns/{campaignId}/send:
+    post:
+      operationId: sendWhatsappCampaign
+      tags: [admin]
+      summary: Send or schedule an existing draft campaign
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCampaignInput"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappCampaignDetail"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -2287,3 +2728,297 @@ components:
           anyOf:
             - $ref: "#/components/schemas/AdminVoucher"
             - type: "null"
+    WhatsappTemplate:
+      type: object
+      required: [name, language, category, body, variable_count]
+      properties:
+        name:
+          type: string
+        language:
+          type: string
+        category:
+          type: string
+        body:
+          type: string
+        variable_count:
+          type: integer
+    WhatsappConfig:
+      type: object
+      required: [configured, templates]
+      properties:
+        configured:
+          type: boolean
+        from_number:
+          type: ["string", "null"]
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappTemplate"
+    WhatsappContact:
+      type: object
+      required: [id, phone, consent, opted_out, source, created_at]
+      properties:
+        id:
+          type: string
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        consent:
+          type: string
+        opted_out:
+          type: boolean
+        opted_out_at:
+          type: ["string", "null"]
+        source:
+          type: string
+        created_at:
+          type: string
+    WhatsappContactList:
+      type: object
+      required: [contacts, total, eligible]
+      properties:
+        contacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappContact"
+        total:
+          type: integer
+        eligible:
+          type: integer
+          description: Contacts that are consented and not opted-out
+    ImportContactRow:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+    ImportContactsInput:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportContactRow"
+        default_country:
+          type: ["string", "null"]
+          description: ISO 3166-1 alpha-2 code used for numbers without a country code (e.g. SC)
+        consent:
+          type: boolean
+          description: Whether these contacts have consented to marketing (defaults true)
+        audience_id:
+          type: ["string", "null"]
+          description: Optionally add all imported/matched contacts to this audience
+    RejectedRow:
+      type: object
+      required: [phone, reason]
+      properties:
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        reason:
+          type: string
+    ImportContactsResult:
+      type: object
+      required: [total, imported, duplicates, rejected]
+      properties:
+        total:
+          type: integer
+        imported:
+          type: integer
+        duplicates:
+          type: integer
+        rejected:
+          type: array
+          items:
+            $ref: "#/components/schemas/RejectedRow"
+    CreateAudienceInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        contact_ids:
+          type: array
+          items:
+            type: string
+    WhatsappAudience:
+      type: object
+      required: [id, name, contact_count, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        contact_count:
+          type: integer
+        created_at:
+          type: string
+    WhatsappAudienceList:
+      type: object
+      required: [audiences]
+      properties:
+        audiences:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappAudience"
+    UpdateAudienceMembersInput:
+      type: object
+      properties:
+        add:
+          type: array
+          items:
+            type: string
+        remove:
+          type: array
+          items:
+            type: string
+    CreateCampaignInput:
+      type: object
+      required: [name, audience_id, template_name, template_language]
+      properties:
+        name:
+          type: string
+        audience_id:
+          type: string
+        template_name:
+          type: string
+        template_language:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        mode:
+          type: string
+          enum: [draft, now, schedule]
+          description: draft saves only; now sends immediately; schedule defers to scheduled_at
+        scheduled_at:
+          type: ["string", "null"]
+    SendCampaignInput:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [now, schedule]
+        scheduled_at:
+          type: ["string", "null"]
+    WhatsappCampaignStats:
+      type: object
+      required: [total, queued, sent, delivered, read, failed]
+      properties:
+        total:
+          type: integer
+        queued:
+          type: integer
+        sent:
+          type: integer
+        delivered:
+          type: integer
+        read:
+          type: integer
+        failed:
+          type: integer
+    WhatsappCampaignSummary:
+      type: object
+      required: [id, name, audience_id, audience_name, template_name, template_language, status, created_at, stats]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        audience_id:
+          type: string
+        audience_name:
+          type: string
+        template_name:
+          type: string
+        template_language:
+          type: string
+        status:
+          type: string
+        scheduled_at:
+          type: ["string", "null"]
+        started_at:
+          type: ["string", "null"]
+        completed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        stats:
+          $ref: "#/components/schemas/WhatsappCampaignStats"
+    WhatsappCampaignList:
+      type: object
+      required: [campaigns]
+      properties:
+        campaigns:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappCampaignSummary"
+    WhatsappCampaignRecipient:
+      type: object
+      required: [id, phone, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        status:
+          type: string
+        provider_message_id:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+        sent_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    WhatsappCampaignDetail:
+      type: object
+      required: [id, name, audience_id, audience_name, template_name, template_language, variables, status, created_at, stats, recipients]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        audience_id:
+          type: string
+        audience_name:
+          type: string
+        template_name:
+          type: string
+        template_language:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        scheduled_at:
+          type: ["string", "null"]
+        started_at:
+          type: ["string", "null"]
+        completed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        stats:
+          $ref: "#/components/schemas/WhatsappCampaignStats"
+        recipients:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhatsappCampaignRecipient"
