@@ -2,6 +2,7 @@ import { runMigrations } from "stripe-replit-sync";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { getStripeSync } from "./lib/stripeClient";
+import { dispatchDueCampaigns } from "./lib/whatsappCampaigns";
 
 const rawPort = process.env["PORT"];
 
@@ -63,3 +64,42 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 });
+
+/**
+ * Recurring WhatsApp campaign dispatcher.
+ *
+ * Campaign sends run as a background loop detached from the HTTP request that
+ * triggered them, and the daily cap means a campaign needs to be re-poked over
+ * several days to drain. This timer is that poke: every minute it resumes any
+ * campaign still in `sending` and starts any `scheduled` campaign whose time
+ * has arrived (see dispatchDueCampaigns). It self-heals after a restart and
+ * makes mass sends survive without an external scheduler.
+ *
+ * Requires an always-on deployment (Reserved VM). On autoscale the instance is
+ * suspended between requests, so this timer does not fire reliably and sends
+ * stall — which is why the deployment target is "vm".
+ *
+ * Concurrency is safe: a per-process guard avoids piling up overlapping ticks,
+ * and dispatchCampaign additionally holds a Postgres advisory lock per campaign.
+ */
+const DISPATCH_INTERVAL_MS = 60_000;
+let dispatchInFlight = false;
+
+async function dispatchTick(): Promise<void> {
+  if (dispatchInFlight) return;
+  dispatchInFlight = true;
+  try {
+    await dispatchDueCampaigns();
+  } catch (err) {
+    logger.error({ err }, "Scheduled WhatsApp dispatch failed");
+  } finally {
+    dispatchInFlight = false;
+  }
+}
+
+const dispatchTimer = setInterval(() => void dispatchTick(), DISPATCH_INTERVAL_MS);
+dispatchTimer.unref();
+
+// Kick once shortly after boot so a stuck campaign resumes promptly instead of
+// waiting a full interval.
+void dispatchTick();
