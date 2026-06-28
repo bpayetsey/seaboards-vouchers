@@ -162,7 +162,7 @@ export const DAY_PASSES: DayPassOption[] = [
     id: "day-pass-bnl",
     name: "Day Pass — Breakfast & Lunch",
     pricing: "per_person",
-    rate: 795,
+    rate: 495,
     unit: "person",
     maxGuests: 6,
     childRate: 295,
