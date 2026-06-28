@@ -224,7 +224,13 @@ export const MENU_EPIGRAPH = {
 
 /** Plain-language summary of what Half Board includes. */
 export const MENU_INTRO =
-  "Half Board includes daily breakfast and a two-course dinner \u2014 a starter and a main course \u2014 for the named adult occupants. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your Half Board.";
+  "Half Board includes daily breakfast and a two-course dinner \u2014 a main course and a dessert \u2014 for the named adult occupants. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your Half Board.";
+
+/** Note explaining that the dessert selection changes each day. */
+export const DESSERT_NOTE = {
+  title: "Dessert",
+  text: "Your two-course dinner concludes with dessert. A freshly prepared dessert menu is offered on a daily basis \u2014 ask your server for today's selection.",
+} as const;
 
 /** Dinner & à la carte menu, grouped by course. */
 export const DINNER_SECTIONS: MenuSection[] = [

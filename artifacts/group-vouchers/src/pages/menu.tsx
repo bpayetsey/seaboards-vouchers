@@ -6,6 +6,7 @@ import {
   MENU_EPIGRAPH,
   MENU_INTRO,
   DINNER_SECTIONS,
+  DESSERT_NOTE,
   BREAKFAST_STYLES,
 } from "@workspace/voucher-content";
 
@@ -91,6 +92,16 @@ export default function Menu() {
               </ul>
             </section>
           ))}
+        </div>
+
+        {/* Dessert */}
+        <div className="mt-12 rounded-2xl border border-accent/50 bg-accent/5 px-6 py-7 text-center">
+          <h2 className="font-serif text-primary text-[24px] font-semibold mb-2">
+            {DESSERT_NOTE.title}
+          </h2>
+          <p className="text-[15px] leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+            {DESSERT_NOTE.text}
+          </p>
         </div>
 
         {/* Breakfast */}
