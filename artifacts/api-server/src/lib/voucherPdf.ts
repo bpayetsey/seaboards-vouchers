@@ -16,6 +16,7 @@ import {
 import {
   RESORT,
   VOUCHER_TERMS,
+  DAY_PASS_TERMS,
   TERMS_ACCEPTANCE,
   REDEMPTION_WINDOW,
 } from "@workspace/voucher-content";
@@ -31,6 +32,8 @@ export interface ResolvedVoucher {
   valueMinor: number | null;
   currency: string;
   expiresAt: Date | null;
+  /** Product family, used to select which Terms & Conditions the PDF renders. */
+  kind: "stay" | "day_pass";
   /** Lower-cased emails allowed to download this voucher from the dashboard. */
   authorizedEmails: string[];
 }
@@ -53,18 +56,23 @@ export async function resolveVoucherByCode(
     .where(eq(storeVouchers.code, code));
   if (storeVoucher) {
     const authorizedEmails: string[] = [];
+    let kind: ResolvedVoucher["kind"] = "stay";
     if (storeVoucher.orderId) {
       const [order] = await db
         .select()
         .from(storeOrders)
         .where(eq(storeOrders.id, storeVoucher.orderId));
-      if (order) authorizedEmails.push(lower(order.buyerEmail));
+      if (order) {
+        authorizedEmails.push(lower(order.buyerEmail));
+        if (order.type === "day_pass") kind = "day_pass";
+      }
     }
     return {
       code: storeVoucher.code,
       valueMinor: storeVoucher.valueMinor,
       currency: storeVoucher.currency,
       expiresAt: storeVoucher.expiresAt,
+      kind,
       authorizedEmails,
     };
   }
@@ -87,6 +95,7 @@ export async function resolveVoucherByCode(
       valueMinor: line.amountMinor,
       currency: order?.currency ?? "SCR",
       expiresAt: null,
+      kind: "stay",
       authorizedEmails,
     };
   }
@@ -111,6 +120,7 @@ export async function resolveVoucherByCode(
       valueMinor: null,
       currency: order.currency,
       expiresAt: null,
+      kind: "stay",
       authorizedEmails,
     };
   }
@@ -265,7 +275,8 @@ export async function buildVoucherPdf(
   const clauseSize = 8.5;
   const lineGap = 2.5;
 
-  for (const section of VOUCHER_TERMS) {
+  const terms = voucher.kind === "day_pass" ? DAY_PASS_TERMS : VOUCHER_TERMS;
+  for (const section of terms) {
     page.drawText(section.title, {
       x: MARGIN,
       y,

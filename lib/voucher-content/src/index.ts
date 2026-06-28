@@ -79,6 +79,53 @@ export const VOUCHER_TERMS: TermsSection[] = [
 ];
 
 /**
+ * Condensed Day Pass Terms & Conditions. Day Passes are a separate product from
+ * the Golden Jubilee Stay Voucher and are issued through the same storefront →
+ * Stripe → voucher pipeline. This array is rendered on a Day Pass voucher PDF in
+ * place of {@link VOUCHER_TERMS}. Keep it in sync with the Day Passes section of
+ * {@link VOUCHER_TERMS_FULL} and the storefront Day Pass catalog on substantive
+ * points (prices, guest limits, operating days, validity).
+ */
+export const DAY_PASS_TERMS: TermsSection[] = [
+  {
+    title: "1. The Day Pass",
+    clauses: [
+      "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers and separate from the Golden Jubilee Stay Voucher offer. Day Pass with Room SCR 1,950 (private One-Bedroom for 2 adults, 09:00\u201314:30); Day Pass \u2014 Breakfast & Lunch SCR 795 per person (09:00\u201316:00); Day Pass \u2014 Pool & Lunch SCR 550 per person.",
+      "A single pass covers a maximum of six (6) guests. The Day Pass with Room covers 2 adults and may add up to 2 children. Children aged 2\u201310 years are SCR 295 each (including a kids-menu meal); guests aged 11 and over pay the adult rate.",
+    ],
+  },
+  {
+    title: "2. What's Included",
+    clauses: [
+      "Each pass includes pool and day-bed access and lunch (one main course per person); the Room and Breakfast & Lunch passes also include \u00e0 la carte breakfast. Beverages are not included unless stated in writing.",
+      "The Day Pass with Room may be extended until 18:00 for an additional SCR 585 per room, subject to availability.",
+    ],
+  },
+  {
+    title: "3. Payment & Voucher Issue",
+    clauses: [
+      "Pay in full and the voucher is issued immediately once payment clears.",
+      "Pay by three (3) monthly instalments (Instalment 1 at booking, the remainder at 30 and 60 days); the voucher is issued only once the final instalment has cleared.",
+    ],
+  },
+  {
+    title: "4. Missed Payments & Credit",
+    clauses: [
+      "If an instalment is missed, up to three reminders are sent over a 14-day grace period. If still unsettled, the booking is cancelled and all amounts paid convert to non-refundable Ezzy Group Credit (valid 12 months). No amount paid for a Day Pass is refundable in cash.",
+    ],
+  },
+  {
+    title: "5. Validity & Booking",
+    clauses: [
+      "Day Pass vouchers are valid for twelve (12) months from the date of issue and are sold year-round with no blackout dates.",
+      "All visits are subject to availability and advance booking, and Day Passes do not operate on Tuesdays. Reserve on " +
+        RESORT.reservationsPhone +
+        " (WhatsApp available).",
+    ],
+  },
+];
+
+/**
  * Full Terms & Conditions for the Golden Jubilee Stay Voucher.
  *
  * This is the complete, authoritative offer document rendered on the web
@@ -165,6 +212,23 @@ export const VOUCHER_TERMS_FULL: TermsSection[] = [
       "All bookings are handled through The Seaboards' licensed booking entity. For any query relating to this offer, please contact reservations at " +
         RESORT.reservationsPhone +
         " (WhatsApp available).",
+    ],
+  },
+  {
+    title: "10. Day Passes",
+    clauses: [
+      "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers. They are a separate product from the Golden Jubilee Stay Voucher offer described above; the Golden Fifty perk and the per-room, per-night Half-Board terms do not apply to Day Passes.",
+      "Three Day Passes are offered: Day Pass with Room \u2014 SCR 1,950 for a private One-Bedroom apartment for the day (09:00\u201314:30), for two (2) adults, including \u00e0 la carte breakfast, lunch and pool and day-bed access; Day Pass \u2014 Breakfast & Lunch \u2014 SCR 795 per person (09:00\u201316:00), including \u00e0 la carte breakfast, lunch and pool and day-bed access; and Day Pass \u2014 Pool & Lunch \u2014 SCR 550 per person, including lunch and pool and day-bed access.",
+      "Lunch includes one (1) main course per person. Beverages are not included unless expressly stated in writing.",
+      "A single Day Pass covers a maximum of six (6) guests. The Day Pass with Room covers two (2) adults and may add up to two (2) children. Children aged 2\u201310 years are charged SCR 295 each, which includes a kids-menu meal; guests aged 11 years and over are charged at the applicable adult rate.",
+      "The Day Pass with Room may be extended until 18:00 for an additional SCR 585 per room, subject to availability.",
+      "Day Passes are sold throughout the year with no blackout dates. All visits are subject to availability and advance booking, and Day Passes do not operate on Tuesdays.",
+      "Day Pass vouchers are valid for twelve (12) months from the date of issue.",
+      "Day Passes may be paid for in full, in which case the voucher is issued immediately once payment has cleared, or over three (3) equal monthly instalments, in which case the voucher is issued only once the final instalment has cleared.",
+      "If an instalment is not received by its due date, up to three (3) reminders are sent over a fourteen (14) day grace period. If the balance remains unsettled, the booking is cancelled and all amounts already paid are converted into non-refundable Ezzy Group Credit, valid for twelve (12) months. No amount paid for a Day Pass is refundable in cash.",
+      "Reservations are made on " +
+        RESORT.reservationsPhone +
+        " (WhatsApp available). Day Passes are otherwise governed by these Terms & Conditions and the laws of the Republic of Seychelles.",
     ],
   },
 ];
