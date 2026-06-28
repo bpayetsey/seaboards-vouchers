@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, asc, desc, eq, inArray, isNull, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne } from "drizzle-orm";
 import {
   db,
   storeOrders,
@@ -22,7 +22,15 @@ import {
   getEffectiveCatalog,
   priceFor,
   nameFor,
+  paxFor,
+  isDatableDayPass,
 } from "./storeCatalog";
+import {
+  getAvailability,
+  spendCredit,
+  restoreReservedCredit,
+  ensureDayPassBooking,
+} from "./dayPass";
 import { logger } from "./logger";
 import {
   sendActionRequiredEmail,
@@ -66,11 +74,26 @@ interface CreateOrderInput {
   plan?: string | null;
   name: string;
   email: string;
+  /** Day-pass visit date (YYYY-MM-DD). Null/omitted = undated (decide later). */
+  visit_date?: string | null;
+  /** Account credit to apply, in minor units. Requires an authenticated buyer. */
+  credit_minor?: number | null;
+  /** Verified email of the logged-in buyer, set server-side (never trusted from body). */
+  authed_email?: string | null;
 }
 
 type CreateOrderResult =
   | { order_id: string; client_secret: string }
-  | { error: "invalid_buyer" | "invalid_selection" | "payments_unavailable" };
+  | {
+      error:
+        | "invalid_buyer"
+        | "invalid_selection"
+        | "payments_unavailable"
+        | "date_unavailable"
+        | "credit_requires_auth"
+        | "credit_too_large"
+        | "insufficient_credit";
+    };
 
 export async function createStoreOrder(
   input: CreateOrderInput,
@@ -86,6 +109,9 @@ export async function createStoreOrder(
     plan,
     name,
     email,
+    visit_date,
+    credit_minor,
+    authed_email,
   } = input;
   if (!name?.trim() || !email?.includes("@")) {
     return { error: "invalid_buyer" };
@@ -111,12 +137,51 @@ export async function createStoreOrder(
     extension: extension ?? undefined,
   });
 
+  // Day-pass party size — server-validated, never client-driven.
+  const pax =
+    type === "day_pass"
+      ? paxFor({
+          productId: product_id ?? undefined,
+          type,
+          adults: adults ?? undefined,
+          children: children ?? undefined,
+        })
+      : null;
+  if (type === "day_pass" && pax === null) return { error: "invalid_selection" };
+
+  // Only the per-person passes can carry a visit date; validate availability now
+  // (final capacity is re-checked atomically when the booking materialises).
+  let visitDate: string | null = null;
+  if (visit_date && isDatableDayPass(product_id)) {
+    const [day] = await getAvailability(visit_date, visit_date, pax ?? 1);
+    if (!day || !day.bookable) return { error: "date_unavailable" };
+    visitDate = visit_date;
+  }
+
+  const totalMinor = toMinor(total);
+
+  // Validate any requested credit before creating Stripe/order records so we
+  // don't leave orphans. Credit is strictly account-scoped: the buyer must be
+  // logged in and the order email must match their verified email.
+  let creditMinor = 0;
+  if (credit_minor && Number(credit_minor) > 0) {
+    const buyerEmail = email.trim().toLowerCase();
+    if (!authed_email || authed_email.trim().toLowerCase() !== buyerEmail) {
+      return { error: "credit_requires_auth" };
+    }
+    creditMinor = Math.floor(Number(credit_minor));
+    // Must leave a positive cash amount for Stripe to charge.
+    if (creditMinor >= totalMinor) return { error: "credit_too_large" };
+  }
+
+  const cashMinor = totalMinor - creditMinor;
+  const cashTotal = cashMinor / 100;
   const payInN =
     String(plan) === String(SETTINGS.instalments) ||
     Number(plan) === SETTINGS.instalments;
   const installments = payInN ? SETTINGS.instalments : 1;
-  const per = Math.round((total / installments) * 100) / 100;
-  const firstAmount = installments === 1 ? total : per;
+  const per = Math.round((cashTotal / installments) * 100) / 100;
+  const firstAmount = installments === 1 ? cashTotal : per;
 
   let stripe: Stripe;
   try {
@@ -141,29 +206,70 @@ export async function createStoreOrder(
       buyerName: name,
       buyerEmail: email,
       currency: CUR,
-      totalMinor: toMinor(total),
+      totalMinor,
+      creditAppliedMinor: creditMinor,
+      dayPassPax: pax,
+      dayPassVisitDate: visitDate,
       installments,
       stripeCustomerId: customer.id,
       status: "pending",
     })
     .returning();
 
-  const pi = await stripe.paymentIntents.create(
-    {
-      amount: toMinor(firstAmount),
+  // Reserve the credit atomically now that we have an order id to reference.
+  // The conditional decrement prevents concurrent double-spend; on failure the
+  // order is abandoned and no charge is created.
+  if (creditMinor > 0) {
+    const spent = await spendCredit({
+      email,
       currency: CUR,
-      customer: customer.id,
-      // card-only: needed to save the card for off-session instalments
-      payment_method_types: ["card"],
-      setup_future_usage: payInN ? "off_session" : undefined,
-      metadata: {
-        orderId: order.id,
-        instalmentNo: "1",
-        instalments: String(installments),
+      amountMinor: creditMinor,
+      reason: "checkout",
+      orderId: order.id,
+    });
+    if (!spent) {
+      await db
+        .update(storeOrders)
+        .set({ status: "cancelled", updatedAt: new Date() })
+        .where(eq(storeOrders.id, order.id));
+      return { error: "insufficient_credit" };
+    }
+  }
+
+  let pi: Stripe.PaymentIntent;
+  try {
+    pi = await stripe.paymentIntents.create(
+      {
+        amount: toMinor(firstAmount),
+        currency: CUR,
+        customer: customer.id,
+        // card-only: needed to save the card for off-session instalments
+        payment_method_types: ["card"],
+        setup_future_usage: payInN ? "off_session" : undefined,
+        metadata: {
+          orderId: order.id,
+          instalmentNo: "1",
+          instalments: String(installments),
+        },
       },
-    },
-    { idempotencyKey: `store-order-${order.id}-i1` },
-  );
+      { idempotencyKey: `store-order-${order.id}-i1` },
+    );
+  } catch (err) {
+    // Roll the reserved credit back so a failed payment setup doesn't strand it.
+    if (creditMinor > 0) {
+      await restoreReservedCredit({
+        id: order.id,
+        buyerEmail: email,
+        currency: CUR,
+        creditAppliedMinor: creditMinor,
+      });
+      await db
+        .update(storeOrders)
+        .set({ creditAppliedMinor: 0, status: "cancelled", updatedAt: new Date() })
+        .where(eq(storeOrders.id, order.id));
+    }
+    throw err;
+  }
 
   await db
     .update(storeOrders)
@@ -217,6 +323,64 @@ export async function confirmStoreOrder(
     installments: fresh.installments,
     voucher: voucher ? { code: voucher.code, status: voucher.status } : null,
   };
+}
+
+/**
+ * Credit applied at checkout is reserved (decremented) when the order is created
+ * so concurrent checkouts can't double-spend it. If the buyer then abandons the
+ * payment, that reservation would otherwise be stranded forever. This sweep is
+ * the guaranteed release: any still-`pending` order that never had a successful
+ * first payment (`paidInstalments` 0) and is older than the grace window has its
+ * reserved credit returned and the order expired.
+ *
+ * Idempotency & race-safety: the order is flipped `pending` -> `expired` with a
+ * conditional UPDATE that also requires `paidInstalments = 0`; only the call that
+ * actually transitions the row posts the reversal, so it runs at most once. A
+ * concurrent first payment sets `paidInstalments = 1`, which makes the WHERE no
+ * longer match, so a paid order is never reversed. The generous grace window
+ * keeps this well clear of the few-minutes card-confirmation latency.
+ */
+const RESERVED_CREDIT_GRACE_MS = 60 * 60 * 1000;
+
+export async function releaseStaleReservedCredit(): Promise<number> {
+  const cutoff = new Date(Date.now() - RESERVED_CREDIT_GRACE_MS);
+  const candidates = await db
+    .select()
+    .from(storeOrders)
+    .where(
+      and(
+        eq(storeOrders.status, "pending"),
+        eq(storeOrders.paidInstalments, 0),
+        gt(storeOrders.creditAppliedMinor, 0),
+        lt(storeOrders.createdAt, cutoff),
+      ),
+    );
+
+  let released = 0;
+  for (const order of candidates) {
+    const reversedMinor = Number(order.creditAppliedMinor);
+    const [claimed] = await db
+      .update(storeOrders)
+      .set({ status: "expired", creditAppliedMinor: 0, updatedAt: new Date() })
+      .where(
+        and(
+          eq(storeOrders.id, order.id),
+          eq(storeOrders.status, "pending"),
+          eq(storeOrders.paidInstalments, 0),
+        ),
+      )
+      .returning({ id: storeOrders.id });
+    if (!claimed) continue; // lost the race (e.g. payment landed) — leave it.
+
+    await restoreReservedCredit({
+      id: order.id,
+      buyerEmail: order.buyerEmail,
+      currency: order.currency,
+      creditAppliedMinor: reversedMinor,
+    });
+    released += 1;
+  }
+  return released;
 }
 
 /**
@@ -290,13 +454,18 @@ export async function processPaidIntent(
           .from(storeInstallments)
           .where(eq(storeInstallments.orderId, order.id));
         if (existing.length === 0) {
-          const totalMinor = Number(order.totalMinor);
-          const per = Math.round(totalMinor / order.installments);
+          // Instalments are charged against the cash due (order total minus any
+          // account credit applied at checkout), matching the first payment
+          // computed in createStoreOrder. Using the gross total here would
+          // overcharge customers who paid partly with credit.
+          const cashMinor =
+            Number(order.totalMinor) - Number(order.creditAppliedMinor ?? 0);
+          const per = Math.round(cashMinor / order.installments);
           const rows = [];
           for (let i = 2; i <= order.installments; i++) {
             const last = i === order.installments;
             const amountMinor = last
-              ? totalMinor - per * (order.installments - 1)
+              ? cashMinor - per * (order.installments - 1)
               : per;
             const dueAt = new Date();
             dueAt.setDate(dueAt.getDate() + (i - 1) * SETTINGS.intervalDays);
@@ -310,6 +479,17 @@ export async function processPaidIntent(
           }
           await db.insert(storeInstallments).values(rows);
         }
+      }
+
+      // Materialise the day-pass booking on the first successful payment
+      // (idempotent). Re-reads the freshly-updated order so it sees the stored
+      // pax / visit date.
+      if (order.type === "day_pass") {
+        const [fresh] = await db
+          .select()
+          .from(storeOrders)
+          .where(eq(storeOrders.id, order.id));
+        if (fresh) await ensureDayPassBooking(fresh);
       }
     }
   } else {

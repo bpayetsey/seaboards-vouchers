@@ -1,0 +1,341 @@
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetAdminCalendar,
+  useListBlockedDates,
+  useBlockDate,
+  useUnblockDate,
+  useAdminRescheduleBooking,
+  useAdminCancelBooking,
+  getGetAdminCalendarQueryKey,
+  getListBlockedDatesQueryKey,
+} from "@workspace/api-client-react";
+import type { AdminCalendarDay, AdminBooking } from "@workspace/api-client-react";
+import { AdminShell } from "./AdminShell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/hooks/use-toast";
+import { Ban, CalendarClock, Loader2, Lock, Unlock, Users } from "lucide-react";
+
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(d: Date, n: number): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + n);
+  return copy;
+}
+
+function formatDay(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "error" in err) {
+    return String((err as { error?: unknown }).error);
+  }
+  return "Please try again in a moment.";
+}
+
+function BookingRow({
+  booking,
+  onChanged,
+}: {
+  booking: AdminBooking;
+  onChanged: () => void;
+}) {
+  const { toast } = useToast();
+  const reschedule = useAdminRescheduleBooking();
+  const cancel = useAdminCancelBooking();
+  const [newDate, setNewDate] = useState("");
+
+  const doReschedule = () => {
+    if (!newDate) {
+      toast({ title: "Pick a date to move this booking to", variant: "destructive" });
+      return;
+    }
+    reschedule.mutate(
+      { bookingId: booking.id, data: { visit_date: newDate } },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking moved", description: `${booking.email} → ${newDate}` });
+          setNewDate("");
+          onChanged();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not move booking",
+            description: errorMessage(err),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const doCancel = () => {
+    if (
+      !window.confirm(
+        `Cancel ${booking.email}'s booking? The full value converts to account credit (no staff penalty).`,
+      )
+    ) {
+      return;
+    }
+    cancel.mutate(
+      { bookingId: booking.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking cancelled", description: "Value converted to account credit." });
+          onChanged();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not cancel booking",
+            description: errorMessage(err),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium text-foreground">
+            {booking.email}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {booking.product_name} · {booking.pax} pax · {booking.reschedule_count} reschedule
+            {booking.reschedule_count === 1 ? "" : "s"}
+          </div>
+        </div>
+        <Badge variant="outline" className="shrink-0">
+          {booking.status}
+        </Badge>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="date"
+          value={newDate}
+          onChange={(e) => setNewDate(e.target.value)}
+          className="h-8 w-auto"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={doReschedule}
+          disabled={reschedule.isPending}
+        >
+          {reschedule.isPending ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Move
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          onClick={doCancel}
+          disabled={cancel.isPending}
+        >
+          {cancel.isPending ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Ban className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DayCard({ day, onChanged }: { day: AdminCalendarDay; onChanged: () => void }) {
+  const { toast } = useToast();
+  const block = useBlockDate();
+  const unblock = useUnblockDate();
+  const [reason, setReason] = useState("");
+
+  const toggleBlock = () => {
+    if (day.blocked) {
+      unblock.mutate(
+        { date: day.date },
+        {
+          onSuccess: () => {
+            toast({ title: "Date reopened", description: formatDay(day.date) });
+            onChanged();
+          },
+          onError: (err) =>
+            toast({
+              title: "Could not reopen date",
+              description: errorMessage(err),
+              variant: "destructive",
+            }),
+        },
+      );
+    } else {
+      block.mutate(
+        { data: { date: day.date, reason: reason.trim() || null } },
+        {
+          onSuccess: () => {
+            toast({ title: "Date blocked", description: formatDay(day.date) });
+            setReason("");
+            onChanged();
+          },
+          onError: (err) =>
+            toast({
+              title: "Could not block date",
+              description: errorMessage(err),
+              variant: "destructive",
+            }),
+        },
+      );
+    }
+  };
+
+  const closedTuesday = day.closed && !day.blocked;
+
+  return (
+    <Card className="border-border/70">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="font-serif text-lg text-primary">{formatDay(day.date)}</div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="h-3.5 w-3.5" />
+              {day.used}/{day.capacity} booked · {day.remaining} left
+            </div>
+          </div>
+          {day.blocked ? (
+            <Badge variant="outline" className="border-destructive/30 text-destructive">
+              Blocked
+            </Badge>
+          ) : closedTuesday ? (
+            <Badge variant="outline" className="text-muted-foreground">
+              Closed
+            </Badge>
+          ) : day.remaining === 0 ? (
+            <Badge variant="outline" className="border-accent/30 text-accent-foreground">
+              Full
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-primary/20 text-primary">
+              Open
+            </Badge>
+          )}
+        </div>
+
+        {day.blocked && day.blocked_reason ? (
+          <p className="text-xs text-muted-foreground">Reason: {day.blocked_reason}</p>
+        ) : null}
+
+        {day.bookings.length > 0 ? (
+          <div className="space-y-2">
+            {day.bookings.map((b) => (
+              <BookingRow key={b.id} booking={b} onChanged={onChanged} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No bookings.</p>
+        )}
+
+        {!closedTuesday && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            {!day.blocked && (
+              <Input
+                placeholder="Reason (optional)"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="h-8 w-auto flex-1 min-w-[8rem]"
+              />
+            )}
+            <Button
+              size="sm"
+              variant={day.blocked ? "outline" : "ghost"}
+              onClick={toggleBlock}
+              disabled={block.isPending || unblock.isPending}
+            >
+              {block.isPending || unblock.isPending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : day.blocked ? (
+                <Unlock className="mr-1.5 h-3.5 w-3.5" />
+              ) : (
+                <Lock className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {day.blocked ? "Reopen" : "Block day"}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function AdminCalendar() {
+  const queryClient = useQueryClient();
+  const [weeks, setWeeks] = useState(4);
+
+  const { from, to } = useMemo(() => {
+    const today = new Date();
+    return { from: toISODate(today), to: toISODate(addDays(today, weeks * 7)) };
+  }, [weeks]);
+
+  const { data, isLoading, isError } = useGetAdminCalendar({ from, to });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getGetAdminCalendarQueryKey({ from, to }) });
+    queryClient.invalidateQueries({ queryKey: getListBlockedDatesQueryKey() });
+  };
+
+  const visibleDays = (data?.days ?? []).filter(
+    // Hide pure past days from the operational view; getAvailability marks them closed.
+    (d) => d.date >= from,
+  );
+
+  return (
+    <AdminShell
+      title="Day-Pass Calendar"
+      subtitle="Live day-pass availability (max 6 guests/day, closed Tuesdays). Block dates, and reschedule or cancel any booking on a guest's behalf. Admin actions follow the same policy as guests: reschedules need 48h notice and max 2 per booking; cancellations within 24h or after 2 reschedules keep a 25% penalty and convert the remaining 75% to account credit (otherwise the full value becomes credit)."
+    >
+      <div className="mb-5 flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Show next</span>
+        {[2, 4, 8].map((w) => (
+          <Button
+            key={w}
+            size="sm"
+            variant={weeks === w ? "default" : "outline"}
+            onClick={() => setWeeks(w)}
+          >
+            {w} weeks
+          </Button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex min-h-[30vh] items-center justify-center">
+          <Spinner className="h-8 w-8 text-primary" />
+        </div>
+      ) : isError || !data ? (
+        <p className="text-sm text-destructive">Could not load the calendar.</p>
+      ) : visibleDays.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No days in this range.</p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {visibleDays.map((day) => (
+            <DayCard key={day.date} day={day} onChanged={invalidate} />
+          ))}
+        </div>
+      )}
+    </AdminShell>
+  );
+}

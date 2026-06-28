@@ -14,7 +14,12 @@ import {
   useGetRates,
   useCreateGroupOrder,
   useGetStorefrontGallery,
+  useGetDayPassAvailability,
+  useGetDashboard,
+  getGetDayPassAvailabilityQueryKey,
+  getGetDashboardQueryKey,
 } from "@workspace/api-client-react";
+import { useUser } from "@clerk/react";
 import type {
   StorefrontConfig,
   StorefrontCatalogItem,
@@ -66,6 +71,25 @@ function money(symbol: string, value: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function todayISODate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysISO(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatVisitDay(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 // Fallback property photos, used until staff upload their own from the admin
@@ -245,6 +269,9 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const [dayAdults, setDayAdults] = useState(1);
   const [dayChildren, setDayChildren] = useState(0);
   const [dayExtension, setDayExtension] = useState(false);
+  const [visitDate, setVisitDate] = useState("");
+  const [giftLater, setGiftLater] = useState(false);
+  const [applyCredit, setApplyCredit] = useState(false);
   const [giftAmount, setGiftAmount] = useState<string>("");
   const [plan, setPlan] = useState<"full" | "instalments" | "split">("full");
   const [name, setName] = useState("");
@@ -255,6 +282,35 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   } | null>(null);
 
   const createOrder = useCreateStoreOrder();
+  const { isSignedIn } = useUser();
+
+  const datablePass =
+    selection?.kind === "day_pass" &&
+    selection.option.pricing === "per_person"
+      ? selection.option
+      : null;
+  const dayPax = dayAdults + dayChildren;
+
+  const availFrom = todayISODate();
+  const availTo = addDaysISO(availFrom, 60);
+  const availParams = { from: availFrom, to: availTo, pax: dayPax };
+  const availability = useGetDayPassAvailability(availParams, {
+    query: {
+      enabled: Boolean(datablePass),
+      queryKey: getGetDayPassAvailabilityQueryKey(availParams),
+    },
+  });
+
+  const dashboard = useGetDashboard({
+    query: {
+      enabled: Boolean(isSignedIn),
+      queryKey: getGetDashboardQueryKey(),
+    },
+  });
+  const creditBalanceMinor =
+    dashboard.data?.credit.find(
+      (c) => c.currency.toLowerCase() === config.currency.toLowerCase(),
+    )?.balance_minor ?? 0;
 
   const total = selection
     ? selection.kind === "package"
@@ -269,8 +325,15 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             ? selection.option.extension.price
             : 0)
     : 0;
+
+  const creditAvailableMajor = creditBalanceMinor / 100;
+  const creditAppliedMajor =
+    applyCredit && isSignedIn
+      ? Math.min(creditAvailableMajor, total)
+      : 0;
+  const cashDue = Math.max(0, Math.round((total - creditAppliedMajor) * 100) / 100);
   const perInstalment =
-    Math.round((total / config.instalments) * 100) / 100;
+    Math.round((cashDue / config.instalments) * 100) / 100;
 
   const startCheckout = () => {
     if (!selection) {
@@ -280,6 +343,15 @@ function Storefront({ config }: { config: StorefrontConfig }) {
     if (!name.trim() || !email.includes("@")) {
       toast({
         title: "Enter your name and a valid email",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (datablePass && !giftLater && !visitDate) {
+      toast({
+        title: "Choose a visit date",
+        description:
+          "Pick the day you'd like to visit, or tick \u201cI'll choose the date later\u201d to buy it undated.",
         variant: "destructive",
       });
       return;
@@ -304,6 +376,12 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           children: selection.kind === "day_pass" ? dayChildren : undefined,
           extension:
             selection.kind === "day_pass" ? dayExtension : undefined,
+          visit_date:
+            datablePass && !giftLater && visitDate ? visitDate : undefined,
+          credit_minor:
+            creditAppliedMajor > 0
+              ? Math.round(creditAppliedMajor * 100)
+              : undefined,
           plan: plan === "instalments" ? String(config.instalments) : undefined,
           name,
           email,
@@ -710,6 +788,75 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 </span>
               </label>
             )}
+
+            {datablePass && (
+              <div className="rounded-lg border border-border bg-background/60 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="w-4 h-4 text-primary" />
+                  <div className="text-sm font-medium text-foreground">
+                    Choose your visit date
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We welcome up to 6 guests a day and are closed on Tuesdays.
+                  Pick an available day below.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    type="date"
+                    min={todayISODate()}
+                    max={availTo}
+                    value={visitDate}
+                    disabled={giftLater}
+                    onChange={(e) => setVisitDate(e.target.value)}
+                    className="h-10 w-auto"
+                  />
+                  {visitDate && !giftLater ? (
+                    (() => {
+                      const day = availability.data?.days.find(
+                        (d) => d.date === visitDate,
+                      );
+                      if (!day) return null;
+                      if (!day.bookable) {
+                        return (
+                          <span className="text-xs font-medium text-destructive">
+                            {day.blocked
+                              ? day.blocked_reason || "Unavailable that day"
+                              : day.closed
+                                ? "Closed that day"
+                                : `Only ${day.remaining} place${day.remaining === 1 ? "" : "s"} left`}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-xs font-medium text-primary">
+                          {formatVisitDay(day.date)} · {day.remaining} place
+                          {day.remaining === 1 ? "" : "s"} left
+                        </span>
+                      );
+                    })()
+                  ) : null}
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={giftLater}
+                    onChange={(e) => {
+                      setGiftLater(e.target.checked);
+                      if (e.target.checked) setVisitDate("");
+                    }}
+                  />
+                  <span className="text-sm text-foreground/80">
+                    It&rsquo;s a gift / I&rsquo;ll choose the date later
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — book your day anytime from your account.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         )}
 
@@ -882,6 +1029,40 @@ function Storefront({ config }: { config: StorefrontConfig }) {
               </div>
             </div>
 
+            {isSignedIn && creditBalanceMinor > 0 && total > 0 && (
+              <label className="mt-4 flex max-w-2xl items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 cursor-pointer">
+                <span className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={applyCredit}
+                    onChange={(e) => setApplyCredit(e.target.checked)}
+                  />
+                  <span className="text-sm text-foreground/80">
+                    Apply my account credit
+                    <span className="text-muted-foreground">
+                      {" "}
+                      ({money(symbol, creditAvailableMajor)} available)
+                    </span>
+                  </span>
+                </span>
+                {creditAppliedMajor > 0 ? (
+                  <span className="text-sm font-semibold text-primary">
+                    −{money(symbol, creditAppliedMajor)}
+                  </span>
+                ) : null}
+              </label>
+            )}
+
+            {creditAppliedMajor > 0 && (
+              <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+                {money(symbol, creditAppliedMajor)} credit applied
+                {cashDue > 0
+                  ? ` — ${money(symbol, cashDue)} left to pay.`
+                  : " — nothing left to pay."}
+              </p>
+            )}
+
             <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
               <Button
                 size="lg"
@@ -898,15 +1079,15 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 ) : (
                   <>
                     <Lock className="w-5 h-5 mr-2" />
-                    {plan === "instalments" && total > 0
+                    {plan === "instalments" && cashDue > 0
                       ? `Pay ${money(symbol, perInstalment)} now`
-                      : total > 0
-                        ? `Pay ${money(symbol, total)}`
+                      : cashDue > 0
+                        ? `Pay ${money(symbol, cashDue)}`
                         : "Continue to payment"}
                   </>
                 )}
               </Button>
-              {plan === "instalments" && total > 0 && (
+              {plan === "instalments" && cashDue > 0 && (
                 <p className="text-sm text-muted-foreground">
                   Then {config.instalments - 1} more payments of{" "}
                   {money(symbol, perInstalment)}. Your card is saved securely for

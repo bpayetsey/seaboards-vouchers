@@ -21,6 +21,7 @@ import type {
 
 import type {
   AddGalleryImageInput,
+  AdminCalendarResponse,
   AdminCatalogPriceItem,
   AdminCatalogPrices,
   AdminGroupOrders,
@@ -30,6 +31,12 @@ import type {
   AdminSession,
   AdminVoucher,
   ApiError,
+  AssignDateInput,
+  AvailabilityResponse,
+  BlockDateInput,
+  BlockedDate,
+  BookingResult,
+  CancelBookingResult,
   CancelOrderResult,
   ChargeInstalmentsResult,
   CheckoutSession,
@@ -48,7 +55,9 @@ import type {
   EmailImportContactsResult,
   GalleryImage,
   GalleryImageList,
+  GetAdminCalendarParams,
   GetAdminInboxParams,
+  GetDayPassAvailabilityParams,
   GetEmailContactsParams,
   GetWhatsappContactsParams,
   GroupOrderCreated,
@@ -69,6 +78,7 @@ import type {
   PayLine,
   RateTable,
   ReorderGalleryInput,
+  RescheduleInput,
   ResendResult,
   ResendVoucherEmailResult,
   RetryInstalmentResult,
@@ -785,6 +795,226 @@ export const useResendVoucherEmail = <TError = ErrorType<ApiError>,
       return useMutation(getResendVoucherEmailMutationOptions(options));
     }
 
+export const getAssignBookingDateUrl = (bookingId: string,) => {
+
+
+
+
+  return `/api/dashboard/bookings/${bookingId}/assign`
+}
+
+/**
+ * Sets the visit date for a booking owned by the authenticated client. Atomically reserves capacity for the chosen day. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Assign a visit date to an undated day-pass booking
+ */
+export const assignBookingDate = async (bookingId: string,
+    assignDateInput: AssignDateInput, options?: RequestInit): Promise<BookingResult> => {
+
+  return customFetch<BookingResult>(getAssignBookingDateUrl(bookingId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assignDateInput,)
+  }
+);}
+
+
+
+
+export const getAssignBookingDateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignBookingDate>>, TError,{bookingId: string;data: BodyType<AssignDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignBookingDate>>, TError,{bookingId: string;data: BodyType<AssignDateInput>}, TContext> => {
+
+const mutationKey = ['assignBookingDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignBookingDate>>, {bookingId: string;data: BodyType<AssignDateInput>}> = (props) => {
+          const {bookingId,data} = props ?? {};
+
+          return  assignBookingDate(bookingId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignBookingDateMutationResult = NonNullable<Awaited<ReturnType<typeof assignBookingDate>>>
+    export type AssignBookingDateMutationBody = BodyType<AssignDateInput>
+    export type AssignBookingDateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Assign a visit date to an undated day-pass booking
+ */
+export const useAssignBookingDate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignBookingDate>>, TError,{bookingId: string;data: BodyType<AssignDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignBookingDate>>,
+        TError,
+        {bookingId: string;data: BodyType<AssignDateInput>},
+        TContext
+      > => {
+      return useMutation(getAssignBookingDateMutationOptions(options));
+    }
+
+export const getRescheduleBookingUrl = (bookingId: string,) => {
+
+
+
+
+  return `/api/dashboard/bookings/${bookingId}/reschedule`
+}
+
+/**
+ * Moves a booking owned by the authenticated client to a new date. Allowed only at least 48 hours before the current visit and up to twice (free). Atomically reserves capacity. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Reschedule a dated day-pass booking
+ */
+export const rescheduleBooking = async (bookingId: string,
+    rescheduleInput: RescheduleInput, options?: RequestInit): Promise<BookingResult> => {
+
+  return customFetch<BookingResult>(getRescheduleBookingUrl(bookingId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rescheduleInput,)
+  }
+);}
+
+
+
+
+export const getRescheduleBookingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext> => {
+
+const mutationKey = ['rescheduleBooking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rescheduleBooking>>, {bookingId: string;data: BodyType<RescheduleInput>}> = (props) => {
+          const {bookingId,data} = props ?? {};
+
+          return  rescheduleBooking(bookingId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RescheduleBookingMutationResult = NonNullable<Awaited<ReturnType<typeof rescheduleBooking>>>
+    export type RescheduleBookingMutationBody = BodyType<RescheduleInput>
+    export type RescheduleBookingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Reschedule a dated day-pass booking
+ */
+export const useRescheduleBooking = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rescheduleBooking>>,
+        TError,
+        {bookingId: string;data: BodyType<RescheduleInput>},
+        TContext
+      > => {
+      return useMutation(getRescheduleBookingMutationOptions(options));
+    }
+
+export const getCancelBookingUrl = (bookingId: string,) => {
+
+
+
+
+  return `/api/dashboard/bookings/${bookingId}/cancel`
+}
+
+/**
+ * Cancels a booking owned by the authenticated client. No cash refund: the value paid converts to account credit, less a 25% penalty when cancelling within 24 hours of the visit or after the 2 free reschedules are used. The order is cancelled and any issued voucher voided. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Cancel a day-pass booking (value converts to account credit)
+ */
+export const cancelBooking = async (bookingId: string, options?: RequestInit): Promise<CancelBookingResult> => {
+
+  return customFetch<CancelBookingResult>(getCancelBookingUrl(bookingId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelBookingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBooking>>, TError,{bookingId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelBooking>>, TError,{bookingId: string}, TContext> => {
+
+const mutationKey = ['cancelBooking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelBooking>>, {bookingId: string}> = (props) => {
+          const {bookingId} = props ?? {};
+
+          return  cancelBooking(bookingId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelBookingMutationResult = NonNullable<Awaited<ReturnType<typeof cancelBooking>>>
+
+    export type CancelBookingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Cancel a day-pass booking (value converts to account credit)
+ */
+export const useCancelBooking = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBooking>>, TError,{bookingId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelBooking>>,
+        TError,
+        {bookingId: string},
+        TContext
+      > => {
+      return useMutation(getCancelBookingMutationOptions(options));
+    }
+
 export const getGetPayLineUrl = (payToken: string,) => {
 
 
@@ -1000,6 +1230,92 @@ export function useGetStorefrontConfig<TData = Awaited<ReturnType<typeof getStor
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetStorefrontConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDayPassAvailabilityUrl = (params: GetDayPassAvailabilityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/storefront/day-pass/availability?${stringifiedParams}` : `/api/storefront/day-pass/availability`
+}
+
+/**
+ * Public live availability for the per-person day passes over a date range (max ~120 days). Each day reports remaining capacity and whether it is bookable (closed Tuesdays, blocked days and sold-out days are not).
+
+ * @summary Day-pass availability for a date range
+ */
+export const getDayPassAvailability = async (params: GetDayPassAvailabilityParams, options?: RequestInit): Promise<AvailabilityResponse> => {
+
+  return customFetch<AvailabilityResponse>(getGetDayPassAvailabilityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDayPassAvailabilityQueryKey = (params?: GetDayPassAvailabilityParams,) => {
+    return [
+    `/api/storefront/day-pass/availability`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDayPassAvailabilityQueryOptions = <TData = Awaited<ReturnType<typeof getDayPassAvailability>>, TError = ErrorType<ApiError>>(params: GetDayPassAvailabilityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDayPassAvailability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDayPassAvailabilityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDayPassAvailability>>> = ({ signal }) => getDayPassAvailability(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDayPassAvailability>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDayPassAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getDayPassAvailability>>>
+export type GetDayPassAvailabilityQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Day-pass availability for a date range
+ */
+
+export function useGetDayPassAvailability<TData = Awaited<ReturnType<typeof getDayPassAvailability>>, TError = ErrorType<ApiError>>(
+ params: GetDayPassAvailabilityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDayPassAvailability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDayPassAvailabilityQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1373,6 +1689,452 @@ export const useSweepOrders = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSweepOrdersMutationOptions(options));
+    }
+
+export const getGetAdminCalendarUrl = (params: GetAdminCalendarParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/day-pass/calendar?${stringifiedParams}` : `/api/admin/day-pass/calendar`
+}
+
+/**
+ * Staff view of the day-pass calendar over a date range (max ~120 days): per-day capacity, blocked state and the list of bookings on each day. Requires approved staff.
+
+ * @summary Day-pass calendar with bookings for a date range
+ */
+export const getAdminCalendar = async (params: GetAdminCalendarParams, options?: RequestInit): Promise<AdminCalendarResponse> => {
+
+  return customFetch<AdminCalendarResponse>(getGetAdminCalendarUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCalendarQueryKey = (params?: GetAdminCalendarParams,) => {
+    return [
+    `/api/admin/day-pass/calendar`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminCalendarQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCalendar>>, TError = ErrorType<ApiError>>(params: GetAdminCalendarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCalendarQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCalendar>>> = ({ signal }) => getAdminCalendar(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCalendar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCalendar>>>
+export type GetAdminCalendarQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Day-pass calendar with bookings for a date range
+ */
+
+export function useGetAdminCalendar<TData = Awaited<ReturnType<typeof getAdminCalendar>>, TError = ErrorType<ApiError>>(
+ params: GetAdminCalendarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCalendarQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListBlockedDatesUrl = () => {
+
+
+
+
+  return `/api/admin/day-pass/blocked-dates`
+}
+
+/**
+ * @summary List blocked day-pass dates
+ */
+export const listBlockedDates = async ( options?: RequestInit): Promise<BlockedDate[]> => {
+
+  return customFetch<BlockedDate[]>(getListBlockedDatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBlockedDatesQueryKey = () => {
+    return [
+    `/api/admin/day-pass/blocked-dates`
+    ] as const;
+    }
+
+
+export const getListBlockedDatesQueryOptions = <TData = Awaited<ReturnType<typeof listBlockedDates>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBlockedDates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBlockedDatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBlockedDates>>> = ({ signal }) => listBlockedDates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBlockedDates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBlockedDatesQueryResult = NonNullable<Awaited<ReturnType<typeof listBlockedDates>>>
+export type ListBlockedDatesQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List blocked day-pass dates
+ */
+
+export function useListBlockedDates<TData = Awaited<ReturnType<typeof listBlockedDates>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBlockedDates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBlockedDatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getBlockDateUrl = () => {
+
+
+
+
+  return `/api/admin/day-pass/blocked-dates`
+}
+
+/**
+ * @summary Block a day-pass date
+ */
+export const blockDate = async (blockDateInput: BlockDateInput, options?: RequestInit): Promise<BlockedDate> => {
+
+  return customFetch<BlockedDate>(getBlockDateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      blockDateInput,)
+  }
+);}
+
+
+
+
+export const getBlockDateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockDate>>, TError,{data: BodyType<BlockDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockDate>>, TError,{data: BodyType<BlockDateInput>}, TContext> => {
+
+const mutationKey = ['blockDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockDate>>, {data: BodyType<BlockDateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  blockDate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockDateMutationResult = NonNullable<Awaited<ReturnType<typeof blockDate>>>
+    export type BlockDateMutationBody = BodyType<BlockDateInput>
+    export type BlockDateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Block a day-pass date
+ */
+export const useBlockDate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockDate>>, TError,{data: BodyType<BlockDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof blockDate>>,
+        TError,
+        {data: BodyType<BlockDateInput>},
+        TContext
+      > => {
+      return useMutation(getBlockDateMutationOptions(options));
+    }
+
+export const getUnblockDateUrl = (date: string,) => {
+
+
+
+
+  return `/api/admin/day-pass/blocked-dates/${date}`
+}
+
+/**
+ * @summary Unblock a day-pass date
+ */
+export const unblockDate = async (date: string, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getUnblockDateUrl(date),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnblockDateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockDate>>, TError,{date: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockDate>>, TError,{date: string}, TContext> => {
+
+const mutationKey = ['unblockDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockDate>>, {date: string}> = (props) => {
+          const {date} = props ?? {};
+
+          return  unblockDate(date,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockDateMutationResult = NonNullable<Awaited<ReturnType<typeof unblockDate>>>
+
+    export type UnblockDateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Unblock a day-pass date
+ */
+export const useUnblockDate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockDate>>, TError,{date: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unblockDate>>,
+        TError,
+        {date: string},
+        TContext
+      > => {
+      return useMutation(getUnblockDateMutationOptions(options));
+    }
+
+export const getAdminRescheduleBookingUrl = (bookingId: string,) => {
+
+
+
+
+  return `/api/admin/day-pass/bookings/${bookingId}/reschedule`
+}
+
+/**
+ * @summary Admin reschedule any booking (same policy as guest — 48h notice, max 2)
+ */
+export const adminRescheduleBooking = async (bookingId: string,
+    rescheduleInput: RescheduleInput, options?: RequestInit): Promise<BookingResult> => {
+
+  return customFetch<BookingResult>(getAdminRescheduleBookingUrl(bookingId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rescheduleInput,)
+  }
+);}
+
+
+
+
+export const getAdminRescheduleBookingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminRescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext> => {
+
+const mutationKey = ['adminRescheduleBooking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminRescheduleBooking>>, {bookingId: string;data: BodyType<RescheduleInput>}> = (props) => {
+          const {bookingId,data} = props ?? {};
+
+          return  adminRescheduleBooking(bookingId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminRescheduleBookingMutationResult = NonNullable<Awaited<ReturnType<typeof adminRescheduleBooking>>>
+    export type AdminRescheduleBookingMutationBody = BodyType<RescheduleInput>
+    export type AdminRescheduleBookingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Admin reschedule any booking (same policy as guest — 48h notice, max 2)
+ */
+export const useAdminRescheduleBooking = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRescheduleBooking>>, TError,{bookingId: string;data: BodyType<RescheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminRescheduleBooking>>,
+        TError,
+        {bookingId: string;data: BodyType<RescheduleInput>},
+        TContext
+      > => {
+      return useMutation(getAdminRescheduleBookingMutationOptions(options));
+    }
+
+export const getAdminCancelBookingUrl = (bookingId: string,) => {
+
+
+
+
+  return `/api/admin/day-pass/bookings/${bookingId}/cancel`
+}
+
+/**
+ * @summary Admin cancel any booking (same policy as guest — 24h/post-2-reschedule keeps 25%, rest to credit)
+ */
+export const adminCancelBooking = async (bookingId: string, options?: RequestInit): Promise<CancelBookingResult> => {
+
+  return customFetch<CancelBookingResult>(getAdminCancelBookingUrl(bookingId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminCancelBookingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCancelBooking>>, TError,{bookingId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminCancelBooking>>, TError,{bookingId: string}, TContext> => {
+
+const mutationKey = ['adminCancelBooking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminCancelBooking>>, {bookingId: string}> = (props) => {
+          const {bookingId} = props ?? {};
+
+          return  adminCancelBooking(bookingId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminCancelBookingMutationResult = NonNullable<Awaited<ReturnType<typeof adminCancelBooking>>>
+
+    export type AdminCancelBookingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Admin cancel any booking (same policy as guest — 24h/post-2-reschedule keeps 25%, rest to credit)
+ */
+export const useAdminCancelBooking = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminCancelBooking>>, TError,{bookingId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminCancelBooking>>,
+        TError,
+        {bookingId: string},
+        TContext
+      > => {
+      return useMutation(getAdminCancelBookingMutationOptions(options));
     }
 
 export const getGetAdminInboxUrl = (params?: GetAdminInboxParams,) => {

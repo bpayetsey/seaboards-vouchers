@@ -82,7 +82,27 @@ export const GetDashboardResponse = zod.object({
   "nights": zod.number().nullish(),
   "pay_link": zod.string().describe('Relative payment link for this participant\'s share')
 }))
-})).describe('Group orders this account created as the organiser, any status')
+})).describe('Group orders this account created as the organiser, any status'),
+  "bookings": zod.array(zod.object({
+  "id": zod.string(),
+  "order_id": zod.string(),
+  "product_name": zod.string(),
+  "visit_date": zod.string().nullable().describe('Booked visit day (YYYY-MM-DD), or null when undated'),
+  "status": zod.string().describe('booked | cancelled'),
+  "pax": zod.number(),
+  "reschedule_count": zod.number(),
+  "reschedules_remaining": zod.number(),
+  "needs_date": zod.boolean().describe('True when the booking is undated and awaiting a date'),
+  "can_reschedule": zod.boolean(),
+  "can_cancel": zod.boolean(),
+  "penalty_on_cancel": zod.boolean().describe('True when cancelling now would keep a 25% penalty'),
+  "voucher_code": zod.string().nullable(),
+  "currency": zod.string()
+})).describe('Day-pass visit bookings owned by this account'),
+  "credit": zod.array(zod.object({
+  "currency": zod.string(),
+  "balance_minor": zod.number()
+})).describe('Account credit balances by currency (only positive balances)')
 })
 
 
@@ -266,6 +286,66 @@ export const ResendVoucherEmailResponse = zod.object({
 
 
 /**
+ * Sets the visit date for a booking owned by the authenticated client. Atomically reserves capacity for the chosen day. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Assign a visit date to an undated day-pass booking
+ */
+export const AssignBookingDateParams = zod.object({
+  "bookingId": zod.coerce.string()
+})
+
+export const AssignBookingDateBody = zod.object({
+  "visit_date": zod.string().describe('Visit day (YYYY-MM-DD) to assign')
+})
+
+export const AssignBookingDateResponse = zod.object({
+  "ok": zod.boolean(),
+  "visit_date": zod.string().nullish(),
+  "status": zod.string().optional(),
+  "reschedules_remaining": zod.number().optional()
+})
+
+
+/**
+ * Moves a booking owned by the authenticated client to a new date. Allowed only at least 48 hours before the current visit and up to twice (free). Atomically reserves capacity. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Reschedule a dated day-pass booking
+ */
+export const RescheduleBookingParams = zod.object({
+  "bookingId": zod.coerce.string()
+})
+
+export const RescheduleBookingBody = zod.object({
+  "visit_date": zod.string().describe('New visit day (YYYY-MM-DD)')
+})
+
+export const RescheduleBookingResponse = zod.object({
+  "ok": zod.boolean(),
+  "visit_date": zod.string().nullish(),
+  "status": zod.string().optional(),
+  "reschedules_remaining": zod.number().optional()
+})
+
+
+/**
+ * Cancels a booking owned by the authenticated client. No cash refund: the value paid converts to account credit, less a 25% penalty when cancelling within 24 hours of the visit or after the 2 free reschedules are used. The order is cancelled and any issued voucher voided. Scoped strictly to the verified account email. Requires a Clerk session.
+
+ * @summary Cancel a day-pass booking (value converts to account credit)
+ */
+export const CancelBookingParams = zod.object({
+  "bookingId": zod.coerce.string()
+})
+
+export const CancelBookingResponse = zod.object({
+  "ok": zod.boolean(),
+  "penalty": zod.boolean(),
+  "credit_minor": zod.number(),
+  "penalty_kept_minor": zod.number().optional(),
+  "currency": zod.string()
+})
+
+
+/**
  * @summary Get a payer's line details
  */
 export const GetPayLineParams = zod.object({
@@ -352,6 +432,31 @@ export const GetStorefrontConfigResponse = zod.object({
 
 
 /**
+ * Public live availability for the per-person day passes over a date range (max ~120 days). Each day reports remaining capacity and whether it is bookable (closed Tuesdays, blocked days and sold-out days are not).
+
+ * @summary Day-pass availability for a date range
+ */
+export const GetDayPassAvailabilityQueryParams = zod.object({
+  "from": zod.coerce.string().describe('Range start (YYYY-MM-DD)'),
+  "to": zod.coerce.string().describe('Range end (YYYY-MM-DD)'),
+  "pax": zod.coerce.number().optional().describe('Party size to check capacity against (default 1)')
+})
+
+export const GetDayPassAvailabilityResponse = zod.object({
+  "days": zod.array(zod.object({
+  "date": zod.string().describe('Calendar day (YYYY-MM-DD)'),
+  "capacity": zod.number(),
+  "used": zod.number(),
+  "remaining": zod.number(),
+  "closed": zod.boolean().describe('Closed by rule (Tuesday) or in the past'),
+  "blocked": zod.boolean().describe('Admin-blocked day'),
+  "blocked_reason": zod.string().nullable(),
+  "bookable": zod.boolean()
+}))
+})
+
+
+/**
  * Creates the order plus the first PaymentIntent (full payment or instalment #1 with the card saved for off-session instalments) and returns the client secret for the Stripe Payment Element.
 
  * @summary Create a storefront order
@@ -370,6 +475,8 @@ export const CreateStoreOrderBody = zod.object({
   "children": zod.number().nullish().describe('Number of children (ages childAges) for a day pass, priced at childRate (0..maxChildren)'),
   "extension": zod.boolean().nullish().describe('Day pass room extension add-on (where offered)'),
   "plan": zod.string().nullish().describe('\"3\" (or the instalment count) for Pay-in-3, otherwise pay in full'),
+  "visit_date": zod.string().nullish().describe('Day-pass visit date (YYYY-MM-DD). Only honoured for the per-person passes; null\/omitted books undated (decide later).'),
+  "credit_minor": zod.number().nullish().describe('Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.'),
   "name": zod.string().min(1),
   "email": zod.string().min(createStoreOrderBodyEmailMin)
 })
@@ -444,6 +551,110 @@ export const GetStoreAdminOrdersResponse = zod.object({
  */
 export const SweepOrdersResponse = zod.object({
   "swept": zod.number()
+})
+
+
+/**
+ * Staff view of the day-pass calendar over a date range (max ~120 days): per-day capacity, blocked state and the list of bookings on each day. Requires approved staff.
+
+ * @summary Day-pass calendar with bookings for a date range
+ */
+export const GetAdminCalendarQueryParams = zod.object({
+  "from": zod.coerce.string(),
+  "to": zod.coerce.string()
+})
+
+export const GetAdminCalendarResponse = zod.object({
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "capacity": zod.number(),
+  "used": zod.number(),
+  "remaining": zod.number(),
+  "closed": zod.boolean(),
+  "blocked": zod.boolean(),
+  "blocked_reason": zod.string().nullable(),
+  "bookings": zod.array(zod.object({
+  "id": zod.string(),
+  "order_id": zod.string(),
+  "email": zod.string(),
+  "product_name": zod.string(),
+  "visit_date": zod.string().nullable(),
+  "status": zod.string(),
+  "pax": zod.number(),
+  "reschedule_count": zod.number()
+}))
+}))
+})
+
+
+/**
+ * @summary List blocked day-pass dates
+ */
+export const ListBlockedDatesResponseItem = zod.object({
+  "date": zod.string(),
+  "reason": zod.string().nullable()
+})
+export const ListBlockedDatesResponse = zod.array(ListBlockedDatesResponseItem)
+
+
+/**
+ * @summary Block a day-pass date
+ */
+export const BlockDateBody = zod.object({
+  "date": zod.string().describe('Calendar day (YYYY-MM-DD) to block'),
+  "reason": zod.string().nullish()
+})
+
+export const BlockDateResponse = zod.object({
+  "date": zod.string(),
+  "reason": zod.string().nullable()
+})
+
+
+/**
+ * @summary Unblock a day-pass date
+ */
+export const UnblockDateParams = zod.object({
+  "date": zod.coerce.string()
+})
+
+export const UnblockDateResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Admin reschedule any booking (same policy as guest — 48h notice, max 2)
+ */
+export const AdminRescheduleBookingParams = zod.object({
+  "bookingId": zod.coerce.string()
+})
+
+export const AdminRescheduleBookingBody = zod.object({
+  "visit_date": zod.string().describe('New visit day (YYYY-MM-DD)')
+})
+
+export const AdminRescheduleBookingResponse = zod.object({
+  "ok": zod.boolean(),
+  "visit_date": zod.string().nullish(),
+  "status": zod.string().optional(),
+  "reschedules_remaining": zod.number().optional()
+})
+
+
+/**
+ * @summary Admin cancel any booking (same policy as guest — 24h/post-2-reschedule keeps 25%, rest to credit)
+ */
+export const AdminCancelBookingParams = zod.object({
+  "bookingId": zod.coerce.string()
+})
+
+export const AdminCancelBookingResponse = zod.object({
+  "ok": zod.boolean(),
+  "penalty": zod.boolean(),
+  "credit_minor": zod.number(),
+  "penalty_kept_minor": zod.number().optional(),
+  "currency": zod.string()
 })
 
 

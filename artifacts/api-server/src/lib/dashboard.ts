@@ -7,12 +7,19 @@ import {
   storeOrders,
   storeInstallments,
   storeVouchers,
+  dayPassBookings,
 } from "@workspace/db";
 import {
   getUncachableStripeClient,
   fetchReceiptUrlForPaymentIntent,
   fetchReceiptUrlForSession,
 } from "./stripeClient";
+import {
+  bookingActions,
+  getCreditBalances,
+  type DashboardBooking,
+  type CreditBalance,
+} from "./dayPass";
 
 export interface DashboardVoucher {
   kind: "voucher" | "credit";
@@ -106,6 +113,8 @@ export interface DashboardView {
   payments: DashboardPayment[];
   orders: DashboardOrder[];
   organised_orders: DashboardOrganisedOrder[];
+  bookings: DashboardBooking[];
+  credit: CreditBalance[];
 }
 
 const iso = (d: Date | null | undefined): string | null =>
@@ -486,12 +495,57 @@ export async function getDashboardForEmail(
     (b.created_at ?? "").localeCompare(a.created_at ?? ""),
   );
 
+  // ---- Day-pass bookings & account credit ---------------------------------
+  const bookingRows = await db
+    .select()
+    .from(dayPassBookings)
+    .where(matches(dayPassBookings.email));
+
+  // Map order id -> active voucher code (so a booking can surface its voucher).
+  const voucherByOrderId = new Map<string, string>();
+  for (const order of orders) {
+    const [v] = await db
+      .select({ code: storeVouchers.code, status: storeVouchers.status })
+      .from(storeVouchers)
+      .where(eq(storeVouchers.orderId, order.id));
+    if (v && v.status === "active") voucherByOrderId.set(order.id, v.code);
+  }
+  const currencyByOrderId = new Map<string, string>();
+  for (const order of orders) currencyByOrderId.set(order.id, order.currency);
+
+  const bookings: DashboardBooking[] = bookingRows.map((b) => {
+    const actions = bookingActions(b);
+    return {
+      id: b.id,
+      order_id: b.orderId,
+      product_name: b.productName,
+      visit_date: b.visitDate,
+      status: b.status,
+      pax: b.pax,
+      reschedule_count: b.rescheduleCount,
+      reschedules_remaining: actions.reschedules_remaining,
+      needs_date: actions.needs_date,
+      can_reschedule: actions.can_reschedule,
+      can_cancel: actions.can_cancel,
+      penalty_on_cancel: actions.penalty_on_cancel,
+      voucher_code: voucherByOrderId.get(b.orderId) ?? null,
+      currency: currencyByOrderId.get(b.orderId) ?? "scr",
+    };
+  });
+  bookings.sort((a, b) =>
+    (a.visit_date ?? "9999").localeCompare(b.visit_date ?? "9999"),
+  );
+
+  const credit = await getCreditBalances(normalized);
+
   return {
     email: normalized,
     vouchers,
     payments,
     orders: dashboardOrders,
     organised_orders,
+    bookings,
+    credit,
   };
 }
 

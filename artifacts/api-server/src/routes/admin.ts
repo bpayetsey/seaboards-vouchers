@@ -19,6 +19,18 @@ import {
   UpdateCatalogPriceParams,
   UpdateCatalogPriceResponse,
   GetAdminVisitorsResponse,
+  GetAdminCalendarQueryParams,
+  GetAdminCalendarResponse,
+  ListBlockedDatesResponse,
+  BlockDateBody,
+  BlockDateResponse,
+  UnblockDateParams,
+  UnblockDateResponse,
+  AdminRescheduleBookingParams,
+  AdminRescheduleBookingBody,
+  AdminRescheduleBookingResponse,
+  AdminCancelBookingParams,
+  AdminCancelBookingResponse,
 } from "@workspace/api-zod";
 import { requireStaff, type StaffRequest } from "../middlewares/requireStaff";
 import {
@@ -31,6 +43,15 @@ import {
   lookupVoucher,
   redeemVoucher,
 } from "../lib/admin";
+import {
+  getAdminCalendar,
+  listBlockedDates,
+  blockDate,
+  unblockDate,
+  rescheduleBooking,
+  cancelBooking,
+  MAX_RESCHEDULES,
+} from "../lib/dayPass";
 import {
   listCatalogPrices,
   updateCatalogPrice,
@@ -207,5 +228,127 @@ router.put("/admin/catalog-prices/:itemId", requireStaff, async (req, res) => {
     return res.status(500).json({ error: "Could not update the price." });
   }
 });
+
+// ── Day-pass calendar & bookings ────────────────────────────────────────────
+
+router.get("/admin/day-pass/calendar", requireStaff, async (req, res) => {
+  const parsed = GetAdminCalendarQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid date range." });
+  }
+  try {
+    const days = await getAdminCalendar(parsed.data.from, parsed.data.to);
+    return res.json(GetAdminCalendarResponse.parse({ days }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load day-pass calendar");
+    return res.status(500).json({ error: "Could not load the calendar." });
+  }
+});
+
+router.get("/admin/day-pass/blocked-dates", requireStaff, async (req, res) => {
+  try {
+    const dates = await listBlockedDates();
+    return res.json(ListBlockedDatesResponse.parse(dates));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list blocked dates");
+    return res.status(500).json({ error: "Could not load blocked dates." });
+  }
+});
+
+router.post("/admin/day-pass/blocked-dates", requireStaff, async (req, res) => {
+  const parsed = BlockDateBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid request." });
+  }
+  try {
+    const row = await blockDate(parsed.data.date, parsed.data.reason ?? null);
+    if (!row) {
+      return res.status(400).json({ error: "Invalid date." });
+    }
+    return res.json(BlockDateResponse.parse(row));
+  } catch (err) {
+    req.log.error({ err }, "Failed to block date");
+    return res.status(500).json({ error: "Could not block that date." });
+  }
+});
+
+router.delete(
+  "/admin/day-pass/blocked-dates/:date",
+  requireStaff,
+  async (req, res) => {
+    const { date } = UnblockDateParams.parse(req.params);
+    try {
+      const ok = await unblockDate(date);
+      if (!ok) {
+        return res.status(400).json({ error: "Invalid date." });
+      }
+      return res.json(UnblockDateResponse.parse({ ok: true }));
+    } catch (err) {
+      req.log.error({ err }, "Failed to unblock date");
+      return res.status(500).json({ error: "Could not unblock that date." });
+    }
+  },
+);
+
+router.post(
+  "/admin/day-pass/bookings/:bookingId/reschedule",
+  requireStaff,
+  async (req, res) => {
+    const { bookingId } = AdminRescheduleBookingParams.parse(req.params);
+    const parsed = AdminRescheduleBookingBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid request." });
+    }
+    try {
+      // Admin acts on any booking (email: null) but under the same policy as the
+      // customer: the 48h-before cutoff and max-2-reschedules rules are enforced.
+      const result = await rescheduleBooking(null, bookingId, parsed.data.visit_date);
+      if ("error" in result) {
+        const status = result.error === "not_found" ? 404 : 409;
+        return res.status(status).json({ error: "Could not reschedule booking." });
+      }
+      return res.json(
+        AdminRescheduleBookingResponse.parse({
+          ok: true,
+          visit_date: result.booking.visitDate,
+          status: result.booking.status,
+          reschedules_remaining: MAX_RESCHEDULES - result.booking.rescheduleCount,
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to staff-reschedule booking");
+      return res.status(500).json({ error: "Could not reschedule booking." });
+    }
+  },
+);
+
+router.post(
+  "/admin/day-pass/bookings/:bookingId/cancel",
+  requireStaff,
+  async (req, res) => {
+    const { bookingId } = AdminCancelBookingParams.parse(req.params);
+    try {
+      // Admin acts on any booking (email: null) but under the same policy as the
+      // customer: the 24h / post-2-reschedule penalty (25% kept, 75% credit) applies.
+      const result = await cancelBooking(null, bookingId);
+      if ("error" in result) {
+        const status = result.error === "not_found" ? 404 : 409;
+        return res.status(status).json({ error: "Could not cancel booking." });
+      }
+      return res.json(
+        AdminCancelBookingResponse.parse({
+          ok: true,
+          penalty: result.penalty,
+          credit_minor: result.credit_minor,
+          penalty_kept_minor: result.penalty_kept_minor,
+          currency: result.currency,
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to staff-cancel booking");
+      return res.status(500).json({ error: "Could not cancel booking." });
+    }
+  },
+);
 
 export default router;

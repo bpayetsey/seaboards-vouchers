@@ -301,6 +301,159 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /dashboard/bookings/{bookingId}/assign:
+    post:
+      operationId: assignBookingDate
+      tags: [dashboard]
+      summary: Assign a visit date to an undated day-pass booking
+      description: >
+        Sets the visit date for a booking owned by the authenticated client.
+        Atomically reserves capacity for the chosen day. Scoped strictly to the
+        verified account email. Requires a Clerk session.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignDateInput"
+      responses:
+        "200":
+          description: Booking updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResult"
+        "400":
+          description: Date not bookable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /dashboard/bookings/{bookingId}/reschedule:
+    post:
+      operationId: rescheduleBooking
+      tags: [dashboard]
+      summary: Reschedule a dated day-pass booking
+      description: >
+        Moves a booking owned by the authenticated client to a new date. Allowed
+        only at least 48 hours before the current visit and up to twice (free).
+        Atomically reserves capacity. Scoped strictly to the verified account
+        email. Requires a Clerk session.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleInput"
+      responses:
+        "200":
+          description: Booking rescheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResult"
+        "400":
+          description: Not allowed (too late, no reschedules left, or date not bookable)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /dashboard/bookings/{bookingId}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [dashboard]
+      summary: Cancel a day-pass booking (value converts to account credit)
+      description: >
+        Cancels a booking owned by the authenticated client. No cash refund: the
+        value paid converts to account credit, less a 25% penalty when cancelling
+        within 24 hours of the visit or after the 2 free reschedules are used.
+        The order is cancelled and any issued voucher voided. Scoped strictly to
+        the verified account email. Requires a Clerk session.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelBookingResult"
+        "400":
+          description: Not cancellable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /pay/{payToken}:
     get:
       operationId: getPayLine
@@ -377,6 +530,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StorefrontConfig"
+  /storefront/day-pass/availability:
+    get:
+      operationId: getDayPassAvailability
+      tags: [storefront]
+      summary: Day-pass availability for a date range
+      description: >
+        Public live availability for the per-person day passes over a date range
+        (max ~120 days). Each day reports remaining capacity and whether it is
+        bookable (closed Tuesdays, blocked days and sold-out days are not).
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Range start (YYYY-MM-DD)
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Range end (YYYY-MM-DD)
+        - name: pax
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Party size to check capacity against (default 1)
+      responses:
+        "200":
+          description: Availability per day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponse"
+        "400":
+          description: Invalid range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /storefront/orders:
     post:
       operationId: createStoreOrder
@@ -486,6 +680,232 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SweepResult"
+  /admin/day-pass/calendar:
+    get:
+      operationId: getAdminCalendar
+      tags: [admin]
+      summary: Day-pass calendar with bookings for a date range
+      description: >
+        Staff view of the day-pass calendar over a date range (max ~120 days):
+        per-day capacity, blocked state and the list of bookings on each day.
+        Requires approved staff.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Calendar days with bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCalendarResponse"
+        "400":
+          description: Invalid range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/day-pass/blocked-dates:
+    get:
+      operationId: listBlockedDates
+      tags: [admin]
+      summary: List blocked day-pass dates
+      responses:
+        "200":
+          description: Blocked dates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlockedDate"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: blockDate
+      tags: [admin]
+      summary: Block a day-pass date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockDateInput"
+      responses:
+        "200":
+          description: Date blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedDate"
+        "400":
+          description: Invalid date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/day-pass/blocked-dates/{date}:
+    delete:
+      operationId: unblockDate
+      tags: [admin]
+      summary: Unblock a day-pass date
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Date unblocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/day-pass/bookings/{bookingId}/reschedule:
+    post:
+      operationId: adminRescheduleBooking
+      tags: [admin]
+      summary: Admin reschedule any booking (same policy as guest — 48h notice, max 2)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleInput"
+      responses:
+        "200":
+          description: Booking rescheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResult"
+        "400":
+          description: Date not bookable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/day-pass/bookings/{bookingId}/cancel:
+    post:
+      operationId: adminCancelBooking
+      tags: [admin]
+      summary: Admin cancel any booking (same policy as guest — 24h/post-2-reschedule keeps 25%, rest to credit)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelBookingResult"
+        "400":
+          description: Not cancellable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/inbox:
     get:
       operationId: getAdminInbox
@@ -2805,6 +3225,12 @@ components:
         plan:
           type: ["string", "null"]
           description: '"3" (or the instalment count) for Pay-in-3, otherwise pay in full'
+        visit_date:
+          type: ["string", "null"]
+          description: Day-pass visit date (YYYY-MM-DD). Only honoured for the per-person passes; null/omitted books undated (decide later).
+        credit_minor:
+          type: ["integer", "null"]
+          description: Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.
         name:
           type: string
           minLength: 1
@@ -3136,7 +3562,7 @@ components:
           $ref: "#/components/schemas/DashboardOrder"
     DashboardView:
       type: object
-      required: [email, vouchers, payments, orders, organised_orders]
+      required: [email, vouchers, payments, orders, organised_orders, bookings, credit]
       properties:
         email:
           type: string
@@ -3159,6 +3585,228 @@ components:
           description: Group orders this account created as the organiser, any status
           items:
             $ref: "#/components/schemas/DashboardOrganisedOrder"
+        bookings:
+          type: array
+          description: Day-pass visit bookings owned by this account
+          items:
+            $ref: "#/components/schemas/DashboardBooking"
+        credit:
+          type: array
+          description: Account credit balances by currency (only positive balances)
+          items:
+            $ref: "#/components/schemas/CreditBalance"
+    DashboardBooking:
+      type: object
+      required:
+        - id
+        - order_id
+        - product_name
+        - visit_date
+        - status
+        - pax
+        - reschedule_count
+        - reschedules_remaining
+        - needs_date
+        - can_reschedule
+        - can_cancel
+        - penalty_on_cancel
+        - voucher_code
+        - currency
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        product_name:
+          type: string
+        visit_date:
+          type: ["string", "null"]
+          description: Booked visit day (YYYY-MM-DD), or null when undated
+        status:
+          type: string
+          description: booked | cancelled
+        pax:
+          type: integer
+        reschedule_count:
+          type: integer
+        reschedules_remaining:
+          type: integer
+        needs_date:
+          type: boolean
+          description: True when the booking is undated and awaiting a date
+        can_reschedule:
+          type: boolean
+        can_cancel:
+          type: boolean
+        penalty_on_cancel:
+          type: boolean
+          description: True when cancelling now would keep a 25% penalty
+        voucher_code:
+          type: ["string", "null"]
+        currency:
+          type: string
+    CreditBalance:
+      type: object
+      required: [currency, balance_minor]
+      properties:
+        currency:
+          type: string
+        balance_minor:
+          type: integer
+    DayAvailability:
+      type: object
+      required:
+        - date
+        - capacity
+        - used
+        - remaining
+        - closed
+        - blocked
+        - blocked_reason
+        - bookable
+      properties:
+        date:
+          type: string
+          description: Calendar day (YYYY-MM-DD)
+        capacity:
+          type: integer
+        used:
+          type: integer
+        remaining:
+          type: integer
+        closed:
+          type: boolean
+          description: Closed by rule (Tuesday) or in the past
+        blocked:
+          type: boolean
+          description: Admin-blocked day
+        blocked_reason:
+          type: ["string", "null"]
+        bookable:
+          type: boolean
+    AvailabilityResponse:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayAvailability"
+    AssignDateInput:
+      type: object
+      required: [visit_date]
+      properties:
+        visit_date:
+          type: string
+          description: Visit day (YYYY-MM-DD) to assign
+    RescheduleInput:
+      type: object
+      required: [visit_date]
+      properties:
+        visit_date:
+          type: string
+          description: New visit day (YYYY-MM-DD)
+    BookingResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+        visit_date:
+          type: ["string", "null"]
+        status:
+          type: string
+        reschedules_remaining:
+          type: integer
+    CancelBookingResult:
+      type: object
+      required: [ok, penalty, credit_minor, currency]
+      properties:
+        ok:
+          type: boolean
+        penalty:
+          type: boolean
+        credit_minor:
+          type: integer
+        penalty_kept_minor:
+          type: integer
+        currency:
+          type: string
+    BlockedDate:
+      type: object
+      required: [date, reason]
+      properties:
+        date:
+          type: string
+        reason:
+          type: ["string", "null"]
+    BlockDateInput:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          description: Calendar day (YYYY-MM-DD) to block
+        reason:
+          type: ["string", "null"]
+    AdminBooking:
+      type: object
+      required:
+        - id
+        - order_id
+        - email
+        - product_name
+        - visit_date
+        - status
+        - pax
+        - reschedule_count
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        email:
+          type: string
+        product_name:
+          type: string
+        visit_date:
+          type: ["string", "null"]
+        status:
+          type: string
+        pax:
+          type: integer
+        reschedule_count:
+          type: integer
+    AdminCalendarDay:
+      type: object
+      required: [date, capacity, used, remaining, closed, blocked, blocked_reason, bookings]
+      properties:
+        date:
+          type: string
+        capacity:
+          type: integer
+        used:
+          type: integer
+        remaining:
+          type: integer
+        closed:
+          type: boolean
+        blocked:
+          type: boolean
+        blocked_reason:
+          type: ["string", "null"]
+        bookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBooking"
+    AdminCalendarResponse:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCalendarDay"
     AdminSession:
       type: object
       required: [email, staff]

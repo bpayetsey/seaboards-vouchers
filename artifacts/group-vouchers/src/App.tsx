@@ -20,6 +20,7 @@ import Dashboard from "@/pages/dashboard";
 import AdminOverview from "@/pages/admin/overview";
 import AdminOrders from "@/pages/admin/orders";
 import AdminGroupOrders from "@/pages/admin/group-orders";
+import AdminCalendar from "@/pages/admin/calendar";
 import AdminVouchers from "@/pages/admin/vouchers";
 import AdminPricing from "@/pages/admin/pricing";
 import AdminGallery from "@/pages/admin/gallery";
@@ -249,6 +250,11 @@ function Router() {
       <Route path="/admin/group-orders">
         <ProtectedAdmin>
           <AdminGroupOrders />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/calendar">
+        <ProtectedAdmin>
+          <AdminCalendar />
         </ProtectedAdmin>
       </Route>
       <Route path="/admin/vouchers">

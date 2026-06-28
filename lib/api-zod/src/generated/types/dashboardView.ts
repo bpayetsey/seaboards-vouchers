@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CreditBalance } from './creditBalance';
+import type { DashboardBooking } from './dashboardBooking';
 import type { DashboardOrder } from './dashboardOrder';
 import type { DashboardOrganisedOrder } from './dashboardOrganisedOrder';
 import type { DashboardPayment } from './dashboardPayment';
@@ -19,4 +21,8 @@ export interface DashboardView {
   orders: DashboardOrder[];
   /** Group orders this account created as the organiser, any status */
   organised_orders: DashboardOrganisedOrder[];
+  /** Day-pass visit bookings owned by this account */
+  bookings: DashboardBooking[];
+  /** Account credit balances by currency (only positive balances) */
+  credit: CreditBalance[];
 }

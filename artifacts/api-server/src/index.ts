@@ -3,6 +3,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { getStripeSync } from "./lib/stripeClient";
 import { dispatchDueCampaigns } from "./lib/whatsappCampaigns";
+import { releaseStaleReservedCredit } from "./lib/storefront";
 
 const rawPort = process.env["PORT"];
 
@@ -103,3 +104,34 @@ dispatchTimer.unref();
 // Kick once shortly after boot so a stuck campaign resumes promptly instead of
 // waiting a full interval.
 void dispatchTick();
+
+/**
+ * Guaranteed release of account credit reserved by abandoned checkouts. Credit
+ * is reserved (decremented) when an order is created; if the buyer never pays,
+ * this sweep returns it after a grace window so it is never stranded. Same
+ * always-on (VM) requirement and per-process guard rationale as the dispatcher.
+ */
+const CREDIT_SWEEP_INTERVAL_MS = 15 * 60_000;
+let creditSweepInFlight = false;
+
+async function creditSweepTick(): Promise<void> {
+  if (creditSweepInFlight) return;
+  creditSweepInFlight = true;
+  try {
+    const released = await releaseStaleReservedCredit();
+    if (released > 0) {
+      logger.info({ released }, "Released stale reserved checkout credit");
+    }
+  } catch (err) {
+    logger.error({ err }, "Stale reserved-credit sweep failed");
+  } finally {
+    creditSweepInFlight = false;
+  }
+}
+
+const creditSweepTimer = setInterval(
+  () => void creditSweepTick(),
+  CREDIT_SWEEP_INTERVAL_MS,
+);
+creditSweepTimer.unref();
+void creditSweepTick();

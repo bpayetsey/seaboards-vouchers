@@ -41,6 +41,16 @@ export interface StoreOrderInput {
      * @nullable
      */
   plan?: string | null;
+  /**
+     * Day-pass visit date (YYYY-MM-DD). Only honoured for the per-person passes; null/omitted books undated (decide later).
+     * @nullable
+     */
+  visit_date?: string | null;
+  /**
+     * Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.
+     * @nullable
+     */
+  credit_minor?: number | null;
   /** @minLength 1 */
   name: string;
   /** @minLength 3 */

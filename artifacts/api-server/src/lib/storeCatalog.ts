@@ -203,6 +203,51 @@ export function getDayPass(id?: string): DayPassOption | undefined {
 }
 
 /**
+ * Day passes that support booking a specific visit date — the two per-person
+ * passes (Breakfast & Lunch, Pool & Lunch). The "Day Pass with Room" is always
+ * undated and never reserves a calendar slot.
+ */
+export const DATABLE_DAY_PASS_IDS = new Set(["day-pass-bnl", "day-pass-pool"]);
+
+export function isDatableDayPass(productId?: string | null): boolean {
+  return !!productId && DATABLE_DAY_PASS_IDS.has(productId);
+}
+
+/**
+ * Server-validated party size (adults + children) for a day-pass order. Returns
+ * null for non-day-pass orders or invalid selections, mirroring `priceFor`'s
+ * bounds so pax can never be client-driven.
+ */
+export function paxFor({
+  productId,
+  type,
+  adults,
+  children,
+}: {
+  productId?: string;
+  type?: string;
+  adults?: number;
+  children?: number;
+}): number | null {
+  if (type !== "day_pass") return null;
+  const opt = getDayPass(productId);
+  if (!opt) return null;
+  const kids = Number(children ?? 0);
+  if (!Number.isInteger(kids) || kids < 0) return null;
+  if (opt.maxChildren != null && kids > opt.maxChildren) return null;
+  let adultCount: number;
+  if (opt.pricing === "flat") {
+    adultCount = opt.includedAdults ?? 1;
+  } else {
+    adultCount = Number(adults);
+    if (!Number.isInteger(adultCount) || adultCount < 1) return null;
+  }
+  const pax = adultCount + kids;
+  if (pax < 1 || pax > opt.maxGuests) return null;
+  return pax;
+}
+
+/**
  * The catalog with any staff price overrides applied. Falls back to the
  * built-in defaults if the overrides can't be read, so the storefront never
  * goes dark over a transient DB issue.

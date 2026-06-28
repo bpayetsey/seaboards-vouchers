@@ -401,6 +401,16 @@ export interface StoreOrderInput {
      * @nullable
      */
   plan?: string | null;
+  /**
+     * Day-pass visit date (YYYY-MM-DD). Only honoured for the per-person passes; null/omitted books undated (decide later).
+     * @nullable
+     */
+  visit_date?: string | null;
+  /**
+     * Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.
+     * @nullable
+     */
+  credit_minor?: number | null;
   /** @minLength 1 */
   name: string;
   /** @minLength 3 */
@@ -634,6 +644,36 @@ export interface PayInstalmentsResult {
   order: DashboardOrder;
 }
 
+export interface DashboardBooking {
+  id: string;
+  order_id: string;
+  product_name: string;
+  /**
+     * Booked visit day (YYYY-MM-DD), or null when undated
+     * @nullable
+     */
+  visit_date: string | null;
+  /** booked | cancelled */
+  status: string;
+  pax: number;
+  reschedule_count: number;
+  reschedules_remaining: number;
+  /** True when the booking is undated and awaiting a date */
+  needs_date: boolean;
+  can_reschedule: boolean;
+  can_cancel: boolean;
+  /** True when cancelling now would keep a 25% penalty */
+  penalty_on_cancel: boolean;
+  /** @nullable */
+  voucher_code: string | null;
+  currency: string;
+}
+
+export interface CreditBalance {
+  currency: string;
+  balance_minor: number;
+}
+
 export interface DashboardView {
   /** The verified account email all records are scoped to */
   email: string;
@@ -643,6 +683,96 @@ export interface DashboardView {
   orders: DashboardOrder[];
   /** Group orders this account created as the organiser, any status */
   organised_orders: DashboardOrganisedOrder[];
+  /** Day-pass visit bookings owned by this account */
+  bookings: DashboardBooking[];
+  /** Account credit balances by currency (only positive balances) */
+  credit: CreditBalance[];
+}
+
+export interface DayAvailability {
+  /** Calendar day (YYYY-MM-DD) */
+  date: string;
+  capacity: number;
+  used: number;
+  remaining: number;
+  /** Closed by rule (Tuesday) or in the past */
+  closed: boolean;
+  /** Admin-blocked day */
+  blocked: boolean;
+  /** @nullable */
+  blocked_reason: string | null;
+  bookable: boolean;
+}
+
+export interface AvailabilityResponse {
+  days: DayAvailability[];
+}
+
+export interface AssignDateInput {
+  /** Visit day (YYYY-MM-DD) to assign */
+  visit_date: string;
+}
+
+export interface RescheduleInput {
+  /** New visit day (YYYY-MM-DD) */
+  visit_date: string;
+}
+
+export interface BookingResult {
+  ok: boolean;
+  /** @nullable */
+  visit_date?: string | null;
+  status?: string;
+  reschedules_remaining?: number;
+}
+
+export interface CancelBookingResult {
+  ok: boolean;
+  penalty: boolean;
+  credit_minor: number;
+  penalty_kept_minor?: number;
+  currency: string;
+}
+
+export interface BlockedDate {
+  date: string;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface BlockDateInput {
+  /** Calendar day (YYYY-MM-DD) to block */
+  date: string;
+  /** @nullable */
+  reason?: string | null;
+}
+
+export interface AdminBooking {
+  id: string;
+  order_id: string;
+  email: string;
+  product_name: string;
+  /** @nullable */
+  visit_date: string | null;
+  status: string;
+  pax: number;
+  reschedule_count: number;
+}
+
+export interface AdminCalendarDay {
+  date: string;
+  capacity: number;
+  used: number;
+  remaining: number;
+  closed: boolean;
+  blocked: boolean;
+  /** @nullable */
+  blocked_reason: string | null;
+  bookings: AdminBooking[];
+}
+
+export interface AdminCalendarResponse {
+  days: AdminCalendarDay[];
 }
 
 export interface AdminSession {
@@ -1359,6 +1489,26 @@ export interface EmailCampaignDetail {
   stats: EmailCampaignStats;
   recipients: EmailCampaignRecipient[];
 }
+
+export type GetDayPassAvailabilityParams = {
+/**
+ * Range start (YYYY-MM-DD)
+ */
+from: string;
+/**
+ * Range end (YYYY-MM-DD)
+ */
+to: string;
+/**
+ * Party size to check capacity against (default 1)
+ */
+pax?: number;
+};
+
+export type GetAdminCalendarParams = {
+from: string;
+to: string;
+};
 
 export type GetAdminInboxParams = {
 channel?: GetAdminInboxChannel;

@@ -6,10 +6,25 @@ import {
   PayOrderInstalmentsParams,
   PayOrderInstalmentsBody,
   PayOrderInstalmentsResponse,
+  AssignBookingDateParams,
+  AssignBookingDateBody,
+  AssignBookingDateResponse,
+  RescheduleBookingParams,
+  RescheduleBookingBody,
+  RescheduleBookingResponse,
+  CancelBookingParams,
+  CancelBookingResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 import { getDashboardForEmail } from "../lib/dashboard";
 import { payInstalmentsForOrder } from "../lib/storefront";
+import {
+  assignBookingDate,
+  rescheduleBooking,
+  cancelBooking,
+  type BookingActionError,
+  MAX_RESCHEDULES,
+} from "../lib/dayPass";
 import { resendLineForOrganiser } from "../lib/groupVouchers";
 import { resolveVoucherByCode, buildVoucherPdf } from "../lib/voucherPdf";
 import { sendIssuedVoucherEmail } from "../lib/voucherEmail";
@@ -163,6 +178,137 @@ router.post(
       return res
         .status(500)
         .json({ error: "Could not re-send your voucher email right now." });
+    }
+  },
+);
+
+/** Map a booking-action error to a client-friendly 4xx response. */
+function bookingErrorResponse(
+  err: BookingActionError,
+): { status: number; message: string } {
+  const map: Record<BookingActionError["error"], { status: number; message: string }> = {
+    not_found: { status: 404, message: "Booking not found." },
+    not_active: { status: 409, message: "This booking can no longer be changed." },
+    already_dated: { status: 409, message: "This booking already has a date." },
+    not_dated: { status: 409, message: "Assign a date before rescheduling." },
+    too_late: {
+      status: 409,
+      message: "Reschedules must be made at least 48 hours before your visit.",
+    },
+    no_reschedules: {
+      status: 409,
+      message: "You've used both free reschedules. Cancel for credit instead.",
+    },
+    closed_tuesday: { status: 409, message: "The resort is closed on Tuesdays." },
+    past: { status: 409, message: "Choose a date in the future." },
+    invalid_date: { status: 400, message: "Choose a valid date." },
+    blocked: { status: 409, message: "That date is unavailable." },
+    full: { status: 409, message: "That date is fully booked. Please choose another." },
+  };
+  return map[err.error] ?? { status: 409, message: "Could not update the booking." };
+}
+
+/**
+ * Assign a visit date to an undated (gift / undated-at-purchase) booking the
+ * authenticated client owns. Atomically reserves daily capacity.
+ */
+router.post(
+  "/dashboard/bookings/:bookingId/assign",
+  requireAuth,
+  async (req, res) => {
+    const { userEmail } = req as AuthedRequest;
+    const { bookingId } = AssignBookingDateParams.parse(req.params);
+    const { visit_date } = AssignBookingDateBody.parse(req.body ?? {});
+    try {
+      const result = await assignBookingDate(userEmail, bookingId, visit_date);
+      if ("error" in result) {
+        const { status, message } = bookingErrorResponse(result);
+        return res.status(status).json({ error: message });
+      }
+      return res.json(
+        AssignBookingDateResponse.parse({
+          ok: true,
+          visit_date: result.booking.visitDate,
+          status: result.booking.status,
+          reschedules_remaining:
+            MAX_RESCHEDULES - result.booking.rescheduleCount,
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to assign day-pass date");
+      return res
+        .status(500)
+        .json({ error: "Could not book that date right now." });
+    }
+  },
+);
+
+/**
+ * Reschedule a dated booking the authenticated client owns. Enforces the
+ * 48h-before and max-2-free-reschedules rules.
+ */
+router.post(
+  "/dashboard/bookings/:bookingId/reschedule",
+  requireAuth,
+  async (req, res) => {
+    const { userEmail } = req as AuthedRequest;
+    const { bookingId } = RescheduleBookingParams.parse(req.params);
+    const { visit_date } = RescheduleBookingBody.parse(req.body ?? {});
+    try {
+      const result = await rescheduleBooking(userEmail, bookingId, visit_date);
+      if ("error" in result) {
+        const { status, message } = bookingErrorResponse(result);
+        return res.status(status).json({ error: message });
+      }
+      return res.json(
+        RescheduleBookingResponse.parse({
+          ok: true,
+          visit_date: result.booking.visitDate,
+          status: result.booking.status,
+          reschedules_remaining:
+            MAX_RESCHEDULES - result.booking.rescheduleCount,
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to reschedule day-pass booking");
+      return res
+        .status(500)
+        .json({ error: "Could not reschedule that booking right now." });
+    }
+  },
+);
+
+/**
+ * Cancel a booking the authenticated client owns. No cash refund: the value
+ * converts to account credit, less a 25% penalty when within 24h of the visit
+ * or after the 2 free reschedules are used.
+ */
+router.post(
+  "/dashboard/bookings/:bookingId/cancel",
+  requireAuth,
+  async (req, res) => {
+    const { userEmail } = req as AuthedRequest;
+    const { bookingId } = CancelBookingParams.parse(req.params);
+    try {
+      const result = await cancelBooking(userEmail, bookingId);
+      if ("error" in result) {
+        const { status, message } = bookingErrorResponse(result);
+        return res.status(status).json({ error: message });
+      }
+      return res.json(
+        CancelBookingResponse.parse({
+          ok: true,
+          penalty: result.penalty,
+          credit_minor: result.credit_minor,
+          penalty_kept_minor: result.penalty_kept_minor,
+          currency: result.currency,
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to cancel day-pass booking");
+      return res
+        .status(500)
+        .json({ error: "Could not cancel that booking right now." });
     }
   },
 );

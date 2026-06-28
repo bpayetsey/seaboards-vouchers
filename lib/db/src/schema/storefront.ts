@@ -6,7 +6,9 @@ import {
   bigint,
   boolean,
   timestamp,
+  date,
   index,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -36,6 +38,18 @@ export const storeOrders = pgTable(
     stripePaymentMethodId: text("stripe_payment_method_id"),
     firstPaymentIntentId: text("first_payment_intent_id"),
     firstReceiptUrl: text("first_receipt_url"),
+    // Day-pass booking intent captured at checkout, materialised into a
+    // day_pass_booking row on the first successful payment. `dayPassPax` is the
+    // server-validated party size (adults + children); `dayPassVisitDate` is the
+    // requested visit day (null = undated / decide later).
+    dayPassPax: integer("day_pass_pax"),
+    dayPassVisitDate: date("day_pass_visit_date", { mode: "string" }),
+    // Account credit applied at checkout, in minor units. The cash actually
+    // charged (via Stripe) is `totalMinor - creditAppliedMinor`; `totalMinor`
+    // stays the full product price so the issued voucher carries full value.
+    creditAppliedMinor: bigint("credit_applied_minor", { mode: "number" })
+      .notNull()
+      .default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -170,6 +184,107 @@ export const pageViews = pgTable(
     index("idx_page_view_visitor").on(table.visitorHash),
   ],
 );
+
+/**
+ * A day-pass visit booking. One row per day-pass order (created on the first
+ * successful payment). `visitDate` null means undated (bought as a gift or
+ * "decide later") — the guest assigns a date from their dashboard. Daily
+ * capacity is counted as the sum of `pax` across non-cancelled bookings on a
+ * given `visitDate`. `rescheduleCount` enforces the free-reschedule cap (max 2).
+ */
+export const dayPassBookings = pgTable(
+  "day_pass_booking",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .unique()
+      .references(() => storeOrders.id, { onDelete: "cascade" }),
+    // The verified account email the booking is scoped to (lowercased buyer
+    // email). Self-service actions only ever match the authenticated owner.
+    email: text("email").notNull(),
+    productId: text("product_id").notNull(),
+    productName: text("product_name").notNull(),
+    // Party size (adults + children) — server-validated, never client-supplied.
+    pax: integer("pax").notNull(),
+    visitDate: date("visit_date", { mode: "string" }),
+    // booked | cancelled
+    status: text("status").notNull().default("booked"),
+    rescheduleCount: integer("reschedule_count").notNull().default(0),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_day_pass_booking_email").on(table.email),
+    index("idx_day_pass_booking_date").on(table.visitDate, table.status),
+  ],
+);
+
+/**
+ * Admin-blockable calendar days. A day with a row here is closed for day-pass
+ * bookings regardless of capacity (e.g. private events, maintenance). Tuesdays
+ * are always closed by rule and do not need a row.
+ */
+export const dayPassBlockedDates = pgTable("day_pass_blocked_date", {
+  date: date("date", { mode: "string" }).primaryKey(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Per-account credit balance, keyed by (email, currency). Source of truth for
+ * spend: a conditional decrement (… WHERE balance_minor >= amount) makes
+ * concurrent spends safe (no double-spend). The ledger below records history.
+ */
+export const accountCreditBalances = pgTable(
+  "account_credit_balance",
+  {
+    email: text("email").notNull(),
+    currency: text("currency").notNull(),
+    balanceMinor: bigint("balance_minor", { mode: "number" })
+      .notNull()
+      .default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.email, table.currency] }),
+  ],
+);
+
+/**
+ * Append-only audit ledger of credit movements. Positive `amountMinor` = credit
+ * added (e.g. cancellation), negative = credit spent at checkout.
+ */
+export const accountCreditEntries = pgTable(
+  "account_credit_entry",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    currency: text("currency").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    reason: text("reason").notNull(),
+    orderId: uuid("order_id"),
+    bookingId: uuid("booking_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_account_credit_entry_email").on(table.email)],
+);
+
+export type DayPassBooking = typeof dayPassBookings.$inferSelect;
+export type DayPassBlockedDate = typeof dayPassBlockedDates.$inferSelect;
+export type AccountCreditBalance = typeof accountCreditBalances.$inferSelect;
+export type AccountCreditEntry = typeof accountCreditEntries.$inferSelect;
 
 export type StoreOrder = typeof storeOrders.$inferSelect;
 export type StoreInstallment = typeof storeInstallments.$inferSelect;

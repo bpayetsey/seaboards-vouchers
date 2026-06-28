@@ -3,6 +3,9 @@ import {
   useResendOrganisedLine,
   useResendVoucherEmail,
   usePayOrderInstalments,
+  useAssignBookingDate,
+  useRescheduleBooking,
+  useCancelBooking,
   getGetDashboardQueryKey,
 } from "@workspace/api-client-react";
 import type {
@@ -12,12 +15,15 @@ import type {
   DashboardOrganisedLine,
   DashboardOrder,
   DashboardInstalment,
+  DashboardBooking,
+  CreditBalance,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +55,8 @@ import {
   Check,
   CheckCircle2,
   CalendarClock,
+  CalendarDays,
+  Ban,
   Package,
   Loader2,
   ChevronRight,
@@ -198,6 +206,8 @@ export default function Dashboard() {
           </Card>
         ) : (
           <>
+            <BookingsSection bookings={data?.bookings ?? []} />
+            <CreditSection credit={data?.credit ?? []} />
             <OrdersSection orders={data?.orders ?? []} />
             <OrganisedOrdersSection orders={data?.organised_orders ?? []} />
             <VouchersSection vouchers={data?.vouchers ?? []} />
@@ -513,6 +523,268 @@ function OrdersSection({ orders }: { orders: DashboardOrder[] }) {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+function bookingErrorMessage(err: unknown): string {
+  return err && typeof err === "object" && "error" in err
+    ? String((err as { error?: unknown }).error)
+    : "Please try again in a moment.";
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatVisitDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function BookingCard({ booking }: { booking: DashboardBooking }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const assign = useAssignBookingDate();
+  const reschedule = useRescheduleBooking();
+  const cancel = useCancelBooking();
+  const [pickDate, setPickDate] = useState("");
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+
+  const cancelled = booking.status === "cancelled";
+
+  const doAssign = () => {
+    if (!pickDate) {
+      toast({ title: "Choose a visit date", variant: "destructive" });
+      return;
+    }
+    assign.mutate(
+      { bookingId: booking.id, data: { visit_date: pickDate } },
+      {
+        onSuccess: () => {
+          toast({ title: "Visit date booked", description: formatVisitDate(pickDate) });
+          setPickDate("");
+          invalidate();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not book that date",
+            description: bookingErrorMessage(err),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const doReschedule = () => {
+    if (!pickDate) {
+      toast({ title: "Choose a new visit date", variant: "destructive" });
+      return;
+    }
+    reschedule.mutate(
+      { bookingId: booking.id, data: { visit_date: pickDate } },
+      {
+        onSuccess: () => {
+          toast({ title: "Visit rescheduled", description: formatVisitDate(pickDate) });
+          setPickDate("");
+          invalidate();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not reschedule",
+            description: bookingErrorMessage(err),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const doCancel = () => {
+    const warning = booking.penalty_on_cancel
+      ? "Cancelling now keeps a 25% cancellation charge; the remaining 75% becomes account credit. There is no cash refund. Continue?"
+      : "This visit will be cancelled and its full value becomes account credit. There is no cash refund. Continue?";
+    if (!window.confirm(warning)) return;
+    cancel.mutate(
+      { bookingId: booking.id },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Booking cancelled",
+            description: "Your account credit has been updated.",
+          });
+          invalidate();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not cancel",
+            description: bookingErrorMessage(err),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  const busy = assign.isPending || reschedule.isPending || cancel.isPending;
+
+  return (
+    <Card className={cancelled ? "opacity-70" : undefined}>
+      <CardContent className="space-y-3 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-serif text-lg text-primary">{booking.product_name}</div>
+            <div className="text-sm text-muted-foreground">
+              {booking.pax} guest{booking.pax === 1 ? "" : "s"}
+              {booking.voucher_code ? (
+                <>
+                  {" · "}
+                  <span className="font-mono tracking-wider">{booking.voucher_code}</span>
+                </>
+              ) : null}
+            </div>
+          </div>
+          {cancelled ? (
+            <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+              Cancelled
+            </span>
+          ) : booking.needs_date ? (
+            <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+              Needs date
+            </span>
+          ) : (
+            <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              Booked
+            </span>
+          )}
+        </div>
+
+        {!cancelled && booking.visit_date ? (
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            {formatVisitDate(booking.visit_date)}
+          </div>
+        ) : null}
+
+        {!cancelled && !booking.needs_date ? (
+          <p className="text-xs text-muted-foreground">
+            {booking.reschedules_remaining} free reschedule
+            {booking.reschedules_remaining === 1 ? "" : "s"} remaining (at least 48 hours
+            before your visit).
+          </p>
+        ) : null}
+
+        {!cancelled && (booking.needs_date || booking.can_reschedule) ? (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <Input
+              type="date"
+              min={todayISO()}
+              value={pickDate}
+              onChange={(e) => setPickDate(e.target.value)}
+              className="h-9 w-auto"
+            />
+            {booking.needs_date ? (
+              <Button size="sm" onClick={doAssign} disabled={busy}>
+                {assign.isPending ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Book date
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={doReschedule} disabled={busy}>
+                {reschedule.isPending ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Reschedule
+              </Button>
+            )}
+          </div>
+        ) : null}
+
+        {!cancelled && booking.can_cancel ? (
+          <div className="flex items-center justify-between gap-2">
+            {booking.penalty_on_cancel ? (
+              <span className="text-xs text-muted-foreground">
+                A 25% charge applies if you cancel now.
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Full value converts to account credit.
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={doCancel}
+              disabled={busy}
+            >
+              {cancel.isPending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Ban className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Cancel
+            </Button>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BookingsSection({ bookings }: { bookings: DashboardBooking[] }) {
+  if (bookings.length === 0) return null;
+  return (
+    <section>
+      <SectionHeading
+        icon={<CalendarDays className="h-4 w-4" />}
+        title="Day-pass visits"
+        count={bookings.length}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {bookings.map((b) => (
+          <BookingCard key={b.id} booking={b} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CreditSection({ credit }: { credit: CreditBalance[] }) {
+  if (credit.length === 0) return null;
+  return (
+    <section>
+      <SectionHeading
+        icon={<Wallet className="h-4 w-4" />}
+        title="Account credit"
+        count={credit.length}
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {credit.map((c) => (
+          <Card key={c.currency}>
+            <CardContent className="py-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {c.currency.toUpperCase()} balance
+              </div>
+              <div className="mt-1 font-serif text-3xl text-primary">
+                {formatMoney(fromMinor(c.balance_minor), c.currency)}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Use this credit towards your next voucher or day-pass purchase at checkout.
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </section>
   );
 }
