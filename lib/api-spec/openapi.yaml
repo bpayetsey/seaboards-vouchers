@@ -2530,6 +2530,9 @@ components:
         - outstanding
         - failed_count
         - failed
+        - day_passes_sold
+        - day_passes_revenue
+        - day_passes_by_product
       properties:
         revenue:
           type: array
@@ -2558,6 +2561,31 @@ components:
           description: Failed / needs-action instalment totals grouped by currency
           items:
             $ref: "#/components/schemas/CurrencyCount"
+        day_passes_sold:
+          type: integer
+          description: Count of day pass orders with at least one cleared payment
+        day_passes_revenue:
+          type: array
+          description: Collected revenue from day pass orders, grouped by currency
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        day_passes_by_product:
+          type: array
+          description: Day pass sales broken down by pass type
+          items:
+            $ref: "#/components/schemas/DayPassSales"
+    DayPassSales:
+      type: object
+      required: [product_name, count, currency, amount_minor]
+      properties:
+        product_name:
+          type: string
+        count:
+          type: integer
+        currency:
+          type: string
+        amount_minor:
+          type: integer
     AdminInstalment:
       type: object
       required: [id, number, amount_minor, currency, due_at, status, attempts]

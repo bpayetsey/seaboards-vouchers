@@ -38,6 +38,7 @@ export * from './dashboardView';
 export * from './dashboardVoucher';
 export * from './dashboardVoucherKind';
 export * from './dashboardVoucherSource';
+export * from './dayPassSales';
 export * from './galleryImage';
 export * from './galleryImageList';
 export * from './getWhatsappContactsParams';

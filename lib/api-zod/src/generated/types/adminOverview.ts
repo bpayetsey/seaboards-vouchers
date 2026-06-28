@@ -7,6 +7,7 @@
  */
 import type { CurrencyAmount } from './currencyAmount';
 import type { CurrencyCount } from './currencyCount';
+import type { DayPassSales } from './dayPassSales';
 
 export interface AdminOverview {
   /** Collected revenue grouped by currency */
@@ -22,4 +23,10 @@ export interface AdminOverview {
   failed_count: number;
   /** Failed / needs-action instalment totals grouped by currency */
   failed: CurrencyCount[];
+  /** Count of day pass orders with at least one cleared payment */
+  day_passes_sold: number;
+  /** Collected revenue from day pass orders, grouped by currency */
+  day_passes_revenue: CurrencyAmount[];
+  /** Day pass sales broken down by pass type */
+  day_passes_by_product: DayPassSales[];
 }

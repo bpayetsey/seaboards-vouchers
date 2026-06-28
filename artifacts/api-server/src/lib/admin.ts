@@ -76,6 +76,14 @@ export async function getAdminOverview(): Promise<{
   outstanding: CurrencyCount[];
   failed_count: number;
   failed: CurrencyCount[];
+  day_passes_sold: number;
+  day_passes_revenue: CurrencyAmount[];
+  day_passes_by_product: {
+    product_name: string;
+    count: number;
+    currency: string;
+    amount_minor: number;
+  }[];
 }> {
   const orders = await db.select().from(storeOrders);
   const instalments = await db.select().from(storeInstallments);
@@ -95,6 +103,53 @@ export async function getAdminOverview(): Promise<{
       const order = orders.find((o) => o.id === inst.orderId);
       if (order) addRevenue(order.currency, Number(inst.amountMinor));
     }
+  }
+
+  // Day Pass sales: a day pass counts as "sold" once its first payment clears.
+  // Collected revenue and the per-pass breakdown mirror the revenue logic above.
+  const dayPassRevenue = new Map<string, number>();
+  // Keyed by product + currency so multi-currency sales never cross-sum into a
+  // single mislabelled row.
+  const dayPassByProduct = new Map<
+    string,
+    { product_name: string; count: number; currency: string; amount: number }
+  >();
+  const dayPassKey = (productName: string, currency: string) =>
+    `${productName}::${currency}`;
+  let dayPassesSold = 0;
+  for (const order of orders) {
+    if (order.type !== "day_pass" || order.paidInstalments < 1) continue;
+    dayPassesSold += 1;
+    const first = firstAmountMinor(order);
+    dayPassRevenue.set(
+      order.currency,
+      (dayPassRevenue.get(order.currency) ?? 0) + first,
+    );
+    const key = dayPassKey(order.productName, order.currency);
+    const entry = dayPassByProduct.get(key) ?? {
+      product_name: order.productName,
+      count: 0,
+      currency: order.currency,
+      amount: 0,
+    };
+    entry.count += 1;
+    entry.amount += first;
+    dayPassByProduct.set(key, entry);
+  }
+  for (const inst of instalments) {
+    if (inst.status !== "paid") continue;
+    const order = orders.find((o) => o.id === inst.orderId);
+    if (!order || order.type !== "day_pass" || order.paidInstalments < 1)
+      continue;
+    const amt = Number(inst.amountMinor);
+    dayPassRevenue.set(
+      order.currency,
+      (dayPassRevenue.get(order.currency) ?? 0) + amt,
+    );
+    const entry = dayPassByProduct.get(
+      dayPassKey(order.productName, order.currency),
+    );
+    if (entry) entry.amount += amt;
   }
 
   // Voucher counts.
@@ -149,6 +204,16 @@ export async function getAdminOverview(): Promise<{
     outstanding: outstandingRows,
     failed_count: totalCount(failedRows),
     failed: failedRows,
+    day_passes_sold: dayPassesSold,
+    day_passes_revenue: Array.from(dayPassRevenue.entries()).map(
+      ([currency, amount_minor]) => ({ currency, amount_minor }),
+    ),
+    day_passes_by_product: Array.from(dayPassByProduct.values()).map((v) => ({
+      product_name: v.product_name,
+      count: v.count,
+      currency: v.currency,
+      amount_minor: v.amount,
+    })),
   };
 }
 

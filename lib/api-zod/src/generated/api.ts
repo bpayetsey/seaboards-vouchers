@@ -500,7 +500,18 @@ export const GetAdminOverviewResponse = zod.object({
   "currency": zod.string(),
   "count": zod.number(),
   "amount_minor": zod.number()
-})).describe('Failed \/ needs-action instalment totals grouped by currency')
+})).describe('Failed \/ needs-action instalment totals grouped by currency'),
+  "day_passes_sold": zod.number().describe('Count of day pass orders with at least one cleared payment'),
+  "day_passes_revenue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount_minor": zod.number()
+})).describe('Collected revenue from day pass orders, grouped by currency'),
+  "day_passes_by_product": zod.array(zod.object({
+  "product_name": zod.string(),
+  "count": zod.number(),
+  "currency": zod.string(),
+  "amount_minor": zod.number()
+})).describe('Day pass sales broken down by pass type')
 })
 
 

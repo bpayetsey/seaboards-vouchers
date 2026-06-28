@@ -23,6 +23,7 @@ import {
   Eye,
   Users,
   CalendarDays,
+  Sun,
 } from "lucide-react";
 
 function fromMinor(amountMinor: number) {
@@ -338,7 +339,43 @@ export default function AdminOverview() {
                 {data.failed_count} require attention
               </p>
             </StatCard>
+            <StatCard icon={Sun} label="Day passes sold" tone="accent">
+              <p className="text-2xl font-serif text-primary">
+                {data.day_passes_sold.toLocaleString("en-US")}
+                <span className="ml-2 text-sm font-sans text-muted-foreground">
+                  sold
+                </span>
+              </p>
+              <MoneyList rows={data.day_passes_revenue} />
+            </StatCard>
           </div>
+
+          {data.day_passes_by_product.length > 0 ? (
+            <Card className="border-border/70">
+              <CardContent className="p-6 space-y-3">
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  Day passes by type
+                </p>
+                <div className="divide-y divide-border/60">
+                  {data.day_passes_by_product.map((p) => (
+                    <div
+                      key={`${p.product_name}:${p.currency}`}
+                      className="flex items-center justify-between py-2 text-sm"
+                    >
+                      <span className="text-foreground">{p.product_name}</span>
+                      <span className="text-muted-foreground">
+                        {p.count.toLocaleString("en-US")} ·{" "}
+                        {formatMoney(
+                          fromMinor(p.amount_minor),
+                          p.currency.toUpperCase(),
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <section className="space-y-4 pt-2">
             <h2 className="font-serif text-2xl text-primary">Site visitors</h2>
