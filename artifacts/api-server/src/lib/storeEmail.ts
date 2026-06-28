@@ -40,6 +40,38 @@ function emailShell(heading: string, bodyHtml: string): string {
   </div></body></html>`;
 }
 
+/** Format a YYYY-MM-DD visit date as a friendly resort-timezone string. */
+function formatVisitDate(dateStr: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Indian/Mahe",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(`${dateStr}T00:00:00+04:00`));
+  } catch {
+    return dateStr;
+  }
+}
+
+/**
+ * "Manage your booking" CTA for the pre-visit reminder — links the guest to
+ * their dashboard where they can reschedule or cancel. Omitted when no base URL
+ * is available (broken-link guard).
+ */
+function manageBookingCta(): { html: string; text: string } {
+  const base = appBaseUrl();
+  if (!base) return { html: "", text: "" };
+  const url = `${base}/dashboard`;
+  const html = `<div style="margin-top:24px;">
+    <a href="${url}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:bold;">Manage your booking</a>
+    <p style="margin:12px 0 0;font-size:13px;color:#9aa0a6;">Need to change your plans? Sign in to your dashboard to reschedule or cancel.</p>
+  </div>`;
+  const text = `\n\nManage your booking (reschedule or cancel): ${url}`;
+  return { html, text };
+}
+
 /** Format a minor-unit amount as a localized currency string. */
 function formatMoney(minor: number, currency: string): string {
   const code = currency.toUpperCase();
@@ -242,4 +274,45 @@ export async function sendPaymentFailedEmail(
       .set({ failedEmailedAt: null })
       .where(eq(storeInstallments.id, inst.id));
   }
+}
+
+/**
+ * Pre-visit reminder for a booked, dated day-pass guest, sent the day before
+ * their visit. Reinforces the booking and points to the dashboard so they can
+ * reschedule or cancel. Best-effort: returns whether delivery succeeded so the
+ * caller (the reminder sweep) can release its idempotency claim for a retry.
+ */
+export async function sendVisitReminderEmail(input: {
+  to: string;
+  productName: string;
+  visitDate: string;
+  pax: number;
+  voucherCode: string | null;
+}): Promise<boolean> {
+  const cta = manageBookingCta();
+  const when = formatVisitDate(input.visitDate);
+  const guests = `${input.pax} ${input.pax === 1 ? "guest" : "guests"}`;
+  const voucherHtml = input.voucherCode
+    ? `<tr><td style="padding:6px 0;color:#6B7280;">Voucher code</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:${BRAND};letter-spacing:1px;">${input.voucherCode}</td></tr>`
+    : "";
+  const voucherText = input.voucherCode
+    ? `\nVoucher code: ${input.voucherCode}`
+    : "";
+  const html = emailShell(
+    "Your visit is tomorrow",
+    `<p style="font-size:15px;">We're looking forward to welcoming you to ${RESORT.name}. Here are your day-pass details for tomorrow.</p>
+     <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:14px;">
+       <tr><td style="padding:6px 0;color:#6B7280;">Visit date</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:#2A2E35;">${when}</td></tr>
+       <tr><td style="padding:6px 0;color:#6B7280;">Party size</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:#2A2E35;">${guests}</td></tr>
+       ${voucherHtml}
+     </table>
+     <p style="font-size:13px;color:#9aa0a6;margin-top:16px;">Reschedules are free up to 48 hours before your visit; cancellations within 24 hours keep a 25% fee. You can manage your booking any time from your dashboard.</p>${cta.html}`,
+  );
+  const text = `We're looking forward to welcoming you to ${RESORT.name}. Here are your day-pass details for tomorrow.\n\nVisit date: ${when}\nParty size: ${guests}${voucherText}\n\nReschedules are free up to 48 hours before your visit; cancellations within 24 hours keep a 25% fee.${cta.text}`;
+  return sendBestEffort({
+    to: input.to,
+    subject: `Reminder — your visit to ${RESORT.name} is tomorrow`,
+    html,
+    text,
+  });
 }

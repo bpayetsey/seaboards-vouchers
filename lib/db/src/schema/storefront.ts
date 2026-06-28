@@ -211,6 +211,10 @@ export const dayPassBookings = pgTable(
     // booked | cancelled
     status: text("status").notNull().default("booked"),
     rescheduleCount: integer("reschedule_count").notNull().default(0),
+    // Idempotency claim for the pre-visit reminder email. Set the first time the
+    // reminder for the current `visitDate` is sent so the recurring sweep never
+    // emails the same guest twice. Cleared on reschedule so a new date re-arms it.
+    reminderEmailedAt: timestamp("reminder_emailed_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

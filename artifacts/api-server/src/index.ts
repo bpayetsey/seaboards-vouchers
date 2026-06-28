@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import { getStripeSync } from "./lib/stripeClient";
 import { dispatchDueCampaigns } from "./lib/whatsappCampaigns";
 import { releaseStaleReservedCredit } from "./lib/storefront";
+import { sendDueVisitReminders } from "./lib/dayPass";
 
 const rawPort = process.env["PORT"];
 
@@ -135,3 +136,35 @@ const creditSweepTimer = setInterval(
 );
 creditSweepTimer.unref();
 void creditSweepTick();
+
+/**
+ * Pre-visit reminder sweep. Day-pass guests whose dated visit is tomorrow get a
+ * one-time reminder email (date, pax, voucher code, manage-booking link). The
+ * send is idempotent per booking/date via a claim column, so running hourly is
+ * safe and self-heals after restarts. Same always-on (VM) requirement and
+ * per-process guard rationale as the dispatcher.
+ */
+const REMINDER_SWEEP_INTERVAL_MS = 60 * 60_000;
+let reminderSweepInFlight = false;
+
+async function reminderSweepTick(): Promise<void> {
+  if (reminderSweepInFlight) return;
+  reminderSweepInFlight = true;
+  try {
+    const sent = await sendDueVisitReminders();
+    if (sent > 0) {
+      logger.info({ sent }, "Sent day-pass visit reminders");
+    }
+  } catch (err) {
+    logger.error({ err }, "Day-pass visit reminder sweep failed");
+  } finally {
+    reminderSweepInFlight = false;
+  }
+}
+
+const reminderSweepTimer = setInterval(
+  () => void reminderSweepTick(),
+  REMINDER_SWEEP_INTERVAL_MS,
+);
+reminderSweepTimer.unref();
+void reminderSweepTick();

@@ -12,7 +12,7 @@
  *    double-spent; posting credit upserts the balance and appends a ledger row
  *    in one transaction.
  */
-import { and, eq, gte, lte, ne, isNotNull, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, lte, ne, isNull, isNotNull, inArray, sql } from "drizzle-orm";
 import {
   db,
   dayPassBookings,
@@ -26,6 +26,7 @@ import {
 import type { DayPassBooking, StoreOrder } from "@workspace/db";
 import { SETTINGS, isDatableDayPass, paxFor } from "./storeCatalog";
 import { logger } from "./logger";
+import { sendVisitReminderEmail } from "./storeEmail";
 
 export const DAY_PASS_DAILY_CAPACITY = 6;
 export const MAX_RESCHEDULES = 2;
@@ -368,6 +369,8 @@ async function reserveInto(
         .update(dayPassBookings)
         .set({
           visitDate: dateStr,
+          // New date ⇒ re-arm the pre-visit reminder for the new visit day.
+          reminderEmailedAt: null,
           rescheduleCount: incrementReschedule
             ? b.rescheduleCount + 1
             : b.rescheduleCount,
@@ -782,4 +785,74 @@ export async function getAdminCalendar(
   }
 
   return days.map((d) => ({ ...d, bookings: byDate.get(d.date) ?? [] }));
+}
+
+// ── Pre-visit reminder sweep ────────────────────────────────────────────────
+
+/**
+ * Email a reminder to every booked, dated guest whose visit is tomorrow (resort
+ * timezone) and who has not yet been reminded for their current date. Undated /
+ * gift bookings are excluded (no `visitDate`); a reschedule clears the claim so
+ * the new date re-arms a fresh reminder.
+ *
+ * Each send is guarded by a conditional claim on `reminderEmailedAt`, so the
+ * recurring sweep (and concurrent processes) deliver at most one reminder per
+ * booking per date. A failed delivery releases the claim so a later tick retries.
+ * Returns the number of reminders actually delivered.
+ */
+export async function sendDueVisitReminders(): Promise<number> {
+  const target = addDays(resortToday(), 1);
+
+  const due = await db
+    .select()
+    .from(dayPassBookings)
+    .where(
+      and(
+        eq(dayPassBookings.status, "booked"),
+        eq(dayPassBookings.visitDate, target),
+        isNull(dayPassBookings.reminderEmailedAt),
+      ),
+    );
+  if (due.length === 0) return 0;
+
+  let sent = 0;
+  for (const b of due) {
+    // Claim the one-time send slot; the loser of any race sends nothing.
+    const [claimed] = await db
+      .update(dayPassBookings)
+      .set({ reminderEmailedAt: new Date() })
+      .where(
+        and(
+          eq(dayPassBookings.id, b.id),
+          isNull(dayPassBookings.reminderEmailedAt),
+        ),
+      )
+      .returning({ id: dayPassBookings.id });
+    if (!claimed) continue;
+
+    const [voucher] = await db
+      .select({ code: storeVouchers.code, status: storeVouchers.status })
+      .from(storeVouchers)
+      .where(eq(storeVouchers.orderId, b.orderId));
+    const voucherCode =
+      voucher && voucher.status === "active" ? voucher.code : null;
+
+    const delivered = await sendVisitReminderEmail({
+      to: b.email,
+      productName: b.productName,
+      visitDate: b.visitDate as string,
+      pax: b.pax,
+      voucherCode,
+    });
+    if (delivered) {
+      sent++;
+    } else {
+      // Release the claim so a later sweep can re-attempt the reminder.
+      await db
+        .update(dayPassBookings)
+        .set({ reminderEmailedAt: null })
+        .where(eq(dayPassBookings.id, b.id));
+    }
+  }
+  return sent;
 }
