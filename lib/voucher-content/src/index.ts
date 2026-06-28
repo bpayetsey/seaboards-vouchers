@@ -229,7 +229,7 @@ export const MENU_INTRO =
 /** Note explaining that the dessert selection changes each day. */
 export const DESSERT_NOTE = {
   title: "Dessert",
-  text: "Your two-course dinner concludes with dessert. A freshly prepared dessert menu is offered on a daily basis \u2014 ask your server for today's selection.",
+  text: "A freshly prepared dessert menu is offered on a daily basis \u2014 ask your server for today's selection.",
 } as const;
 
 /** Dinner & à la carte menu, grouped by course. */
