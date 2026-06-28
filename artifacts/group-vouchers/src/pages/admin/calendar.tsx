@@ -24,16 +24,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { Ban, CalendarClock, Loader2, Lock, Unlock, Users } from "lucide-react";
 
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function addDays(d: Date, n: number): Date {
-  const copy = new Date(d);
-  copy.setDate(copy.getDate() + n);
-  return copy;
-}
-
 function formatDay(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
     weekday: "short",
@@ -285,15 +275,23 @@ function DayCard({ day, onChanged }: { day: AdminCalendarDay; onChanged: () => v
   );
 }
 
+const MONTHS_AHEAD = 6;
+
 export default function AdminCalendar() {
   const queryClient = useQueryClient();
-  const [weeks, setWeeks] = useState(4);
   const [selected, setSelected] = useState("");
 
   const { from, to } = useMemo(() => {
     const today = new Date();
-    return { from: toISODate(today), to: toISODate(addDays(today, weeks * 7)) };
-  }, [weeks]);
+    // Window spans whole calendar months so staff page month-by-month via the
+    // calendar's own prev/next. Both bounds are formatted from local date
+    // components to avoid a UTC off-by-one on non-UTC clients: `from` is today,
+    // `to` is the last day of the month MONTHS_AHEAD out.
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const end = new Date(today.getFullYear(), today.getMonth() + MONTHS_AHEAD + 1, 0);
+    return { from: fmt(today), to: fmt(end) };
+  }, []);
 
   const { data, isLoading, isError } = useGetAdminCalendar({ from, to });
 
@@ -349,20 +347,6 @@ export default function AdminCalendar() {
       title="Day-Pass Calendar"
       subtitle="Live day-pass availability (max 6 guests/day, closed Tuesdays). Block dates, and reschedule or cancel any booking on a guest's behalf. Admin actions follow the same policy as guests: reschedules need 48h notice and max 2 per booking; cancellations within 24h or after 2 reschedules keep a 25% penalty and convert the remaining 75% to account credit (otherwise the full value becomes credit)."
     >
-      <div className="mb-5 flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Show next</span>
-        {[2, 4, 8].map((w) => (
-          <Button
-            key={w}
-            size="sm"
-            variant={weeks === w ? "default" : "outline"}
-            onClick={() => setWeeks(w)}
-          >
-            {w} weeks
-          </Button>
-        ))}
-      </div>
-
       {isLoading ? (
         <div className="flex min-h-[30vh] items-center justify-center">
           <Spinner className="h-8 w-8 text-primary" />
