@@ -24,6 +24,7 @@ import type {
   AdminCatalogPriceItem,
   AdminCatalogPrices,
   AdminGroupOrders,
+  AdminInbox,
   AdminOrders,
   AdminOverview,
   AdminSession,
@@ -37,13 +38,16 @@ import type {
   DashboardView,
   GalleryImage,
   GalleryImageList,
+  GetAdminInboxParams,
   GetWhatsappContactsParams,
   GroupOrderCreated,
   GroupOrderInput,
   HealthStatus,
   ImportContactsInput,
   ImportContactsResult,
+  InboxUnreadCount,
   IssueVoucherInput,
+  MarkReadBody,
   OkResult,
   OrganiserView,
   PageViewInput,
@@ -1283,6 +1287,313 @@ export const useSweepOrders = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSweepOrdersMutationOptions(options));
+    }
+
+export const getGetAdminInboxUrl = (params?: GetAdminInboxParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/inbox?${stringifiedParams}` : `/api/admin/inbox`
+}
+
+/**
+ * Returns all inbound messages (WhatsApp replies and email replies via SendGrid Inbound Parse), grouped by sender, newest thread first. Optional filters: channel (whatsapp|email) and read state.
+
+ * @summary List inbound messages grouped by sender
+ */
+export const getAdminInbox = async (params?: GetAdminInboxParams, options?: RequestInit): Promise<AdminInbox> => {
+
+  return customFetch<AdminInbox>(getGetAdminInboxUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInboxQueryKey = (params?: GetAdminInboxParams,) => {
+    return [
+    `/api/admin/inbox`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminInboxQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInbox>>, TError = ErrorType<ApiError>>(params?: GetAdminInboxParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInboxQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInbox>>> = ({ signal }) => getAdminInbox(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInbox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInboxQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInbox>>>
+export type GetAdminInboxQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List inbound messages grouped by sender
+ */
+
+export function useGetAdminInbox<TData = Awaited<ReturnType<typeof getAdminInbox>>, TError = ErrorType<ApiError>>(
+ params?: GetAdminInboxParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInboxQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminInboxUnreadCountUrl = () => {
+
+
+
+
+  return `/api/admin/inbox/unread-count`
+}
+
+/**
+ * @summary Count of unread inbound messages
+ */
+export const getAdminInboxUnreadCount = async ( options?: RequestInit): Promise<InboxUnreadCount> => {
+
+  return customFetch<InboxUnreadCount>(getGetAdminInboxUnreadCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInboxUnreadCountQueryKey = () => {
+    return [
+    `/api/admin/inbox/unread-count`
+    ] as const;
+    }
+
+
+export const getGetAdminInboxUnreadCountQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInboxUnreadCount>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInboxUnreadCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInboxUnreadCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInboxUnreadCount>>> = ({ signal }) => getAdminInboxUnreadCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInboxUnreadCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInboxUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInboxUnreadCount>>>
+export type GetAdminInboxUnreadCountQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Count of unread inbound messages
+ */
+
+export function useGetAdminInboxUnreadCount<TData = Awaited<ReturnType<typeof getAdminInboxUnreadCount>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInboxUnreadCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInboxUnreadCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkMessageReadUrl = (messageId: string,) => {
+
+
+
+
+  return `/api/admin/inbox/messages/${messageId}/read`
+}
+
+/**
+ * @summary Mark a single inbound message read or unread
+ */
+export const markMessageRead = async (messageId: string,
+    markReadBody: MarkReadBody, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getMarkMessageReadUrl(messageId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      markReadBody,)
+  }
+);}
+
+
+
+
+export const getMarkMessageReadMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markMessageRead>>, TError,{messageId: string;data: BodyType<MarkReadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markMessageRead>>, TError,{messageId: string;data: BodyType<MarkReadBody>}, TContext> => {
+
+const mutationKey = ['markMessageRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markMessageRead>>, {messageId: string;data: BodyType<MarkReadBody>}> = (props) => {
+          const {messageId,data} = props ?? {};
+
+          return  markMessageRead(messageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkMessageReadMutationResult = NonNullable<Awaited<ReturnType<typeof markMessageRead>>>
+    export type MarkMessageReadMutationBody = BodyType<MarkReadBody>
+    export type MarkMessageReadMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Mark a single inbound message read or unread
+ */
+export const useMarkMessageRead = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markMessageRead>>, TError,{messageId: string;data: BodyType<MarkReadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markMessageRead>>,
+        TError,
+        {messageId: string;data: BodyType<MarkReadBody>},
+        TContext
+      > => {
+      return useMutation(getMarkMessageReadMutationOptions(options));
+    }
+
+export const getMarkThreadReadUrl = (sender: string,) => {
+
+
+
+
+  return `/api/admin/inbox/threads/${sender}/read`
+}
+
+/**
+ * @summary Mark all messages from a sender read or unread
+ */
+export const markThreadRead = async (sender: string,
+    markReadBody: MarkReadBody, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getMarkThreadReadUrl(sender),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      markReadBody,)
+  }
+);}
+
+
+
+
+export const getMarkThreadReadMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markThreadRead>>, TError,{sender: string;data: BodyType<MarkReadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markThreadRead>>, TError,{sender: string;data: BodyType<MarkReadBody>}, TContext> => {
+
+const mutationKey = ['markThreadRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markThreadRead>>, {sender: string;data: BodyType<MarkReadBody>}> = (props) => {
+          const {sender,data} = props ?? {};
+
+          return  markThreadRead(sender,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkThreadReadMutationResult = NonNullable<Awaited<ReturnType<typeof markThreadRead>>>
+    export type MarkThreadReadMutationBody = BodyType<MarkReadBody>
+    export type MarkThreadReadMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Mark all messages from a sender read or unread
+ */
+export const useMarkThreadRead = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markThreadRead>>, TError,{sender: string;data: BodyType<MarkReadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markThreadRead>>,
+        TError,
+        {sender: string;data: BodyType<MarkReadBody>},
+        TContext
+      > => {
+      return useMutation(getMarkThreadReadMutationOptions(options));
     }
 
 export const getGetAdminMeUrl = () => {

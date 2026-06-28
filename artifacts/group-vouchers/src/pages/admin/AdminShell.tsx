@@ -1,5 +1,5 @@
 import { Link, useLocation, Redirect } from "wouter";
-import { useGetAdminMe } from "@workspace/api-client-react";
+import { useGetAdminMe, useGetAdminInboxUnreadCount } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -11,6 +11,7 @@ import {
   Tag,
   Contact,
   MessageCircle,
+  Inbox,
 } from "lucide-react";
 
 const NAV = [
@@ -22,10 +23,22 @@ const NAV = [
   { href: "/admin/gallery", label: "Gallery", icon: Image },
   { href: "/admin/whatsapp/audiences", label: "WA Audiences", icon: Contact },
   { href: "/admin/whatsapp/campaigns", label: "WA Broadcasts", icon: MessageCircle },
+  { href: "/admin/inbox", label: "Inbox", icon: Inbox },
 ];
 
 function AdminNav() {
   const [location] = useLocation();
+  const { data: unreadData } = useGetAdminInboxUnreadCount({
+    query: {
+      refetchInterval: 60_000,
+      staleTime: 30_000,
+      // queryKey is required by the type but orval hooks always supply it internally;
+      // cast avoids the spurious missing-required-property error.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  });
+  const unreadCount = unreadData?.count ?? 0;
+
   return (
     <nav className="flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
       {NAV.map(({ href, label, icon: Icon }) => {
@@ -33,6 +46,7 @@ function AdminNav() {
           href === "/admin"
             ? location === "/admin" || location === "/admin/"
             : location.startsWith(href);
+        const showBadge = href === "/admin/inbox" && unreadCount > 0;
         return (
           <Link
             key={href}
@@ -45,6 +59,11 @@ function AdminNav() {
           >
             <Icon className="h-4 w-4" />
             {label}
+            {showBadge && (
+              <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold leading-none">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </Link>
         );
       })}

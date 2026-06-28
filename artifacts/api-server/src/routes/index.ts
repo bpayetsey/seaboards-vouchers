@@ -10,6 +10,7 @@ import storageRouter from "./storage";
 import galleryRouter from "./gallery";
 import vouchersRouter from "./vouchers";
 import whatsappRouter from "./whatsapp";
+import inboxRouter from "./inbox";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(storageRouter);
 router.use(galleryRouter);
 router.use(vouchersRouter);
 router.use(whatsappRouter);
+router.use(inboxRouter);
 
 export default router;

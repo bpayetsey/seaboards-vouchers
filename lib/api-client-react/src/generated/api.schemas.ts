@@ -1089,6 +1089,74 @@ export interface WhatsappCampaignDetail {
   recipients: WhatsappCampaignRecipient[];
 }
 
+export type InboxMessageChannel = typeof InboxMessageChannel[keyof typeof InboxMessageChannel];
+
+
+export const InboxMessageChannel = {
+  whatsapp: 'whatsapp',
+  email: 'email',
+} as const;
+
+export interface InboxMessage {
+  id: string;
+  channel: InboxMessageChannel;
+  sender: string;
+  /** @nullable */
+  display_name?: string | null;
+  /** @nullable */
+  subject?: string | null;
+  body: string;
+  has_media: boolean;
+  /** @nullable */
+  contact_id?: string | null;
+  read: boolean;
+  received_at: string;
+}
+
+export type InboxThreadChannel = typeof InboxThreadChannel[keyof typeof InboxThreadChannel];
+
+
+export const InboxThreadChannel = {
+  whatsapp: 'whatsapp',
+  email: 'email',
+} as const;
+
+export interface InboxThread {
+  channel: InboxThreadChannel;
+  sender: string;
+  /** @nullable */
+  display_name: string | null;
+  unread_count: number;
+  last_received_at: string;
+  messages: InboxMessage[];
+}
+
+export interface AdminInbox {
+  threads: InboxThread[];
+  total_unread: number;
+}
+
+export interface InboxUnreadCount {
+  count: number;
+}
+
+export interface MarkReadBody {
+  read: boolean;
+}
+
+export type GetAdminInboxParams = {
+channel?: GetAdminInboxChannel;
+unread_only?: boolean;
+};
+
+export type GetAdminInboxChannel = typeof GetAdminInboxChannel[keyof typeof GetAdminInboxChannel];
+
+
+export const GetAdminInboxChannel = {
+  whatsapp: 'whatsapp',
+  email: 'email',
+} as const;
+
 export type GetWhatsappContactsParams = {
 search?: string;
 audienceId?: string;

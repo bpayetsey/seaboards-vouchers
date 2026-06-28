@@ -433,6 +433,80 @@ export const SweepOrdersResponse = zod.object({
 
 
 /**
+ * Returns all inbound messages (WhatsApp replies and email replies via SendGrid Inbound Parse), grouped by sender, newest thread first. Optional filters: channel (whatsapp|email) and read state.
+
+ * @summary List inbound messages grouped by sender
+ */
+export const GetAdminInboxQueryParams = zod.object({
+  "channel": zod.enum(['whatsapp', 'email']).optional(),
+  "unread_only": zod.coerce.boolean().optional()
+})
+
+export const GetAdminInboxResponse = zod.object({
+  "threads": zod.array(zod.object({
+  "channel": zod.enum(['whatsapp', 'email']),
+  "sender": zod.string(),
+  "display_name": zod.string().nullable(),
+  "unread_count": zod.number(),
+  "last_received_at": zod.string(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "channel": zod.enum(['whatsapp', 'email']),
+  "sender": zod.string(),
+  "display_name": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "body": zod.string(),
+  "has_media": zod.boolean(),
+  "contact_id": zod.string().nullish(),
+  "read": zod.boolean(),
+  "received_at": zod.string()
+}))
+})),
+  "total_unread": zod.number()
+})
+
+
+/**
+ * @summary Count of unread inbound messages
+ */
+export const GetAdminInboxUnreadCountResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Mark a single inbound message read or unread
+ */
+export const MarkMessageReadParams = zod.object({
+  "messageId": zod.coerce.string()
+})
+
+export const MarkMessageReadBody = zod.object({
+  "read": zod.boolean()
+})
+
+export const MarkMessageReadResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Mark all messages from a sender read or unread
+ */
+export const MarkThreadReadParams = zod.object({
+  "sender": zod.coerce.string()
+})
+
+export const MarkThreadReadBody = zod.object({
+  "read": zod.boolean()
+})
+
+export const MarkThreadReadResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * Returns the staff member's email when the Clerk session belongs to an allow-listed staff email; 403 otherwise.
  * @summary Confirm the signed-in user is approved staff
  */

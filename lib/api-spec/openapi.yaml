@@ -438,6 +438,148 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SweepResult"
+  /admin/inbox:
+    get:
+      operationId: getAdminInbox
+      tags: [admin]
+      summary: List inbound messages grouped by sender
+      description: >
+        Returns all inbound messages (WhatsApp replies and email replies via
+        SendGrid Inbound Parse), grouped by sender, newest thread first.
+        Optional filters: channel (whatsapp|email) and read state.
+      parameters:
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [whatsapp, email]
+        - name: unread_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Inbox threads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInbox"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/inbox/unread-count:
+    get:
+      operationId: getAdminInboxUnreadCount
+      tags: [admin]
+      summary: Count of unread inbound messages
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxUnreadCount"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/inbox/messages/{messageId}/read:
+    patch:
+      operationId: markMessageRead
+      tags: [admin]
+      summary: Mark a single inbound message read or unread
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkReadBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/inbox/threads/{sender}/read:
+    patch:
+      operationId: markThreadRead
+      tags: [admin]
+      summary: Mark all messages from a sender read or unread
+      parameters:
+        - name: sender
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkReadBody"
+      responses:
+        "200":
+          description: Updated count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/me:
     get:
       operationId: getAdminMe
@@ -3141,3 +3283,69 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WhatsappCampaignRecipient"
+    InboxMessage:
+      type: object
+      required: [id, channel, sender, body, has_media, read, received_at]
+      properties:
+        id:
+          type: string
+        channel:
+          type: string
+          enum: [whatsapp, email]
+        sender:
+          type: string
+        display_name:
+          type: ["string", "null"]
+        subject:
+          type: ["string", "null"]
+        body:
+          type: string
+        has_media:
+          type: boolean
+        contact_id:
+          type: ["string", "null"]
+        read:
+          type: boolean
+        received_at:
+          type: string
+    InboxThread:
+      type: object
+      required: [channel, sender, display_name, unread_count, last_received_at, messages]
+      properties:
+        channel:
+          type: string
+          enum: [whatsapp, email]
+        sender:
+          type: string
+        display_name:
+          type: ["string", "null"]
+        unread_count:
+          type: integer
+        last_received_at:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboxMessage"
+    AdminInbox:
+      type: object
+      required: [threads, total_unread]
+      properties:
+        threads:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboxThread"
+        total_unread:
+          type: integer
+    InboxUnreadCount:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+    MarkReadBody:
+      type: object
+      required: [read]
+      properties:
+        read:
+          type: boolean

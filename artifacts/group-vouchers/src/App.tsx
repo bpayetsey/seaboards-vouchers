@@ -25,6 +25,7 @@ import AdminPricing from "@/pages/admin/pricing";
 import AdminGallery from "@/pages/admin/gallery";
 import AdminWhatsappAudiences from "@/pages/admin/whatsapp-audiences";
 import AdminWhatsappCampaigns from "@/pages/admin/whatsapp-campaigns";
+import { AdminInbox } from "@/pages/admin/inbox";
 
 const queryClient = new QueryClient();
 
@@ -271,6 +272,11 @@ function Router() {
       <Route path="/admin/whatsapp/campaigns">
         <ProtectedAdmin>
           <AdminWhatsappCampaigns />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/inbox">
+        <ProtectedAdmin>
+          <AdminInbox />
         </ProtectedAdmin>
       </Route>
       <Route path="/sign-in/*?" component={SignInPage} />

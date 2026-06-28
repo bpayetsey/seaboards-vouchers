@@ -17,6 +17,7 @@ import {
   whatsappAudienceMembers,
   whatsappCampaigns,
   whatsappMessages,
+  inboundMessages,
 } from "@workspace/db";
 import { logger } from "./logger";
 import { normalizePhone } from "./phone";
@@ -1029,12 +1030,47 @@ async function applyStatusUpdate(status: WebhookStatus): Promise<void> {
 
 async function applyInboundMessage(inbound: WebhookInbound): Promise<void> {
   if (!inbound.from) return;
-  const text = inbound.text?.body?.trim().toLowerCase() ?? "";
-  if (!text) return;
-  const firstWord = text.split(/\s+/)[0];
-  if (!STOP_KEYWORDS.has(firstWord)) return;
 
   // Meta sends `from` as digits without a leading '+'. Our contacts are E.164.
   const phone = inbound.from.startsWith("+") ? inbound.from : `+${inbound.from}`;
-  await optOutByPhone(phone);
+
+  const rawText = inbound.text?.body ?? "";
+  const normalizedText = rawText.trim().toLowerCase();
+
+  // STOP keyword handling — must still opt the contact out as before.
+  if (normalizedText) {
+    const firstWord = normalizedText.split(/\s+/)[0];
+    if (STOP_KEYWORDS.has(firstWord)) {
+      await optOutByPhone(phone);
+    }
+  }
+
+  // Resolve an existing WhatsApp contact so the inbox can link to it.
+  const [contact] = await db
+    .select({ id: whatsappContacts.id, name: whatsappContacts.name })
+    .from(whatsappContacts)
+    .where(eq(whatsappContacts.phone, phone))
+    .limit(1);
+
+  // Only record text messages (type === "text" or no type). Media-only
+  // messages (image, audio, video, document, sticker) are noted but body is
+  // left empty; we flag hasMedia so staff can see something arrived.
+  const isMedia =
+    !!inbound.type &&
+    inbound.type !== "text" &&
+    inbound.type !== "button" &&
+    inbound.type !== "interactive";
+
+  const body = rawText.slice(0, 10_000);
+
+  await db.insert(inboundMessages).values({
+    channel: "whatsapp",
+    sender: phone,
+    displayName: contact?.name ?? null,
+    body,
+    hasMedia: isMedia,
+    contactId: contact?.id ?? null,
+    read: false,
+    receivedAt: new Date(),
+  });
 }
