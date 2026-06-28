@@ -1,3 +1,5 @@
+import { and, eq, isNull } from "drizzle-orm";
+import { db, storeInstallments } from "@workspace/db";
 import type { StoreOrder, StoreInstallment } from "@workspace/db";
 import { RESORT } from "@workspace/voucher-content";
 import { logger } from "./logger";
@@ -61,6 +63,24 @@ function dashboardCta(): { html: string; text: string } {
     <a href="${url}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:bold;">Access your dashboard</a>
   </div>`;
   const text = `\n\nTrack all your vouchers, payments and receipts: ${url}`;
+  return { html, text };
+}
+
+/**
+ * "Re-confirm your payment" CTA for the action-required email. Links the buyer
+ * to their dashboard, where signing in and pressing "Pay now" on the instalment
+ * runs the off-session charge again so their bank can complete the required
+ * verification. Omitted when no base URL is available (broken-link guard).
+ */
+function reconfirmCta(): { html: string; text: string } {
+  const base = appBaseUrl();
+  if (!base) return { html: "", text: "" };
+  const url = `${base}/dashboard`;
+  const html = `<div style="margin-top:24px;">
+    <a href="${url}" style="display:inline-block;background:${GOLD};color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:bold;">Re-confirm your payment</a>
+    <p style="margin:12px 0 0;font-size:13px;color:#9aa0a6;">Sign in to your dashboard and choose “Pay now” on the instalment to complete the verification.</p>
+  </div>`;
+  const text = `\n\nRe-confirm your payment: ${url}\nSign in to your dashboard and choose "Pay now" on the instalment to complete the verification.`;
   return { html, text };
 }
 
@@ -145,25 +165,63 @@ export async function sendActionRequiredEmail(
   order: StoreOrder,
   inst: StoreInstallment,
 ): Promise<void> {
-  const cta = dashboardCta();
+  // De-dup: claim the one-time send slot so a retrying charge job (daily job,
+  // advance pay, or staff retry) emails at most once per instalment, not every
+  // run. The conditional UPDATE means the loser of the race sends nothing.
+  const [claimed] = await db
+    .update(storeInstallments)
+    .set({ actionRequiredEmailedAt: new Date() })
+    .where(
+      and(
+        eq(storeInstallments.id, inst.id),
+        isNull(storeInstallments.actionRequiredEmailedAt),
+      ),
+    )
+    .returning({ id: storeInstallments.id });
+  if (!claimed) return;
+
+  const reconfirm = reconfirmCta();
   const html = emailShell(
     "Action needed for your payment",
     `<p style="font-size:15px;">Your bank needs to confirm instalment ${inst.number} of your ${RESORT.offerTitle} payment plan.</p>
-     <p style="font-size:14px;color:#6B7280;">Please complete the verification so we can process your payment. If you've already done this, you can ignore this message.</p>${cta.html}`,
+     <p style="font-size:14px;color:#6B7280;">Please complete the verification so we can process your payment. If you've already done this, you can ignore this message.</p>${reconfirm.html}`,
   );
-  const text = `Your bank needs to confirm instalment ${inst.number} of your ${RESORT.offerTitle} payment plan. Please complete the verification so we can process your payment.${cta.text}`;
-  await sendBestEffort({
+  const text = `Your bank needs to confirm instalment ${inst.number} of your ${RESORT.offerTitle} payment plan. Please complete the verification so we can process your payment.${reconfirm.text}`;
+  const delivered = await sendBestEffort({
     to: order.buyerEmail,
     subject: `Action needed — ${RESORT.offerTitle} payment`,
     html,
     text,
   });
+  if (!delivered) {
+    // Release the claim so a later run can re-attempt the notice.
+    await db
+      .update(storeInstallments)
+      .set({ actionRequiredEmailedAt: null })
+      .where(eq(storeInstallments.id, inst.id));
+  }
 }
 
 export async function sendPaymentFailedEmail(
   order: StoreOrder,
   inst: StoreInstallment,
 ): Promise<void> {
+  // De-dup: claim the one-time send slot so the daily charge job (which retries
+  // `failed` instalments every run) emails at most once per instalment rather
+  // than on every retry. The conditional UPDATE means a concurrent retry that
+  // loses the race sends nothing.
+  const [claimed] = await db
+    .update(storeInstallments)
+    .set({ failedEmailedAt: new Date() })
+    .where(
+      and(
+        eq(storeInstallments.id, inst.id),
+        isNull(storeInstallments.failedEmailedAt),
+      ),
+    )
+    .returning({ id: storeInstallments.id });
+  if (!claimed) return;
+
   const cta = dashboardCta();
   const html = emailShell(
     "We couldn't process your payment",
@@ -171,10 +229,17 @@ export async function sendPaymentFailedEmail(
      <p style="font-size:14px;color:#6B7280;">We'll try again automatically. To avoid delays, please check that your card details are up to date.</p>${cta.html}`,
   );
   const text = `Instalment ${inst.number} of your ${RESORT.offerTitle} payment plan didn't go through. We'll try again automatically. Please check that your card details are up to date.${cta.text}`;
-  await sendBestEffort({
+  const delivered = await sendBestEffort({
     to: order.buyerEmail,
     subject: `Payment issue — ${RESORT.offerTitle}`,
     html,
     text,
   });
+  if (!delivered) {
+    // Release the claim so a later run can re-attempt the notice.
+    await db
+      .update(storeInstallments)
+      .set({ failedEmailedAt: null })
+      .where(eq(storeInstallments.id, inst.id));
+  }
 }

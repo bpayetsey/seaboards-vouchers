@@ -66,6 +66,15 @@ export const storeInstallments = pgTable(
     // the daily charge job's webhook or a client's advance payment), so the two
     // paths never double-send.
     receiptEmailedAt: timestamp("receipt_emailed_at", { withTimezone: true }),
+    // Idempotency claims for the instalment-lifecycle notices ("payment failed"
+    // and "action required"). Set the first time each notice is emailed for this
+    // instalment so a retrying charge job (daily job, advance pay, or staff
+    // retry) never re-emails on every run; on a delivery failure the claim is
+    // released so a later attempt can re-send.
+    failedEmailedAt: timestamp("failed_emailed_at", { withTimezone: true }),
+    actionRequiredEmailedAt: timestamp("action_required_emailed_at", {
+      withTimezone: true,
+    }),
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
