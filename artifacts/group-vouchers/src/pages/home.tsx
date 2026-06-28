@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
@@ -26,6 +26,7 @@ import type {
   StorefrontDayPass,
   GroupOrderCreated,
   SplitConfigApartmentType,
+  DayAvailability,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import {
   downloadVoucherPdf,
@@ -43,6 +50,7 @@ import {
   Check,
   CreditCard,
   CalendarClock,
+  Calendar as CalendarIcon,
   Lock,
   ArrowLeft,
   Users,
@@ -81,6 +89,17 @@ function addDaysISO(iso: string, days: number) {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+function isoToDate(iso: string) {
+  return new Date(iso + "T00:00:00");
+}
+
+function dateToISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function formatVisitDay(iso: string) {
@@ -300,6 +319,25 @@ function Storefront({ config }: { config: StorefrontConfig }) {
       queryKey: getGetDayPassAvailabilityQueryKey(availParams),
     },
   });
+  const availByDate = useMemo(() => {
+    const map = new Map<string, DayAvailability>();
+    for (const d of availability.data?.days ?? []) map.set(d.date, d);
+    return map;
+  }, [availability.data]);
+  const isDayDisabled = (date: Date) => {
+    const iso = dateToISO(date);
+    if (iso < availFrom || iso > availTo) return true;
+    const day = availByDate.get(iso);
+    if (!day) return true;
+    return !day.bookable;
+  };
+
+  useEffect(() => {
+    if (!visitDate || giftLater) return;
+    if (!availability.isSuccess) return;
+    const day = availByDate.get(visitDate);
+    if (!day || !day.bookable) setVisitDate("");
+  }, [availByDate, availability.isSuccess, visitDate, giftLater]);
 
   const dashboard = useGetDashboard({
     query: {
@@ -355,6 +393,19 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         variant: "destructive",
       });
       return;
+    }
+    if (datablePass && !giftLater && visitDate) {
+      const day = availByDate.get(visitDate);
+      if (!day || !day.bookable) {
+        setVisitDate("");
+        toast({
+          title: "That day isn't available",
+          description:
+            "The day you picked is no longer bookable for your group. Please choose another available date.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     createOrder.mutate(
       {
@@ -799,23 +850,45 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   We welcome up to 6 guests a day and are closed on Tuesdays.
-                  Pick an available day below.
+                  Greyed-out days are closed, blocked or fully booked.
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Input
-                    type="date"
-                    min={todayISODate()}
-                    max={availTo}
-                    value={visitDate}
-                    disabled={giftLater}
-                    onChange={(e) => setVisitDate(e.target.value)}
-                    className="h-10 w-auto"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={giftLater}
+                        className={`h-10 w-auto justify-start text-left font-normal ${
+                          !visitDate ? "text-muted-foreground" : ""
+                        }`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {visitDate
+                          ? formatVisitDay(visitDate)
+                          : "Pick a visit date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={visitDate ? isoToDate(visitDate) : undefined}
+                        onSelect={(date) =>
+                          setVisitDate(date ? dateToISO(date) : "")
+                        }
+                        disabled={isDayDisabled}
+                        defaultMonth={
+                          visitDate ? isoToDate(visitDate) : isoToDate(availFrom)
+                        }
+                        startMonth={isoToDate(availFrom)}
+                        endMonth={isoToDate(availTo)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {visitDate && !giftLater ? (
                     (() => {
-                      const day = availability.data?.days.find(
-                        (d) => d.date === visitDate,
-                      );
+                      const day = availByDate.get(visitDate);
                       if (!day) return null;
                       if (!day.bookable) {
                         return (
@@ -824,13 +897,13 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                               ? day.blocked_reason || "Unavailable that day"
                               : day.closed
                                 ? "Closed that day"
-                                : `Only ${day.remaining} place${day.remaining === 1 ? "" : "s"} left`}
+                                : "Fully booked — choose another day"}
                           </span>
                         );
                       }
                       return (
                         <span className="text-xs font-medium text-primary">
-                          {formatVisitDay(day.date)} · {day.remaining} place
+                          {day.remaining} place
                           {day.remaining === 1 ? "" : "s"} left
                         </span>
                       );
