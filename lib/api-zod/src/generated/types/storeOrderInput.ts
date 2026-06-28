@@ -22,10 +22,15 @@ export interface StoreOrderInput {
      */
   nights?: number | null;
   /**
-     * Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+     * Number of adults for a per_person day pass (>= 1); ignored for flat passes which cover includedAdults
      * @nullable
      */
-  guests?: number | null;
+  adults?: number | null;
+  /**
+     * Number of children (ages childAges) for a day pass, priced at childRate (0..maxChildren)
+     * @nullable
+     */
+  children?: number | null;
   /**
      * Day pass room extension add-on (where offered)
      * @nullable

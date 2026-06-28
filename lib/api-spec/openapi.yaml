@@ -1964,7 +1964,18 @@ components:
           description: Flat add-on price in the storefront currency
     StorefrontDayPass:
       type: object
-      required: [id, name, pricing, rate, unit, maxGuests, hours, desc, feat]
+      required:
+        - id
+        - name
+        - pricing
+        - rate
+        - unit
+        - maxGuests
+        - childRate
+        - childAges
+        - hours
+        - desc
+        - feat
       properties:
         id:
           type: string
@@ -1975,12 +1986,25 @@ components:
           enum: [flat, per_person]
         rate:
           type: number
-          description: Flat price (flat) or per-guest price (per_person)
+          description: Flat price covering includedAdults (flat) or per-adult price (per_person)
         unit:
           type: string
           description: Price unit label shown to buyers (e.g. room, person, adult)
         maxGuests:
           type: integer
+          description: Maximum party size (adults + children)
+        childRate:
+          type: number
+          description: Per-child price (ages childAges), includes a kids-menu meal
+        childAges:
+          type: string
+          description: Human-readable child age band, e.g. "2–10 years"
+        includedAdults:
+          type: integer
+          description: Flat passes only — how many adults the flat rate covers
+        maxChildren:
+          type: integer
+          description: Maximum number of children a single pass covers
         hours:
           type: string
         desc:
@@ -2041,9 +2065,12 @@ components:
         nights:
           type: ["integer", "null"]
           description: Number of nights for an apartment order (must be >= the item's minNights)
-        guests:
+        adults:
           type: ["integer", "null"]
-          description: Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+          description: Number of adults for a per_person day pass (>= 1); ignored for flat passes which cover includedAdults
+        children:
+          type: ["integer", "null"]
+          description: Number of children (ages childAges) for a day pass, priced at childRate (0..maxChildren)
         extension:
           type: ["boolean", "null"]
           description: Day pass room extension add-on (where offered)

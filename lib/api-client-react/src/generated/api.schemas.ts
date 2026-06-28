@@ -319,11 +319,20 @@ export interface StorefrontDayPass {
   id: string;
   name: string;
   pricing: StorefrontDayPassPricing;
-  /** Flat price (flat) or per-guest price (per_person) */
+  /** Flat price covering includedAdults (flat) or per-adult price (per_person) */
   rate: number;
   /** Price unit label shown to buyers (e.g. room, person, adult) */
   unit: string;
+  /** Maximum party size (adults + children) */
   maxGuests: number;
+  /** Per-child price (ages childAges), includes a kids-menu meal */
+  childRate: number;
+  /** Human-readable child age band, e.g. "2–10 years" */
+  childAges: string;
+  /** Flat passes only — how many adults the flat rate covers */
+  includedAdults?: number;
+  /** Maximum number of children a single pass covers */
+  maxChildren?: number;
   hours: string;
   desc: string;
   feat: string[];
@@ -366,10 +375,15 @@ export interface StoreOrderInput {
      */
   nights?: number | null;
   /**
-     * Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+     * Number of adults for a per_person day pass (>= 1); ignored for flat passes which cover includedAdults
      * @nullable
      */
-  guests?: number | null;
+  adults?: number | null;
+  /**
+     * Number of children (ages childAges) for a day pass, priced at childRate (0..maxChildren)
+     * @nullable
+     */
+  children?: number | null;
   /**
      * Day pass room extension add-on (where offered)
      * @nullable

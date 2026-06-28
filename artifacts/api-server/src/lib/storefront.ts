@@ -60,7 +60,8 @@ interface CreateOrderInput {
   type?: string;
   amount?: number | null;
   nights?: number | null;
-  guests?: number | null;
+  adults?: number | null;
+  children?: number | null;
   extension?: boolean | null;
   plan?: string | null;
   name: string;
@@ -79,7 +80,8 @@ export async function createStoreOrder(
     type = "package",
     amount,
     nights,
-    guests,
+    adults,
+    children,
     extension,
     plan,
     name,
@@ -95,7 +97,8 @@ export async function createStoreOrder(
     type,
     amount: amount ?? undefined,
     nights: nights ?? undefined,
-    guests: guests ?? undefined,
+    adults: adults ?? undefined,
+    children: children ?? undefined,
     extension: extension ?? undefined,
   });
   if (total === null) return { error: "invalid_selection" };
@@ -103,7 +106,8 @@ export async function createStoreOrder(
     productId: product_id ?? undefined,
     type,
     nights: nights ?? undefined,
-    guests: guests ?? undefined,
+    adults: adults ?? undefined,
+    children: children ?? undefined,
     extension: extension ?? undefined,
   });
 

@@ -242,7 +242,8 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [nights, setNights] = useState(1);
-  const [dayGuests, setDayGuests] = useState(1);
+  const [dayAdults, setDayAdults] = useState(1);
+  const [dayChildren, setDayChildren] = useState(0);
   const [dayExtension, setDayExtension] = useState(false);
   const [giftAmount, setGiftAmount] = useState<string>("");
   const [plan, setPlan] = useState<"full" | "instalments" | "split">("full");
@@ -261,8 +262,9 @@ function Storefront({ config }: { config: StorefrontConfig }) {
       : selection.kind === "gift"
         ? selection.amount
         : (selection.option.pricing === "per_person"
-            ? selection.option.rate * dayGuests
+            ? selection.option.rate * dayAdults
             : selection.option.rate) +
+          dayChildren * selection.option.childRate +
           (dayExtension && selection.option.extension
             ? selection.option.extension.price
             : 0)
@@ -294,7 +296,12 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 : undefined,
           amount: selection.kind === "gift" ? selection.amount : undefined,
           nights: selection.kind === "package" ? nights : undefined,
-          guests: selection.kind === "day_pass" ? dayGuests : undefined,
+          adults:
+            selection.kind === "day_pass" &&
+            selection.option.pricing === "per_person"
+              ? dayAdults
+              : undefined,
+          children: selection.kind === "day_pass" ? dayChildren : undefined,
           extension:
             selection.kind === "day_pass" ? dayExtension : undefined,
           plan: plan === "instalments" ? String(config.instalments) : undefined,
@@ -495,8 +502,9 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           Day Passes
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
-          Spend the day at The Seaboards — pool, dining and more. Max 6 guests,
-          including children.
+          Spend the day at The Seaboards — pool, dining and more. To keep it
+          intimate, a maximum of 6 guests at a time. Children 2–10 yrs are SCR
+          295 (incl. a kids-menu meal); ages 11+ pay the adult rate.
         </p>
         <div className="grid sm:grid-cols-3 gap-5">
           {config.day_passes.map((opt) => {
@@ -508,7 +516,8 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                 type="button"
                 onClick={() => {
                   setSelection({ kind: "day_pass", option: opt });
-                  setDayGuests(1);
+                  setDayAdults(opt.includedAdults ?? 1);
+                  setDayChildren(0);
                   setDayExtension(false);
                 }}
                 className={`text-left rounded-xl border-2 p-5 transition-all flex flex-col ${
@@ -557,51 +566,17 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
         {selection?.kind === "day_pass" && (
           <div className="mt-5 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="font-serif text-lg text-primary">
-                  How many guests?
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {selection.option.pricing === "per_person"
-                    ? `${money(symbol, selection.option.rate)} per ${selection.option.unit} · up to ${selection.option.maxGuests}`
-                    : `Flat rate for the ${selection.option.unit} · up to ${selection.option.maxGuests} guests`}
-                </p>
-              </div>
-              <div className="flex items-center gap-5">
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full"
-                    aria-label="Fewer guests"
-                    disabled={dayGuests <= 1}
-                    onClick={() => setDayGuests((g) => Math.max(1, g - 1))}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span
-                    className="w-10 text-center text-2xl font-extrabold text-primary tabular-nums"
-                    aria-live="polite"
-                  >
-                    {dayGuests}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full"
-                    aria-label="More guests"
-                    disabled={dayGuests >= selection.option.maxGuests}
-                    onClick={() =>
-                      setDayGuests((g) =>
-                        Math.min(selection.option.maxGuests, g + 1),
-                      )
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <div className="font-serif text-lg text-primary">
+                    Who's coming?
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {selection.option.pricing === "per_person"
+                      ? `${money(symbol, selection.option.rate)} per ${selection.option.unit} · max ${selection.option.maxGuests} guests`
+                      : `Flat rate for ${selection.option.includedAdults ?? 2} adults · add up to ${selection.option.maxChildren ?? 0} children`}
+                  </p>
                 </div>
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -609,6 +584,109 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                   </div>
                   <div className="text-2xl font-extrabold text-primary tabular-nums">
                     {money(symbol, total)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-background/60 p-3">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Adults
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {selection.option.pricing === "per_person"
+                        ? `${money(symbol, selection.option.rate)} each (ages 11+)`
+                        : `${selection.option.includedAdults ?? 2} included`}
+                    </div>
+                  </div>
+                  {selection.option.pricing === "per_person" ? (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        aria-label="Fewer adults"
+                        disabled={dayAdults <= 1}
+                        onClick={() => setDayAdults((a) => Math.max(1, a - 1))}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span
+                        className="w-8 text-center text-xl font-extrabold text-primary tabular-nums"
+                        aria-live="polite"
+                      >
+                        {dayAdults}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        aria-label="More adults"
+                        disabled={
+                          dayAdults + dayChildren >= selection.option.maxGuests
+                        }
+                        onClick={() => setDayAdults((a) => a + 1)}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-xl font-extrabold text-primary tabular-nums">
+                      {selection.option.includedAdults ?? 2}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border bg-background/60 p-3">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Children
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {money(symbol, selection.option.childRate)} each (
+                      {selection.option.childAges})
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-full"
+                      aria-label="Fewer children"
+                      disabled={dayChildren <= 0}
+                      onClick={() => setDayChildren((c) => Math.max(0, c - 1))}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span
+                      className="w-8 text-center text-xl font-extrabold text-primary tabular-nums"
+                      aria-live="polite"
+                    >
+                      {dayChildren}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-full"
+                      aria-label="More children"
+                      disabled={
+                        (selection.option.maxChildren != null &&
+                          dayChildren >= selection.option.maxChildren) ||
+                        (selection.option.pricing === "per_person"
+                          ? dayAdults
+                          : (selection.option.includedAdults ?? 2)) +
+                          dayChildren >=
+                          selection.option.maxGuests
+                      }
+                      onClick={() => setDayChildren((c) => c + 1)}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </div>

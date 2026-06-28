@@ -100,13 +100,24 @@ export interface DayPassExtension {
 export interface DayPassOption {
   id: string;
   name: string;
-  /** "flat" = one price for the whole party; "per_person" = price × guests. */
+  /**
+   * "flat" = one price covering `includedAdults`; "per_person" = adult rate × adults.
+   * Children (ages childAges) are always priced at `childRate` on top.
+   */
   pricing: "flat" | "per_person";
   rate: number;
   /** Label for the price unit shown to buyers (e.g. "room", "person", "adult"). */
   unit: string;
-  /** Maximum party size (including children) a single pass covers. */
+  /** Maximum party size (adults + children) a single pass covers. */
   maxGuests: number;
+  /** Per-child price (ages childAges), includes a kids-menu meal. */
+  childRate: number;
+  /** Human-readable child age band, e.g. "2–10 years". */
+  childAges: string;
+  /** Flat passes only: how many adults the flat `rate` covers (e.g. room = 2). */
+  includedAdults?: number;
+  /** Maximum number of children a single pass covers. */
+  maxChildren?: number;
   /** Human-readable access window, e.g. "09:00 – 14:30". */
   hours: string;
   desc: string;
@@ -119,8 +130,9 @@ export interface DayPassOption {
  * Day Passes are fixed-price, same-day experiences sold as vouchers. They reuse
  * the storefront order → Stripe → voucher pipeline (no DB migration: prices are
  * server-authoritative here and the issued voucher simply carries the paid
- * value). Flat passes charge one price for the party; per-person passes multiply
- * by the guest count, up to each option's maxGuests.
+ * value). Flat passes charge one price covering the included adults; per-person
+ * passes charge the adult rate per adult. Children (ages childAges) are priced at
+ * childRate on top of either, up to each option's maxGuests / maxChildren.
  */
 export const DAY_PASSES: DayPassOption[] = [
   {
@@ -129,7 +141,11 @@ export const DAY_PASSES: DayPassOption[] = [
     pricing: "flat",
     rate: 1950,
     unit: "room",
-    maxGuests: 2,
+    includedAdults: 2,
+    maxChildren: 2,
+    maxGuests: 4,
+    childRate: 295,
+    childAges: "2–10 years",
     hours: "09:00 – 14:30",
     desc: "A private One-Bedroom room for the day with breakfast and lunch — perfect for a couple's island escape.",
     feat: [
@@ -137,7 +153,8 @@ export const DAY_PASSES: DayPassOption[] = [
       "À la carte breakfast",
       "Lunch — 1 main course per person",
       "Pool & day-bed access",
-      "For 2 guests",
+      "For 2 adults",
+      "Add up to 2 children (2–10 yrs) at SCR 295 each, incl. kids-menu meal",
     ],
     extension: { label: "Extend the room until 18:00", price: 585 },
   },
@@ -148,6 +165,8 @@ export const DAY_PASSES: DayPassOption[] = [
     rate: 795,
     unit: "person",
     maxGuests: 6,
+    childRate: 295,
+    childAges: "2–10 years",
     hours: "09:00 – 16:00",
     desc: "Breakfast and lunch with full pool and day-bed access — no room.",
     feat: [
@@ -155,18 +174,25 @@ export const DAY_PASSES: DayPassOption[] = [
       "À la carte breakfast",
       "Lunch",
       "Pool & day-bed access",
+      "Children (2–10 yrs): SCR 295 each, incl. kids-menu meal",
     ],
   },
   {
     id: "day-pass-pool",
     name: "Day Pass — Pool & Lunch",
     pricing: "per_person",
-    rate: 500,
+    rate: 550,
     unit: "adult",
     maxGuests: 6,
+    childRate: 295,
+    childAges: "2–10 years",
     hours: "Daytime",
     desc: "Pool and day-bed access with lunch included — the easy way to spend a day at The Seaboards.",
-    feat: ["Pool & day-bed access", "Lunch included"],
+    feat: [
+      "Pool & day-bed access",
+      "Lunch included",
+      "Children (2–10 yrs): SCR 295 each, incl. kids-menu meal",
+    ],
   },
 ];
 
@@ -202,14 +228,16 @@ export async function priceFor({
   type,
   amount,
   nights,
-  guests,
+  adults,
+  children,
   extension,
 }: {
   productId?: string;
   type?: string;
   amount?: number;
   nights?: number;
-  guests?: number;
+  adults?: number;
+  children?: number;
   extension?: boolean;
 }): Promise<number | null> {
   if (type === "gift") {
@@ -220,9 +248,21 @@ export async function priceFor({
   if (type === "day_pass") {
     const opt = getDayPass(productId);
     if (!opt) return null;
-    const g = Number(guests);
-    if (!Number.isInteger(g) || g < 1 || g > opt.maxGuests) return null;
-    let total = opt.pricing === "per_person" ? opt.rate * g : opt.rate;
+    const kids = Number(children ?? 0);
+    if (!Number.isInteger(kids) || kids < 0) return null;
+    if (opt.maxChildren != null && kids > opt.maxChildren) return null;
+    let pax: number;
+    let total: number;
+    if (opt.pricing === "flat") {
+      pax = opt.includedAdults ?? 1;
+      total = opt.rate;
+    } else {
+      pax = Number(adults);
+      if (!Number.isInteger(pax) || pax < 1) return null;
+      total = opt.rate * pax;
+    }
+    if (pax + kids < 1 || pax + kids > opt.maxGuests) return null;
+    total += kids * opt.childRate;
     if (extension && opt.extension) total += opt.extension.price;
     return Math.round(total * 100) / 100;
   }
@@ -238,13 +278,15 @@ export function nameFor({
   productId,
   type,
   nights,
-  guests,
+  adults,
+  children,
   extension,
 }: {
   productId?: string;
   type?: string;
   nights?: number;
-  guests?: number;
+  adults?: number;
+  children?: number;
   extension?: boolean;
 }): string {
   if (type === "gift") return GIFT.name;
@@ -252,10 +294,16 @@ export function nameFor({
     const opt = getDayPass(productId);
     if (!opt) return "Day Pass";
     let name = opt.name;
-    const g = Number(guests);
-    if (opt.pricing === "per_person" && Number.isInteger(g) && g > 0) {
-      name += ` — ${g} guest${g === 1 ? "" : "s"}`;
+    const pax = opt.pricing === "flat" ? (opt.includedAdults ?? 1) : Number(adults);
+    const kids = Number(children ?? 0);
+    const parts: string[] = [];
+    if (Number.isInteger(pax) && pax > 0) {
+      parts.push(`${pax} adult${pax === 1 ? "" : "s"}`);
     }
+    if (Number.isInteger(kids) && kids > 0) {
+      parts.push(`${kids} child${kids === 1 ? "" : "ren"}`);
+    }
+    if (parts.length) name += ` — ${parts.join(", ")}`;
     if (extension && opt.extension) name += " + room extension to 18:00";
     return name;
   }
