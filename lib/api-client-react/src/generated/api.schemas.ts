@@ -301,6 +301,35 @@ export interface StorefrontGift {
   min: number;
 }
 
+export interface StorefrontDayPassExtension {
+  label: string;
+  /** Flat add-on price in the storefront currency */
+  price: number;
+}
+
+export type StorefrontDayPassPricing = typeof StorefrontDayPassPricing[keyof typeof StorefrontDayPassPricing];
+
+
+export const StorefrontDayPassPricing = {
+  flat: 'flat',
+  per_person: 'per_person',
+} as const;
+
+export interface StorefrontDayPass {
+  id: string;
+  name: string;
+  pricing: StorefrontDayPassPricing;
+  /** Flat price (flat) or per-guest price (per_person) */
+  rate: number;
+  /** Price unit label shown to buyers (e.g. room, person, adult) */
+  unit: string;
+  maxGuests: number;
+  hours: string;
+  desc: string;
+  feat: string[];
+  extension?: StorefrontDayPassExtension;
+}
+
 export interface StorefrontConfig {
   publishable_key: string;
   payments_enabled: boolean;
@@ -310,6 +339,7 @@ export interface StorefrontConfig {
   interval_days: number;
   catalog: StorefrontCatalogItem[];
   gift: StorefrontGift;
+  day_passes: StorefrontDayPass[];
 }
 
 export type StoreOrderInputType = typeof StoreOrderInputType[keyof typeof StoreOrderInputType];
@@ -318,6 +348,7 @@ export type StoreOrderInputType = typeof StoreOrderInputType[keyof typeof StoreO
 export const StoreOrderInputType = {
   package: 'package',
   gift: 'gift',
+  day_pass: 'day_pass',
 } as const;
 
 export interface StoreOrderInput {
@@ -334,6 +365,16 @@ export interface StoreOrderInput {
      * @nullable
      */
   nights?: number | null;
+  /**
+     * Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+     * @nullable
+     */
+  guests?: number | null;
+  /**
+     * Day pass room extension add-on (where offered)
+     * @nullable
+     */
+  extension?: boolean | null;
   /**
      * "3" (or the instalment count) for Pay-in-3, otherwise pay in full
      * @nullable

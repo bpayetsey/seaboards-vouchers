@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StorefrontCatalogItem } from './storefrontCatalogItem';
+import type { StorefrontDayPass } from './storefrontDayPass';
 import type { StorefrontGift } from './storefrontGift';
 
 export interface StorefrontConfig {
@@ -17,4 +18,5 @@ export interface StorefrontConfig {
   interval_days: number;
   catalog: StorefrontCatalogItem[];
   gift: StorefrontGift;
+  day_passes: StorefrontDayPass[];
 }

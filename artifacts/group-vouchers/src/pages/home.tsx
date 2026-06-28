@@ -18,6 +18,7 @@ import {
 import type {
   StorefrontConfig,
   StorefrontCatalogItem,
+  StorefrontDayPass,
   GroupOrderCreated,
   SplitConfigApartmentType,
 } from "@workspace/api-client-react";
@@ -57,7 +58,8 @@ import type { LucideIcon } from "lucide-react";
 
 type Selection =
   | { kind: "package"; item: StorefrontCatalogItem }
-  | { kind: "gift"; amount: number };
+  | { kind: "gift"; amount: number }
+  | { kind: "day_pass"; option: StorefrontDayPass };
 
 function money(symbol: string, value: number) {
   return `${symbol}${value.toLocaleString("en-US", {
@@ -240,6 +242,8 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [nights, setNights] = useState(1);
+  const [dayGuests, setDayGuests] = useState(1);
+  const [dayExtension, setDayExtension] = useState(false);
   const [giftAmount, setGiftAmount] = useState<string>("");
   const [plan, setPlan] = useState<"full" | "instalments" | "split">("full");
   const [name, setName] = useState("");
@@ -254,7 +258,14 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const total = selection
     ? selection.kind === "package"
       ? selection.item.rate * nights
-      : selection.amount
+      : selection.kind === "gift"
+        ? selection.amount
+        : (selection.option.pricing === "per_person"
+            ? selection.option.rate * dayGuests
+            : selection.option.rate) +
+          (dayExtension && selection.option.extension
+            ? selection.option.extension.price
+            : 0)
     : 0;
   const perInstalment =
     Math.round((total / config.instalments) * 100) / 100;
@@ -276,9 +287,16 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         data: {
           type: selection.kind,
           product_id:
-            selection.kind === "package" ? selection.item.id : undefined,
+            selection.kind === "package"
+              ? selection.item.id
+              : selection.kind === "day_pass"
+                ? selection.option.id
+                : undefined,
           amount: selection.kind === "gift" ? selection.amount : undefined,
           nights: selection.kind === "package" ? nights : undefined,
+          guests: selection.kind === "day_pass" ? dayGuests : undefined,
+          extension:
+            selection.kind === "day_pass" ? dayExtension : undefined,
           plan: plan === "instalments" ? String(config.instalments) : undefined,
           name,
           email,
@@ -473,6 +491,149 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           </div>
         )}
 
+        <h2 className="font-serif text-primary text-2xl mt-12 mb-1">
+          Day Passes
+        </h2>
+        <p className="text-sm text-muted-foreground mb-5">
+          Spend the day at The Seaboards — pool, dining and more. Max 6 guests,
+          including children.
+        </p>
+        <div className="grid sm:grid-cols-3 gap-5">
+          {config.day_passes.map((opt) => {
+            const active =
+              selection?.kind === "day_pass" && selection.option.id === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  setSelection({ kind: "day_pass", option: opt });
+                  setDayGuests(1);
+                  setDayExtension(false);
+                }}
+                className={`text-left rounded-xl border-2 p-5 transition-all flex flex-col ${
+                  active
+                    ? "border-primary bg-primary/5 shadow-md"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    {opt.hours}
+                  </span>
+                  {active && <Check className="w-5 h-5 text-primary" />}
+                </div>
+                <div className="font-serif text-lg text-primary leading-snug">
+                  {opt.name}
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-extrabold text-primary">
+                    {money(symbol, opt.rate)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    / {opt.unit}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">{opt.desc}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {opt.feat.map((f) => (
+                    <li
+                      key={f}
+                      className="relative pl-[20px] text-[13px] text-foreground/80"
+                    >
+                      <Check
+                        className="absolute left-0 top-[3px] w-3 h-3 text-accent"
+                        strokeWidth={3}
+                      />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            );
+          })}
+        </div>
+
+        {selection?.kind === "day_pass" && (
+          <div className="mt-5 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="font-serif text-lg text-primary">
+                  How many guests?
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {selection.option.pricing === "per_person"
+                    ? `${money(symbol, selection.option.rate)} per ${selection.option.unit} · up to ${selection.option.maxGuests}`
+                    : `Flat rate for the ${selection.option.unit} · up to ${selection.option.maxGuests} guests`}
+                </p>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 rounded-full"
+                    aria-label="Fewer guests"
+                    disabled={dayGuests <= 1}
+                    onClick={() => setDayGuests((g) => Math.max(1, g - 1))}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span
+                    className="w-10 text-center text-2xl font-extrabold text-primary tabular-nums"
+                    aria-live="polite"
+                  >
+                    {dayGuests}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 rounded-full"
+                    aria-label="More guests"
+                    disabled={dayGuests >= selection.option.maxGuests}
+                    onClick={() =>
+                      setDayGuests((g) =>
+                        Math.min(selection.option.maxGuests, g + 1),
+                      )
+                    }
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Total
+                  </div>
+                  <div className="text-2xl font-extrabold text-primary tabular-nums">
+                    {money(symbol, total)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selection.option.extension && (
+              <label className="flex items-center gap-3 rounded-lg border border-border bg-background/60 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={dayExtension}
+                  onChange={(e) => setDayExtension(e.target.checked)}
+                />
+                <span className="text-sm text-foreground/80">
+                  {selection.option.extension.label}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    (+{money(symbol, selection.option.extension.price)})
+                  </span>
+                </span>
+              </label>
+            )}
+          </div>
+        )}
+
         <div className="mt-8 rounded-xl border-2 border-border p-5">
           <div className="flex items-center gap-2 mb-1">
             <Gift className="w-5 h-5 text-accent" />
@@ -595,18 +756,28 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         </div>
 
         {plan === "split" ? (
-          selection ? (
+          !selection ? (
+            <div className="mt-8 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              Choose an apartment package or gift amount above to split it with a
+              group.
+            </div>
+          ) : selection.kind === "day_pass" ? (
+            <div className="mt-8 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              Day passes are sold as a single fixed-price voucher — choose{" "}
+              <span className="font-medium text-foreground">Pay in full</span> or{" "}
+              <span className="font-medium text-foreground">
+                Pay in {config.instalments}
+              </span>
+              . To share the cost across a group, use the open-value gift voucher
+              above.
+            </div>
+          ) : (
             <VoucherSplitSetup
               selection={selection}
               nights={nights}
               total={total}
               symbol={symbol}
             />
-          ) : (
-            <div className="mt-8 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Choose an apartment package or gift amount above to split it with a
-              group.
-            </div>
           )
         ) : (
           <>
@@ -1217,7 +1388,9 @@ function VoucherSplitSetup({
   const voucherLabel =
     selection.kind === "package"
       ? `${selection.item.name} · ${nights} night${nights === 1 ? "" : "s"}`
-      : "Gift voucher";
+      : selection.kind === "day_pass"
+        ? selection.option.name
+        : "Gift voucher";
 
   return (
     <div className="mt-8 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 animate-in fade-in slide-in-from-top-1 duration-300">

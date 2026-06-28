@@ -12,4 +12,5 @@ export type StoreOrderInputType = typeof StoreOrderInputType[keyof typeof StoreO
 export const StoreOrderInputType = {
   package: 'package',
   gift: 'gift',
+  day_pass: 'day_pass',
 } as const;

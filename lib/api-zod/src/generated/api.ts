@@ -313,7 +313,22 @@ export const GetStorefrontConfigResponse = zod.object({
   "name": zod.string(),
   "amounts": zod.array(zod.number()),
   "min": zod.number()
-})
+}),
+  "day_passes": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "pricing": zod.enum(['flat', 'per_person']),
+  "rate": zod.number().describe('Flat price (flat) or per-guest price (per_person)'),
+  "unit": zod.string().describe('Price unit label shown to buyers (e.g. room, person, adult)'),
+  "maxGuests": zod.number(),
+  "hours": zod.string(),
+  "desc": zod.string(),
+  "feat": zod.array(zod.string()),
+  "extension": zod.object({
+  "label": zod.string(),
+  "price": zod.number().describe('Flat add-on price in the storefront currency')
+}).optional()
+}))
 })
 
 
@@ -329,9 +344,11 @@ export const createStoreOrderBodyEmailMin = 3;
 
 export const CreateStoreOrderBody = zod.object({
   "product_id": zod.string().nullish(),
-  "type": zod.enum(['package', 'gift']).optional(),
+  "type": zod.enum(['package', 'gift', 'day_pass']).optional(),
   "amount": zod.number().nullish().describe('Required for gift vouchers (open value)'),
   "nights": zod.number().nullish().describe('Number of nights for an apartment order (must be >= the item\'s minNights)'),
+  "guests": zod.number().nullish().describe('Party size for a day pass (1..maxGuests); multiplies price for per_person passes'),
+  "extension": zod.boolean().nullish().describe('Day pass room extension add-on (where offered)'),
   "plan": zod.string().nullish().describe('\"3\" (or the instalment count) for Pay-in-3, otherwise pay in full'),
   "name": zod.string().min(1),
   "email": zod.string().min(createStoreOrderBodyEmailMin)

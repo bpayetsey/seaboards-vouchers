@@ -16,6 +16,7 @@ import {
 } from "./stripeClient";
 import {
   GIFT,
+  DAY_PASSES,
   SETTINGS,
   SYMBOLS,
   getEffectiveCatalog,
@@ -50,6 +51,7 @@ export async function getStorefrontConfig() {
     interval_days: SETTINGS.intervalDays,
     catalog: await getEffectiveCatalog(),
     gift: GIFT,
+    day_passes: DAY_PASSES,
   };
 }
 
@@ -58,6 +60,8 @@ interface CreateOrderInput {
   type?: string;
   amount?: number | null;
   nights?: number | null;
+  guests?: number | null;
+  extension?: boolean | null;
   plan?: string | null;
   name: string;
   email: string;
@@ -70,7 +74,17 @@ type CreateOrderResult =
 export async function createStoreOrder(
   input: CreateOrderInput,
 ): Promise<CreateOrderResult> {
-  const { product_id, type = "package", amount, nights, plan, name, email } = input;
+  const {
+    product_id,
+    type = "package",
+    amount,
+    nights,
+    guests,
+    extension,
+    plan,
+    name,
+    email,
+  } = input;
   if (!name?.trim() || !email?.includes("@")) {
     return { error: "invalid_buyer" };
   }
@@ -81,12 +95,16 @@ export async function createStoreOrder(
     type,
     amount: amount ?? undefined,
     nights: nights ?? undefined,
+    guests: guests ?? undefined,
+    extension: extension ?? undefined,
   });
   if (total === null) return { error: "invalid_selection" };
   const productName = nameFor({
     productId: product_id ?? undefined,
     type,
     nights: nights ?? undefined,
+    guests: guests ?? undefined,
+    extension: extension ?? undefined,
   });
 
   const payInN =

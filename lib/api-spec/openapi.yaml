@@ -1953,6 +1953,44 @@ components:
             type: number
         min:
           type: number
+    StorefrontDayPassExtension:
+      type: object
+      required: [label, price]
+      properties:
+        label:
+          type: string
+        price:
+          type: number
+          description: Flat add-on price in the storefront currency
+    StorefrontDayPass:
+      type: object
+      required: [id, name, pricing, rate, unit, maxGuests, hours, desc, feat]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        pricing:
+          type: string
+          enum: [flat, per_person]
+        rate:
+          type: number
+          description: Flat price (flat) or per-guest price (per_person)
+        unit:
+          type: string
+          description: Price unit label shown to buyers (e.g. room, person, adult)
+        maxGuests:
+          type: integer
+        hours:
+          type: string
+        desc:
+          type: string
+        feat:
+          type: array
+          items:
+            type: string
+        extension:
+          $ref: "#/components/schemas/StorefrontDayPassExtension"
     StorefrontConfig:
       type: object
       required:
@@ -1964,6 +2002,7 @@ components:
         - interval_days
         - catalog
         - gift
+        - day_passes
       properties:
         publishable_key:
           type: string
@@ -1983,6 +2022,10 @@ components:
             $ref: "#/components/schemas/StorefrontCatalogItem"
         gift:
           $ref: "#/components/schemas/StorefrontGift"
+        day_passes:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorefrontDayPass"
     StoreOrderInput:
       type: object
       required: [name, email]
@@ -1991,13 +2034,19 @@ components:
           type: ["string", "null"]
         type:
           type: string
-          enum: [package, gift]
+          enum: [package, gift, day_pass]
         amount:
           type: ["number", "null"]
           description: Required for gift vouchers (open value)
         nights:
           type: ["integer", "null"]
           description: Number of nights for an apartment order (must be >= the item's minNights)
+        guests:
+          type: ["integer", "null"]
+          description: Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+        extension:
+          type: ["boolean", "null"]
+          description: Day pass room extension add-on (where offered)
         plan:
           type: ["string", "null"]
           description: '"3" (or the instalment count) for Pay-in-3, otherwise pay in full'

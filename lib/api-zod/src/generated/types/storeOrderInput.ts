@@ -22,6 +22,16 @@ export interface StoreOrderInput {
      */
   nights?: number | null;
   /**
+     * Party size for a day pass (1..maxGuests); multiplies price for per_person passes
+     * @nullable
+     */
+  guests?: number | null;
+  /**
+     * Day pass room extension add-on (where offered)
+     * @nullable
+     */
+  extension?: boolean | null;
+  /**
      * "3" (or the instalment count) for Pay-in-3, otherwise pay in full
      * @nullable
      */
