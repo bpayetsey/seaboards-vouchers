@@ -628,6 +628,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/inbox/reply:
+    post:
+      operationId: sendInboxReply
+      tags: [admin]
+      summary: Send a staff reply to a customer thread
+      description: >
+        Sends a reply to a customer over the thread's channel (a free-form
+        WhatsApp text within the 24-hour service window, or a transactional
+        email via SendGrid) and records it as an outbound message so it appears
+        in the thread alongside inbound messages.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InboxReplyBody"
+      responses:
+        "200":
+          description: Reply sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxReplyResult"
+        "400":
+          description: Invalid request or provider rejected the send
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/me:
     get:
       operationId: getAdminMe
@@ -3343,13 +3384,17 @@ components:
             $ref: "#/components/schemas/WhatsappCampaignRecipient"
     InboxMessage:
       type: object
-      required: [id, channel, sender, body, has_media, read, received_at]
+      required:
+        [id, channel, direction, sender, body, has_media, read, received_at]
       properties:
         id:
           type: string
         channel:
           type: string
           enum: [whatsapp, email]
+        direction:
+          type: string
+          enum: [inbound, outbound]
         sender:
           type: string
         display_name:
@@ -3364,6 +3409,8 @@ components:
           type: ["string", "null"]
         read:
           type: boolean
+        sent_by_email:
+          type: ["string", "null"]
         received_at:
           type: string
     InboxThread:
@@ -3407,3 +3454,28 @@ components:
       properties:
         read:
           type: boolean
+    InboxReplyBody:
+      type: object
+      required: [channel, sender, body]
+      properties:
+        channel:
+          type: string
+          enum: [whatsapp, email]
+        sender:
+          type: string
+          description: The customer's address — E.164 phone (WhatsApp) or email.
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        subject:
+          type: ["string", "null"]
+          description: Email subject. Ignored for WhatsApp.
+    InboxReplyResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          $ref: "#/components/schemas/InboxMessage"

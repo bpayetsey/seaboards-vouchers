@@ -3,6 +3,7 @@ import {
   useGetAdminInbox,
   useMarkMessageRead,
   useMarkThreadRead,
+  useSendInboxReply,
   getGetAdminInboxQueryKey,
   getGetAdminInboxUnreadCountQueryKey,
   type AdminInbox,
@@ -14,6 +15,8 @@ import { AdminShell } from "./AdminShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -28,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Image,
+  Send,
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -77,6 +81,35 @@ function MessageRow({
   msg: InboxMessage;
   onToggleRead: (msg: InboxMessage) => void;
 }) {
+  const isOutbound = msg.direction === "outbound";
+
+  if (isOutbound) {
+    return (
+      <div className="px-4 py-3 border-b last:border-b-0 text-sm bg-primary/5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-primary mb-0.5 flex items-center gap-1">
+              <Send className="h-3 w-3" />
+              You replied
+              {msg.sent_by_email ? ` · ${msg.sent_by_email}` : ""}
+            </p>
+            {msg.subject && (
+              <p className="font-medium text-foreground truncate mb-0.5">
+                {msg.subject}
+              </p>
+            )}
+            <p className="text-foreground whitespace-pre-wrap break-words">
+              {msg.body}
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+            {formatDate(msg.received_at)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`px-4 py-3 border-b last:border-b-0 text-sm transition-colors ${
@@ -126,6 +159,102 @@ function MessageRow({
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Reply composer ───────────────────────────────────────────────────────────
+
+function ReplyComposer({ thread }: { thread: InboxThread }) {
+  const qc = useQueryClient();
+  const [body, setBody] = useState("");
+  const [subject, setSubject] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const isEmail = thread.channel === "email";
+
+  const sendReply = useSendInboxReply({
+    mutation: {
+      onSuccess: () => {
+        setBody("");
+        setSubject("");
+        setError(null);
+        void qc.invalidateQueries({ queryKey: getGetAdminInboxQueryKey() });
+        void qc.invalidateQueries({
+          queryKey: getGetAdminInboxUnreadCountQueryKey(),
+        });
+      },
+      onError: (err) => {
+        const message =
+          (err as { error?: string })?.error ??
+          "Could not send the reply. Please try again.";
+        setError(message);
+      },
+    },
+  });
+
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    setError(null);
+    sendReply.mutate({
+      data: {
+        channel: thread.channel as "whatsapp" | "email",
+        sender: thread.sender,
+        body: trimmed,
+        ...(isEmail && subject.trim() ? { subject: subject.trim() } : {}),
+      },
+    });
+  }
+
+  return (
+    <form
+      onSubmit={handleSend}
+      onClick={(e) => e.stopPropagation()}
+      className="px-4 py-3 border-t border-border bg-muted/20 space-y-2"
+    >
+      {isEmail && (
+        <Input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="Subject (optional)"
+          className="bg-white"
+        />
+      )}
+      <Textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder={
+          isEmail
+            ? "Write an email reply…"
+            : "Write a WhatsApp reply…"
+        }
+        rows={3}
+        className="bg-white resize-none"
+      />
+      {error && <p className="text-destructive text-xs">{error}</p>}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {isEmail
+            ? `Sends an email to ${thread.sender}`
+            : "WhatsApp replies must be within 24h of the customer's last message"}
+        </p>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!body.trim() || sendReply.isPending}
+          className="gap-1.5"
+        >
+          {sendReply.isPending ? (
+            <Spinner className="h-3.5 w-3.5" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
+          Send reply
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -214,6 +343,7 @@ function ThreadCard({
               </Button>
             )}
           </div>
+          <ReplyComposer thread={thread} />
         </CardContent>
       )}
     </Card>

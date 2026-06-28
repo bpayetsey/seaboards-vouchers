@@ -1104,9 +1104,18 @@ export const InboxMessageChannel = {
   email: 'email',
 } as const;
 
+export type InboxMessageDirection = typeof InboxMessageDirection[keyof typeof InboxMessageDirection];
+
+
+export const InboxMessageDirection = {
+  inbound: 'inbound',
+  outbound: 'outbound',
+} as const;
+
 export interface InboxMessage {
   id: string;
   channel: InboxMessageChannel;
+  direction: InboxMessageDirection;
   sender: string;
   /** @nullable */
   display_name?: string | null;
@@ -1117,6 +1126,8 @@ export interface InboxMessage {
   /** @nullable */
   contact_id?: string | null;
   read: boolean;
+  /** @nullable */
+  sent_by_email?: string | null;
   received_at: string;
 }
 
@@ -1149,6 +1160,35 @@ export interface InboxUnreadCount {
 
 export interface MarkReadBody {
   read: boolean;
+}
+
+export type InboxReplyBodyChannel = typeof InboxReplyBodyChannel[keyof typeof InboxReplyBodyChannel];
+
+
+export const InboxReplyBodyChannel = {
+  whatsapp: 'whatsapp',
+  email: 'email',
+} as const;
+
+export interface InboxReplyBody {
+  channel: InboxReplyBodyChannel;
+  /** The customer's address — E.164 phone (WhatsApp) or email. */
+  sender: string;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  body: string;
+  /**
+     * Email subject. Ignored for WhatsApp.
+     * @nullable
+     */
+  subject?: string | null;
+}
+
+export interface InboxReplyResult {
+  ok: boolean;
+  message: InboxMessage;
 }
 
 export type GetAdminInboxParams = {

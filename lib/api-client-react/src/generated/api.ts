@@ -45,6 +45,8 @@ import type {
   HealthStatus,
   ImportContactsInput,
   ImportContactsResult,
+  InboxReplyBody,
+  InboxReplyResult,
   InboxUnreadCount,
   IssueVoucherInput,
   MarkReadBody,
@@ -1667,6 +1669,79 @@ export const useMarkThreadRead = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getMarkThreadReadMutationOptions(options));
+    }
+
+export const getSendInboxReplyUrl = () => {
+
+
+
+
+  return `/api/admin/inbox/reply`
+}
+
+/**
+ * Sends a reply to a customer over the thread's channel (a free-form WhatsApp text within the 24-hour service window, or a transactional email via SendGrid) and records it as an outbound message so it appears in the thread alongside inbound messages.
+
+ * @summary Send a staff reply to a customer thread
+ */
+export const sendInboxReply = async (inboxReplyBody: InboxReplyBody, options?: RequestInit): Promise<InboxReplyResult> => {
+
+  return customFetch<InboxReplyResult>(getSendInboxReplyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      inboxReplyBody,)
+  }
+);}
+
+
+
+
+export const getSendInboxReplyMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendInboxReply>>, TError,{data: BodyType<InboxReplyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendInboxReply>>, TError,{data: BodyType<InboxReplyBody>}, TContext> => {
+
+const mutationKey = ['sendInboxReply'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendInboxReply>>, {data: BodyType<InboxReplyBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendInboxReply(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendInboxReplyMutationResult = NonNullable<Awaited<ReturnType<typeof sendInboxReply>>>
+    export type SendInboxReplyMutationBody = BodyType<InboxReplyBody>
+    export type SendInboxReplyMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Send a staff reply to a customer thread
+ */
+export const useSendInboxReply = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendInboxReply>>, TError,{data: BodyType<InboxReplyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendInboxReply>>,
+        TError,
+        {data: BodyType<InboxReplyBody>},
+        TContext
+      > => {
+      return useMutation(getSendInboxReplyMutationOptions(options));
     }
 
 export const getGetAdminMeUrl = () => {

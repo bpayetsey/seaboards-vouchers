@@ -11,14 +11,17 @@ import {
   MarkThreadReadParams,
   MarkThreadReadBody,
   MarkThreadReadResponse,
+  SendInboxReplyBody,
+  SendInboxReplyResponse,
 } from "@workspace/api-zod";
-import { requireStaff } from "../middlewares/requireStaff";
+import { requireStaff, type StaffRequest } from "../middlewares/requireStaff";
 import {
   getInbox,
   getUnreadCount,
   markMessageRead,
   markThreadRead,
   saveEmailMessage,
+  sendReply,
 } from "../lib/inbox";
 import { logger } from "../lib/logger";
 
@@ -81,6 +84,28 @@ router.patch(
     }
   },
 );
+
+router.post("/admin/inbox/reply", requireStaff, async (req, res) => {
+  try {
+    const body = SendInboxReplyBody.parse(req.body);
+    const result = await sendReply({
+      channel: body.channel,
+      sender: body.sender,
+      body: body.body,
+      subject: body.subject ?? null,
+      staffEmail: (req as StaffRequest).userEmail,
+    });
+    if (!result.ok) {
+      return res.status(400).json({ error: result.error });
+    }
+    return res.json(
+      SendInboxReplyResponse.parse({ ok: true, message: result.message }),
+    );
+  } catch (err) {
+    req.log.error({ err }, "Failed to send inbox reply");
+    return res.status(500).json({ error: "Could not send the reply." });
+  }
+});
 
 // ─── SendGrid Inbound Parse endpoint (no auth, verified by shared secret) ───
 

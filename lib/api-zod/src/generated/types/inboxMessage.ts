@@ -6,10 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { InboxMessageChannel } from './inboxMessageChannel';
+import type { InboxMessageDirection } from './inboxMessageDirection';
 
 export interface InboxMessage {
   id: string;
   channel: InboxMessageChannel;
+  direction: InboxMessageDirection;
   sender: string;
   /** @nullable */
   display_name?: string | null;
@@ -20,5 +22,7 @@ export interface InboxMessage {
   /** @nullable */
   contact_id?: string | null;
   read: boolean;
+  /** @nullable */
+  sent_by_email?: string | null;
   received_at: string;
 }

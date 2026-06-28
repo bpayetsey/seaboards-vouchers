@@ -209,6 +209,60 @@ export async function sendTemplateMessage(input: {
   return { ok: true, messageId };
 }
 
+/**
+ * Send a free-form (non-template) text message. This is only deliverable inside
+ * the 24-hour customer service window — i.e. when the recipient has messaged the
+ * business within the last 24 hours — which is exactly the case when staff reply
+ * to an inbound thread from the inbox. Outside that window Meta rejects the send
+ * (error 131047) and the error is surfaced to the caller. Returns a result
+ * object instead of throwing so the inbox route can report a clean failure.
+ */
+export async function sendTextMessage(input: {
+  to: string;
+  body: string;
+}): Promise<SendResult> {
+  const creds = getCredentials();
+  if (!creds) return { ok: false, error: "not_configured" };
+
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: input.to,
+    type: "text",
+    text: { preview_url: false, body: input.body },
+  };
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${GRAPH_BASE}/${creds.phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${creds.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (err) {
+    return { ok: false, error: `network_error: ${String(err)}` };
+  }
+
+  const data = (await resp.json().catch(() => ({}))) as {
+    messages?: Array<{ id?: string }>;
+    error?: { message?: string; code?: number };
+  };
+
+  if (!resp.ok) {
+    const message =
+      data.error?.message ?? `${resp.status} ${resp.statusText}`.trim();
+    return { ok: false, error: message };
+  }
+
+  const messageId = data.messages?.[0]?.id;
+  if (!messageId) return { ok: false, error: "no_message_id" };
+  return { ok: true, messageId };
+}
+
 export type UploadMediaResult =
   | { ok: true; mediaId: string }
   | { ok: false; error: string };

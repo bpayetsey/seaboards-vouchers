@@ -467,6 +467,7 @@ export const GetAdminInboxResponse = zod.object({
   "messages": zod.array(zod.object({
   "id": zod.string(),
   "channel": zod.enum(['whatsapp', 'email']),
+  "direction": zod.enum(['inbound', 'outbound']),
   "sender": zod.string(),
   "display_name": zod.string().nullish(),
   "subject": zod.string().nullish(),
@@ -474,6 +475,7 @@ export const GetAdminInboxResponse = zod.object({
   "has_media": zod.boolean(),
   "contact_id": zod.string().nullish(),
   "read": zod.boolean(),
+  "sent_by_email": zod.string().nullish(),
   "received_at": zod.string()
 }))
 })),
@@ -518,6 +520,41 @@ export const MarkThreadReadBody = zod.object({
 
 export const MarkThreadReadResponse = zod.object({
   "ok": zod.boolean()
+})
+
+
+/**
+ * Sends a reply to a customer over the thread's channel (a free-form WhatsApp text within the 24-hour service window, or a transactional email via SendGrid) and records it as an outbound message so it appears in the thread alongside inbound messages.
+
+ * @summary Send a staff reply to a customer thread
+ */
+export const sendInboxReplyBodyBodyMax = 10000;
+
+
+
+export const SendInboxReplyBody = zod.object({
+  "channel": zod.enum(['whatsapp', 'email']),
+  "sender": zod.string().describe('The customer\'s address — E.164 phone (WhatsApp) or email.'),
+  "body": zod.string().min(1).max(sendInboxReplyBodyBodyMax),
+  "subject": zod.string().nullish().describe('Email subject. Ignored for WhatsApp.')
+})
+
+export const SendInboxReplyResponse = zod.object({
+  "ok": zod.boolean(),
+  "message": zod.object({
+  "id": zod.string(),
+  "channel": zod.enum(['whatsapp', 'email']),
+  "direction": zod.enum(['inbound', 'outbound']),
+  "sender": zod.string(),
+  "display_name": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "body": zod.string(),
+  "has_media": zod.boolean(),
+  "contact_id": zod.string().nullish(),
+  "read": zod.boolean(),
+  "sent_by_email": zod.string().nullish(),
+  "received_at": zod.string()
+})
 })
 
 

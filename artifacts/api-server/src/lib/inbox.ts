@@ -1,5 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db, inboundMessages } from "@workspace/db";
+import { sendTextMessage } from "./whatsappClient";
+import { sendEmail } from "./sendgridClient";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -11,6 +13,7 @@ export interface InboxQueryParams {
 export interface InboxMessageRow {
   id: string;
   channel: string;
+  direction: string;
   sender: string;
   display_name: string | null;
   subject: string | null;
@@ -18,6 +21,7 @@ export interface InboxMessageRow {
   has_media: boolean;
   contact_id: string | null;
   read: boolean;
+  sent_by_email: string | null;
   received_at: string;
 }
 
@@ -41,6 +45,7 @@ function toMessageRow(row: typeof inboundMessages.$inferSelect): InboxMessageRow
   return {
     id: row.id,
     channel: row.channel,
+    direction: row.direction,
     sender: row.sender,
     display_name: row.displayName,
     subject: row.subject,
@@ -48,6 +53,7 @@ function toMessageRow(row: typeof inboundMessages.$inferSelect): InboxMessageRow
     has_media: row.hasMedia,
     contact_id: row.contactId,
     read: row.read,
+    sent_by_email: row.sentByEmail,
     received_at: row.receivedAt.toISOString(),
   };
 }
@@ -154,6 +160,7 @@ export interface SaveEmailInput {
 export async function saveEmailMessage(input: SaveEmailInput): Promise<void> {
   await db.insert(inboundMessages).values({
     channel: "email",
+    direction: "inbound",
     sender: input.sender,
     displayName: input.displayName,
     subject: input.subject,
@@ -162,4 +169,102 @@ export async function saveEmailMessage(input: SaveEmailInput): Promise<void> {
     read: false,
     receivedAt: new Date(),
   });
+}
+
+// ─── Reply (outbound) ────────────────────────────────────────────────────────
+
+export interface SendReplyInput {
+  channel: "whatsapp" | "email";
+  /** The customer's address — E.164 phone (WhatsApp) or email (email). */
+  sender: string;
+  body: string;
+  /** Email subject. Optional; ignored for WhatsApp. */
+  subject?: string | null;
+  /** The staff member sending the reply, recorded on the outbound row. */
+  staffEmail: string;
+}
+
+export type SendReplyResult =
+  | { ok: true; message: InboxMessageRow }
+  | { ok: false; error: string };
+
+/**
+ * Send a staff reply to a customer over the thread's channel and record it as an
+ * outbound message so it appears alongside the inbound ones. The send happens
+ * first; the row is only persisted once the provider accepts it, so a failed
+ * send never leaves a phantom "sent" message in the thread.
+ */
+export async function sendReply(
+  input: SendReplyInput,
+): Promise<SendReplyResult> {
+  const body = input.body.trim();
+  if (!body) return { ok: false, error: "Message body is required." };
+
+  // Carry the most recent display name onto the outbound row so the thread stays
+  // labelled even if it only ever contained inbound messages before.
+  const [latest] = await db
+    .select({ displayName: inboundMessages.displayName, contactId: inboundMessages.contactId })
+    .from(inboundMessages)
+    .where(
+      and(
+        eq(inboundMessages.channel, input.channel),
+        eq(inboundMessages.sender, input.sender),
+      ),
+    )
+    .orderBy(desc(inboundMessages.receivedAt))
+    .limit(1);
+
+  if (input.channel === "whatsapp") {
+    const result = await sendTextMessage({ to: input.sender, body });
+    if (!result.ok) {
+      const error =
+        result.error === "not_configured"
+          ? "WhatsApp is not configured."
+          : `WhatsApp send failed: ${result.error}`;
+      return { ok: false, error };
+    }
+  } else {
+    const subject = (input.subject ?? "").trim() || "Re: your message";
+    const html = body
+      .split(/\n{2,}/)
+      .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+      .join("");
+    try {
+      await sendEmail({ to: input.sender, subject, text: body, html });
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Email send failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  const [row] = await db
+    .insert(inboundMessages)
+    .values({
+      channel: input.channel,
+      direction: "outbound",
+      sender: input.sender,
+      displayName: latest?.displayName ?? null,
+      subject: input.channel === "email" ? (input.subject ?? null) : null,
+      body,
+      hasMedia: false,
+      contactId: latest?.contactId ?? null,
+      // Outbound replies are inherently "read" — staff just sent them.
+      read: true,
+      sentByEmail: input.staffEmail,
+      receivedAt: new Date(),
+    })
+    .returning();
+
+  return { ok: true, message: toMessageRow(row) };
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
