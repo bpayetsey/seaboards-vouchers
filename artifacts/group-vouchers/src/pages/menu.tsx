@@ -95,14 +95,14 @@ export default function Menu() {
         </div>
 
         {/* Dessert */}
-        <div className="mt-12 rounded-2xl border border-accent/50 bg-accent/5 px-6 py-7 text-center">
-          <h2 className="font-serif text-primary text-[24px] font-semibold mb-2">
+        <section className="mt-10 max-w-2xl">
+          <h2 className="font-serif text-primary text-[22px] font-semibold border-b border-accent/40 pb-2 mb-4">
             {DESSERT_NOTE.title}
           </h2>
-          <p className="text-[15px] leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-[14px] text-muted-foreground leading-relaxed">
             {DESSERT_NOTE.text}
           </p>
-        </div>
+        </section>
 
         {/* Breakfast */}
         <div className="mt-16 pt-10 border-t-2 border-accent">
