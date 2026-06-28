@@ -15,6 +15,7 @@ import GroupDashboard from "@/pages/group";
 import PayLine from "@/pages/pay";
 import PayDone from "@/pages/pay-done";
 import Terms from "@/pages/terms";
+import Menu from "@/pages/menu";
 import Dashboard from "@/pages/dashboard";
 import AdminOverview from "@/pages/admin/overview";
 import AdminOrders from "@/pages/admin/orders";
@@ -226,6 +227,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/group-order" component={GroupOrder} />
       <Route path="/terms" component={Terms} />
+      <Route path="/menu" component={Menu} />
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />

@@ -17,6 +17,12 @@ function AuthNav() {
         Home
       </Link>
       <Link
+        href="/menu"
+        className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
+      >
+        Menu
+      </Link>
+      <Link
         href="/terms"
         className="font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary"
       >

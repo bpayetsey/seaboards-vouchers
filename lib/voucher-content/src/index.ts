@@ -175,3 +175,351 @@ export const TERMS_ACCEPTANCE =
 
 /** Plain-language validity summary used where no explicit expiry date exists. */
 export const REDEMPTION_WINDOW = "Redeemable for stays until 30 June 2027";
+
+/* ------------------------------------------------------------------ */
+/* Half-Board Menu                                                     */
+/* ------------------------------------------------------------------ */
+
+/** A single dish on the à la carte / dinner menu. */
+export interface MenuItem {
+  /** Dish name. */
+  name: string;
+  /** Short description of ingredients or preparation. */
+  description?: string;
+  /** Display price, e.g. "SCR 175". Omit for items included in Half Board. */
+  price?: string;
+  /** True for vegetarian dishes (shown with a "V" marker). */
+  veg?: boolean;
+}
+
+/** A titled group of dishes on the dinner menu. */
+export interface MenuSection {
+  title: string;
+  /** Optional note shown under the section title. */
+  note?: string;
+  items: MenuItem[];
+}
+
+/** A choice group within a breakfast style (e.g. "Eggs Your Way"). */
+export interface BreakfastGroup {
+  label: string;
+  options: string[];
+}
+
+/** One named breakfast style (American, Continental, English, German). */
+export interface BreakfastStyle {
+  title: string;
+  groups: BreakfastGroup[];
+}
+
+/** Headline shown at the top of the menu page. */
+export const MENU_TITLE = "Half Board Menu";
+
+/** Short epigraph printed on the resort's menu. */
+export const MENU_EPIGRAPH = {
+  quote:
+    "Better wait for your food, than the food waiting for you.",
+  attribution: "Unknown",
+} as const;
+
+/** Plain-language summary of what Half Board includes. */
+export const MENU_INTRO =
+  "Half Board includes daily breakfast and a two-course dinner \u2014 a starter and a main course \u2014 for the named adult occupants. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your Half Board.";
+
+/** Dinner & à la carte menu, grouped by course. */
+export const DINNER_SECTIONS: MenuSection[] = [
+  {
+    title: "Appetizers & Starters",
+    items: [
+      {
+        name: "Mixed Garden Salad",
+        description: "capsicum, cucumber, cabbage, lettuce, olives",
+        price: "SCR 175",
+        veg: true,
+      },
+      {
+        name: "Cajun Spiced Seared Tuna",
+        description: "garden leaves, marinated seared tuna",
+        price: "SCR 195",
+      },
+      {
+        name: "Smoked Fish Salad",
+        description: "with garden salad, vinaigrette",
+        price: "SCR 285",
+      },
+      {
+        name: "Greek Salad",
+        description: "feta, capsicum, cucumber, tomato, olives, onion",
+        price: "SCR 285",
+        veg: true,
+      },
+      {
+        name: "Mixed Seafood Salad",
+        description:
+          "prawns, calamari, mussels, octopus, crab, vinaigrette, with garlic bread",
+        price: "SCR 295",
+      },
+      {
+        name: "Marinated Calamari",
+        description: "with salad & garlic sauce",
+        price: "SCR 295",
+      },
+      {
+        name: "Prawns Torpedo",
+        description: "fried breaded prawns with sweet chilli sauce",
+        price: "SCR 285",
+      },
+      {
+        name: "Soup of the Day",
+        description: "chef selection of the day",
+        price: "SCR 125",
+        veg: true,
+      },
+      {
+        name: "Prawns Cocktail",
+        description: "tomato, lettuce, with marie rose sauce",
+        price: "SCR 225",
+      },
+      {
+        name: "Quinoa Salad",
+        description: "with grilled vegetables, vinaigrette",
+        price: "SCR 200",
+        veg: true,
+      },
+    ],
+  },
+  {
+    title: "From the Land",
+    items: [
+      {
+        name: "Beef Steak",
+        description: "steak fries served with pepper sauce",
+      },
+      {
+        name: "Chicken Curry",
+        description: "served with rice and chutney",
+      },
+      {
+        name: "Buffalo Wings",
+        description: "served with fries and salad",
+      },
+      {
+        name: "Honey Glazed Pork",
+        description: "served with fries and salad",
+      },
+      {
+        name: "Vegetable Curry",
+        description: "served with rice and chutney",
+        veg: true,
+      },
+    ],
+  },
+  {
+    title: "From the Ocean",
+    items: [
+      {
+        name: "Catch of the Day",
+        description:
+          "marinated in creole sauce, accompanied by buttered vegetables",
+      },
+      {
+        name: "Fish Trio",
+        description: "tuna, job, jack fish, with grilled vegetables",
+      },
+      {
+        name: "Fish Curry",
+        description: "served with rice and chutney",
+      },
+      {
+        name: "Prawns Curry",
+        description: "served with rice and chutney",
+      },
+      {
+        name: "Mixed Seafood Curry",
+        description: "prawns, calamari, mussels, crab stick, eggplant",
+      },
+      {
+        name: "Ocean Basket",
+        description: "prawns, calamari, fish, mussels served with fries",
+      },
+    ],
+  },
+  {
+    title: "Pasta & Burger",
+    items: [
+      { name: "Meat Tortellini", description: "in pomodoro sauce" },
+      {
+        name: "Cheesy Ravioli",
+        description: "cooked in white cream sauce",
+        veg: true,
+      },
+      {
+        name: "Spaghetti Black Mussel",
+        description: "onion, cream, white wine & parmigiano",
+      },
+      {
+        name: "Spaghetti Vongole",
+        description: "infused with garlic, clams, white wine",
+      },
+      {
+        name: "Tomato Penne",
+        description: "penne in tomato sauce",
+        veg: true,
+      },
+      {
+        name: "Classic Spaghetti Bolognese",
+        description: "spaghetti in bolognese sauce",
+      },
+      {
+        name: "Creamy Pesto Gnocchi",
+        description: "gnocchi, cream, pesto",
+        veg: true,
+      },
+      {
+        name: "The Seaboards Burger",
+        description:
+          "beef patty, eggs, bacon, tomato, onions, cheese, served with fries and salad",
+      },
+    ],
+  },
+  {
+    title: "Wraps & Tacos",
+    items: [
+      {
+        name: "Tacos",
+        description: "sizzling spiced pork, tomato salsa, guacamole",
+      },
+      {
+        name: "Vegetable Wrap",
+        description: "capsicum, cucumber, lettuce, onions, carrot",
+        veg: true,
+      },
+      {
+        name: "Chicken Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+      {
+        name: "Prawn Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+      {
+        name: "Tuna Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+    ],
+  },
+];
+
+/** Breakfast styles guests may choose from each morning. */
+export const BREAKFAST_STYLES: BreakfastStyle[] = [
+  {
+    title: "American Breakfast",
+    groups: [
+      {
+        label: "Eggs Your Way",
+        options: [
+          "Scrambled Eggs",
+          "Omelettes (Plain, Ham & Cheese)",
+          "Poached",
+          "Fried Eggs (Sunny-side Up, Over Medium, Over Easy, Over Hard)",
+        ],
+      },
+      { label: "American Pancake", options: ["Plain or with Honey"] },
+      {
+        label: "Sides",
+        options: [
+          "Hash Browns (2 per order)",
+          "Bacon (2 per order) or Chicken Sausage (2 per order)",
+        ],
+      },
+      {
+        label: "Coffee & Tea",
+        options: ["Coffee, Black Tea, Green Tea (1 per order)"],
+      },
+    ],
+  },
+  {
+    title: "Continental Breakfast",
+    groups: [
+      { label: "Juices", options: ["Mix, Apple, Oranges"] },
+      {
+        label: "Coffee & Tea",
+        options: ["Coffee, Black Tea, Green Tea (1 per order)"],
+      },
+      {
+        label: "From the Bakery",
+        options: [
+          "Toast",
+          "Baked Pastries (Croissant, Danish, Pain au Chocolat)",
+        ],
+      },
+      {
+        label: "Fruit Platter",
+        options: ["Banana, Melon, Pineapple, Oranges (Seasonal)"],
+      },
+      {
+        label: "Assorted Jams & Spreads",
+        options: ["Strawberry Jam, Orange Marmalade, Honey, Butter"],
+      },
+    ],
+  },
+  {
+    title: "English Breakfast",
+    groups: [
+      {
+        label: "Eggs Your Way",
+        options: [
+          "Scrambled Eggs",
+          "Omelettes (Plain, Ham & Cheese)",
+          "Fried Eggs (Sunny-side Up, Over Medium, Over Easy, Over Hard)",
+        ],
+      },
+      { label: "From the Bakery", options: ["Toast"] },
+      {
+        label: "Sides",
+        options: [
+          "Hash Browns (2 per order)",
+          "Bacon (2 per order)",
+          "Chicken Sausage (2 per order)",
+          "Baked Beans",
+          "Grilled Mushroom",
+          "Grilled Tomatoes",
+        ],
+      },
+      {
+        label: "Coffee & Tea",
+        options: ["Coffee, Black Tea, Green Tea (1 per order)"],
+      },
+    ],
+  },
+  {
+    title: "German Breakfast",
+    groups: [
+      {
+        label: "Eggs Your Way",
+        options: [
+          "Scrambled Eggs",
+          "Omelettes (Plain, Ham & Cheese)",
+          "Fried Eggs (Sunny-side Up, Over Medium, Over Easy, Over Hard)",
+        ],
+      },
+      { label: "From the Bakery", options: ["Toast or Bread Rolls"] },
+      {
+        label: "Sides (choose from)",
+        options: [
+          "Muesli with dried fruits and Yogurt",
+          "Overnight Oats (reserve 24hrs before)",
+          "Oatmeal",
+        ],
+      },
+      {
+        label: "Assorted Jams & Spreads",
+        options: ["Strawberry Jam, Nutella or Honey, Butter"],
+      },
+      {
+        label: "Coffee & Tea",
+        options: ["Coffee, Black Tea, Green Tea (1 per order)"],
+      },
+    ],
+  },
+];
