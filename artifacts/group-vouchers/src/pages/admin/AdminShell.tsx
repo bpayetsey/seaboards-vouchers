@@ -3,6 +3,13 @@ import { useGetAdminMe, useGetAdminInboxUnreadCount } from "@workspace/api-clien
 import { Layout } from "@/components/layout";
 import { Spinner } from "@/components/ui/spinner";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   LayoutGrid,
   Receipt,
   Ticket,
@@ -31,7 +38,7 @@ const NAV = [
 ];
 
 function AdminNav() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { data: unreadData } = useGetAdminInboxUnreadCount({
     query: {
       refetchInterval: 60_000,
@@ -43,35 +50,63 @@ function AdminNav() {
   });
   const unreadCount = unreadData?.count ?? 0;
 
+  const isActive = (href: string) =>
+    href === "/admin"
+      ? location === "/admin" || location === "/admin/"
+      : location.startsWith(href);
+
+  const current = NAV.find((n) => isActive(n.href)) ?? NAV[0];
+  const badge = (
+    <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold leading-none">
+      {unreadCount > 99 ? "99+" : unreadCount}
+    </span>
+  );
+
   return (
-    <nav className="flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active =
-          href === "/admin"
-            ? location === "/admin" || location === "/admin/"
-            : location.startsWith(href);
-        const showBadge = href === "/admin/inbox" && unreadCount > 0;
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-            {showBadge && (
-              <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold leading-none">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      {/* Mobile: compact dropdown so the many sections stay reachable */}
+      <div className="sm:hidden">
+        <Select value={current.href} onValueChange={(href) => setLocation(href)}>
+          <SelectTrigger className="w-full bg-card">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {NAV.map(({ href, label, icon: Icon }) => (
+              <SelectItem key={href} value={href}>
+                <span className="flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {label}
+                  {href === "/admin/inbox" && unreadCount > 0 ? badge : null}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Desktop: full wrap nav */}
+      <nav className="hidden sm:flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          const showBadge = href === "/admin/inbox" && unreadCount > 0;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+              {showBadge && badge}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }
 
