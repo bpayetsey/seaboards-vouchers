@@ -4358,6 +4358,78 @@ export const useSendWhatsappCampaign = <TError = ErrorType<ApiError>,
       return useMutation(getSendWhatsappCampaignMutationOptions(options));
     }
 
+export const getResumeWhatsappCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/admin/whatsapp/campaigns/${campaignId}/resume`
+}
+
+/**
+ * Re-triggers dispatch for a campaign already in the sending state, picking up any remaining queued recipients (respecting the daily cap). Use when a send has stalled and needs a manual nudge.
+
+ * @summary Resume an in-progress campaign
+ */
+export const resumeWhatsappCampaign = async (campaignId: string, options?: RequestInit): Promise<WhatsappCampaignDetail> => {
+
+  return customFetch<WhatsappCampaignDetail>(getResumeWhatsappCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResumeWhatsappCampaignMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeWhatsappCampaign>>, TError,{campaignId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resumeWhatsappCampaign>>, TError,{campaignId: string}, TContext> => {
+
+const mutationKey = ['resumeWhatsappCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resumeWhatsappCampaign>>, {campaignId: string}> = (props) => {
+          const {campaignId} = props ?? {};
+
+          return  resumeWhatsappCampaign(campaignId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResumeWhatsappCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof resumeWhatsappCampaign>>>
+
+    export type ResumeWhatsappCampaignMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Resume an in-progress campaign
+ */
+export const useResumeWhatsappCampaign = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeWhatsappCampaign>>, TError,{campaignId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resumeWhatsappCampaign>>,
+        TError,
+        {campaignId: string},
+        TContext
+      > => {
+      return useMutation(getResumeWhatsappCampaignMutationOptions(options));
+    }
+
 export const getGetEmailConfigUrl = () => {
 
 

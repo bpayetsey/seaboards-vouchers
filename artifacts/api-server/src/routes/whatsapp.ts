@@ -26,6 +26,8 @@ import {
   SendWhatsappCampaignParams,
   SendWhatsappCampaignBody,
   SendWhatsappCampaignResponse,
+  ResumeWhatsappCampaignParams,
+  ResumeWhatsappCampaignResponse,
 } from "@workspace/api-zod";
 import { requireStaff } from "../middlewares/requireStaff";
 import {
@@ -42,6 +44,7 @@ import {
   getCampaignDetail,
   createCampaign,
   sendCampaign,
+  resumeCampaign,
   dispatchDueCampaigns,
 } from "../lib/whatsappCampaigns";
 import { uploadMedia } from "../lib/whatsappClient";
@@ -309,6 +312,33 @@ router.post(
     } catch (err) {
       req.log.error({ err }, "Failed to send WhatsApp campaign");
       return res.status(500).json({ error: "Could not send campaign." });
+    }
+  },
+);
+
+router.post(
+  "/admin/whatsapp/campaigns/:campaignId/resume",
+  requireStaff,
+  async (req, res) => {
+    const params = ResumeWhatsappCampaignParams.safeParse(req.params);
+    if (!params.success) {
+      return res.status(400).json({ error: params.error.message });
+    }
+    try {
+      const result = await resumeCampaign(params.data.campaignId);
+      if (!result.ok) {
+        if (result.error === "not_found") {
+          return res.status(404).json({ error: "Campaign not found." });
+        }
+        return res
+          .status(400)
+          .json({ error: "Only an in-progress campaign can be resumed." });
+      }
+      const detail = await getCampaignDetail(params.data.campaignId);
+      return res.json(ResumeWhatsappCampaignResponse.parse(detail));
+    } catch (err) {
+      req.log.error({ err }, "Failed to resume WhatsApp campaign");
+      return res.status(500).json({ error: "Could not resume campaign." });
     }
   },
 );

@@ -660,6 +660,31 @@ export async function sendCampaign(
   return { ok: true };
 }
 
+/**
+ * Manually re-trigger dispatch for a campaign already in `sending`. Used by the
+ * admin "Continue broadcast" button to nudge a stalled send. Idempotent and
+ * safe to spam: dispatchCampaign holds a per-campaign advisory lock, so if the
+ * scheduler (or a prior click) is already dispatching, this call is a no-op.
+ * Remaining queued recipients are picked up, still bounded by the daily cap.
+ */
+export async function resumeCampaign(
+  campaignId: string,
+): Promise<SendCampaignResult> {
+  const [c] = await db
+    .select({ id: whatsappCampaigns.id, status: whatsappCampaigns.status })
+    .from(whatsappCampaigns)
+    .where(eq(whatsappCampaigns.id, campaignId))
+    .limit(1);
+  if (!c) return { ok: false, error: "not_found" };
+  if (c.status !== "sending") {
+    return { ok: false, error: "invalid_state" };
+  }
+  void dispatchCampaign(campaignId).catch((err) =>
+    logger.error({ err, campaignId }, "Campaign resume dispatch failed"),
+  );
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Sender engine
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import {
   useGetWhatsappCampaign,
   useCreateWhatsappCampaign,
   useSendWhatsappCampaign,
+  useResumeWhatsappCampaign,
   getGetWhatsappCampaignsQueryKey,
   getGetWhatsappCampaignQueryKey,
   type WhatsappTemplate,
@@ -457,6 +458,24 @@ function CampaignReport({
     },
   });
   const send = useSendWhatsappCampaign();
+  const resume = useResumeWhatsappCampaign();
+
+  const doResume = () => {
+    resume.mutate(
+      { campaignId },
+      {
+        onSuccess: () => {
+          toast({ title: "Broadcast resumed" });
+          qc.invalidateQueries({
+            queryKey: getGetWhatsappCampaignQueryKey(campaignId),
+          });
+          qc.invalidateQueries({ queryKey: getGetWhatsappCampaignsQueryKey() });
+        },
+        onError: () =>
+          toast({ title: "Could not resume", variant: "destructive" }),
+      },
+    );
+  };
 
   const doSend = (mode: "now" | "schedule", scheduledAt?: string) => {
     send.mutate(
@@ -545,6 +564,28 @@ function CampaignReport({
                 >
                   <Send className="mr-2 h-4 w-4" />
                   Send now
+                </Button>
+              </div>
+            ) : null}
+
+            {data.status === "sending" ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                <span className="text-sm text-muted-foreground">
+                  {data.stats.queued} still queued. Sending continues
+                  automatically; use this to nudge it now.
+                </span>
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  onClick={doResume}
+                  disabled={resume.isPending}
+                >
+                  {resume.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  Continue broadcast
                 </Button>
               </div>
             ) : null}
