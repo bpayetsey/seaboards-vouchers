@@ -120,7 +120,7 @@ export interface DayPassOption {
  * the storefront order → Stripe → voucher pipeline (no DB migration: prices are
  * server-authoritative here and the issued voucher simply carries the paid
  * value). Flat passes charge one price for the party; per-person passes multiply
- * by the guest count. Max 6 guests including children.
+ * by the guest count, up to each option's maxGuests.
  */
 export const DAY_PASSES: DayPassOption[] = [
   {
@@ -129,15 +129,15 @@ export const DAY_PASSES: DayPassOption[] = [
     pricing: "flat",
     rate: 1950,
     unit: "room",
-    maxGuests: 6,
+    maxGuests: 2,
     hours: "09:00 – 14:30",
-    desc: "A private room for the day with breakfast and lunch — perfect for a family or small group island escape.",
+    desc: "A private One-Bedroom room for the day with breakfast and lunch — perfect for a couple's island escape.",
     feat: [
-      "Private room for the day (09:00 – 14:30)",
+      "Private One-Bedroom room (09:00 – 14:30)",
       "À la carte breakfast",
       "Lunch — 1 main course per person",
       "Pool & day-bed access",
-      "Up to 6 guests, including children",
+      "For 2 guests",
     ],
     extension: { label: "Extend the room until 18:00", price: 585 },
   },
