@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetAdminCalendar,
-  useListBlockedDates,
   useBlockDate,
   useUnblockDate,
   useAdminRescheduleBooking,
@@ -10,8 +9,13 @@ import {
   getGetAdminCalendarQueryKey,
   getListBlockedDatesQueryKey,
 } from "@workspace/api-client-react";
-import type { AdminCalendarDay, AdminBooking } from "@workspace/api-client-react";
+import type {
+  AdminCalendarDay,
+  AdminBooking,
+  DayAvailability,
+} from "@workspace/api-client-react";
 import { AdminShell } from "./AdminShell";
+import { DayPassCalendar } from "@/components/day-pass-date-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -284,6 +288,7 @@ function DayCard({ day, onChanged }: { day: AdminCalendarDay; onChanged: () => v
 export default function AdminCalendar() {
   const queryClient = useQueryClient();
   const [weeks, setWeeks] = useState(4);
+  const [selected, setSelected] = useState("");
 
   const { from, to } = useMemo(() => {
     const today = new Date();
@@ -297,10 +302,47 @@ export default function AdminCalendar() {
     queryClient.invalidateQueries({ queryKey: getListBlockedDatesQueryKey() });
   };
 
-  const visibleDays = (data?.days ?? []).filter(
+  const visibleDays = useMemo(
     // Hide pure past days from the operational view; getAvailability marks them closed.
-    (d) => d.date >= from,
+    () => (data?.days ?? []).filter((d) => d.date >= from),
+    [data, from],
   );
+
+  // Index for the detail panel, plus a DayAvailability map for the month-grid.
+  const { dayByDate, availByDate } = useMemo(() => {
+    const dayByDate = new Map<string, AdminCalendarDay>();
+    const availByDate = new Map<string, DayAvailability>();
+    for (const d of visibleDays) {
+      dayByDate.set(d.date, d);
+      availByDate.set(d.date, {
+        date: d.date,
+        capacity: d.capacity,
+        used: d.used,
+        remaining: d.remaining,
+        closed: d.closed,
+        blocked: d.blocked,
+        blocked_reason: d.blocked_reason,
+        bookable: !d.closed && !d.blocked && d.remaining > 0,
+      });
+    }
+    return { dayByDate, availByDate };
+  }, [visibleDays]);
+
+  // Default the selection to the first open day, falling back to the first day,
+  // and keep it valid as the visible range changes.
+  useEffect(() => {
+    if (visibleDays.length === 0) {
+      if (selected) setSelected("");
+      return;
+    }
+    if (selected && dayByDate.has(selected)) return;
+    const firstOpen = visibleDays.find(
+      (d) => !d.closed && !d.blocked && d.remaining > 0,
+    );
+    setSelected((firstOpen ?? visibleDays[0]).date);
+  }, [visibleDays, dayByDate, selected]);
+
+  const selectedDay = selected ? dayByDate.get(selected) : undefined;
 
   return (
     <AdminShell
@@ -330,10 +372,27 @@ export default function AdminCalendar() {
       ) : visibleDays.length === 0 ? (
         <p className="text-sm text-muted-foreground">No days in this range.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visibleDays.map((day) => (
-            <DayCard key={day.date} day={day} onChanged={invalidate} />
-          ))}
+        <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-start">
+          <DayPassCalendar
+            availability={availByDate}
+            selected={selected}
+            onSelect={setSelected}
+            from={from}
+            to={to}
+            isLoading={isLoading}
+            adminMode
+          />
+          {selectedDay ? (
+            <DayCard day={selectedDay} onChanged={invalidate} />
+          ) : (
+            <Card className="border-border/70">
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">
+                  Select a day to view its bookings and availability.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </AdminShell>

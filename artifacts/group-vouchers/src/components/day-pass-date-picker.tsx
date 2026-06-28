@@ -61,6 +61,13 @@ export interface DayPassCalendarProps {
   disabled?: boolean;
   /** Shows a subtle loading state while availability is fetching. */
   isLoading?: boolean;
+  /**
+   * Admin variant. When true, every in-range day that has availability data is
+   * selectable — including blocked, full and closed days — so staff can open
+   * any day to review bookings or block/unblock it. Status (open/full/blocked/
+   * closed) is reflected in the cell styling and a richer legend is shown.
+   */
+  adminMode?: boolean;
 }
 
 /**
@@ -79,6 +86,7 @@ export function DayPassCalendar({
   to,
   disabled = false,
   isLoading = false,
+  adminMode = false,
 }: DayPassCalendarProps) {
   const fromDate = isoToDate(from);
   const toDate = isoToDate(to);
@@ -156,6 +164,84 @@ export function DayPassCalendar({
             return <div key={iso} className="aspect-square" aria-hidden />;
           }
 
+          if (adminMode) {
+            // Staff can open any in-range day that has data — blocked, full or
+            // closed included — to review bookings or block/unblock it.
+            const selectable = Boolean(day) && inRange;
+
+            if (!selectable) {
+              return (
+                <div
+                  key={iso}
+                  className="flex aspect-square flex-col items-center justify-center rounded-lg text-muted-foreground/30"
+                  aria-hidden
+                >
+                  <span className="text-sm">{date.getDate()}</span>
+                </div>
+              );
+            }
+
+            const status = day!.blocked
+              ? "blocked"
+              : day!.closed
+                ? "closed"
+                : day!.remaining === 0
+                  ? "full"
+                  : "open";
+
+            const statusLabel =
+              status === "blocked"
+                ? "Blocked"
+                : status === "closed"
+                  ? "Closed"
+                  : status === "full"
+                    ? "Full"
+                    : `${day!.remaining} left`;
+
+            return (
+              <button
+                key={iso}
+                type="button"
+                onClick={() => onSelect(iso)}
+                aria-pressed={isSelected}
+                aria-label={`${date.toLocaleDateString("en-GB", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })} — ${statusLabel}`}
+                className={cn(
+                  "flex aspect-square flex-col items-center justify-center rounded-lg border text-sm transition-colors",
+                  isSelected
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : status === "blocked"
+                      ? "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/15"
+                      : status === "closed"
+                        ? "border-transparent text-muted-foreground/60 hover:bg-muted"
+                        : status === "full"
+                          ? "border-accent/30 bg-accent/10 text-accent-foreground hover:bg-accent/15"
+                          : "border-transparent text-foreground hover:border-primary/40 hover:bg-primary/5",
+                )}
+              >
+                <span
+                  className={cn(
+                    "font-medium leading-none",
+                    status === "closed" && !isSelected && "line-through",
+                  )}
+                >
+                  {date.getDate()}
+                </span>
+                <span
+                  className={cn(
+                    "mt-0.5 text-[0.6rem] leading-none",
+                    isSelected ? "text-primary-foreground/80" : "opacity-80",
+                  )}
+                >
+                  {statusLabel}
+                </span>
+              </button>
+            );
+          }
+
           if (!bookable) {
             return (
               <div
@@ -217,14 +303,37 @@ export function DayPassCalendar({
           <span className="h-2.5 w-2.5 rounded-full bg-primary" />
           Selected
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full border border-border" />
-          Available
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-muted-foreground/50 line-through">00</span>
-          Closed / full
-        </span>
+        {adminMode ? (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-border" />
+              Open
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-accent/40" />
+              Full
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
+              Blocked
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground/60 line-through">00</span>
+              Closed
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-border" />
+              Available
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground/50 line-through">00</span>
+              Closed / full
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
