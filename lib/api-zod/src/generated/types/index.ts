@@ -75,6 +75,7 @@ export * from './rateTableRates';
 export * from './rejectedRow';
 export * from './reorderGalleryInput';
 export * from './resendResult';
+export * from './resendVoucherEmailResult';
 export * from './retryInstalmentResult';
 export * from './sendCampaignInput';
 export * from './sendCampaignInputMode';

@@ -57,6 +57,7 @@ import type {
   RateTable,
   ReorderGalleryInput,
   ResendResult,
+  ResendVoucherEmailResult,
   RetryInstalmentResult,
   SendCampaignInput,
   StoreAdminOrders,
@@ -697,6 +698,78 @@ export const usePayOrderInstalments = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getPayOrderInstalmentsMutationOptions(options));
+    }
+
+export const getResendVoucherEmailUrl = (code: string,) => {
+
+
+
+
+  return `/api/dashboard/vouchers/${code}/resend`
+}
+
+/**
+ * Re-sends the voucher PDF email for a voucher owned by the authenticated client. Scoped strictly to the verified account email — the caller must be one of the voucher's authorised owners, and the email is always sent to that verified address. Rate-limited per voucher so it cannot be used to spam an address. Requires a Clerk session.
+
+ * @summary Re-send an issued voucher's PDF email to its owner
+ */
+export const resendVoucherEmail = async (code: string, options?: RequestInit): Promise<ResendVoucherEmailResult> => {
+
+  return customFetch<ResendVoucherEmailResult>(getResendVoucherEmailUrl(code),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendVoucherEmailMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVoucherEmail>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendVoucherEmail>>, TError,{code: string}, TContext> => {
+
+const mutationKey = ['resendVoucherEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendVoucherEmail>>, {code: string}> = (props) => {
+          const {code} = props ?? {};
+
+          return  resendVoucherEmail(code,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendVoucherEmailMutationResult = NonNullable<Awaited<ReturnType<typeof resendVoucherEmail>>>
+
+    export type ResendVoucherEmailMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Re-send an issued voucher's PDF email to its owner
+ */
+export const useResendVoucherEmail = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVoucherEmail>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendVoucherEmail>>,
+        TError,
+        {code: string},
+        TContext
+      > => {
+      return useMutation(getResendVoucherEmailMutationOptions(options));
     }
 
 export const getGetPayLineUrl = (payToken: string,) => {

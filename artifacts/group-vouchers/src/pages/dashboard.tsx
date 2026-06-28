@@ -1,6 +1,7 @@
 import {
   useGetDashboard,
   useResendOrganisedLine,
+  useResendVoucherEmail,
   usePayOrderInstalments,
   getGetDashboardQueryKey,
 } from "@workspace/api-client-react";
@@ -89,6 +90,53 @@ function DownloadVoucherButton({ code }: { code: string }) {
     >
       <Download className="h-3.5 w-3.5 mr-2" />
       {downloading ? "Preparing…" : "Download voucher (PDF)"}
+    </Button>
+  );
+}
+
+function ResendVoucherEmailButton({ code }: { code: string }) {
+  const { toast } = useToast();
+  const resend = useResendVoucherEmail();
+
+  const handleResend = () => {
+    resend.mutate(
+      { code },
+      {
+        onSuccess: (res) => {
+          toast({
+            title: "Voucher email sent",
+            description: `We've re-sent your voucher to ${res.email}. Please check your inbox (and spam folder).`,
+          });
+        },
+        onError: (err: unknown) => {
+          const message =
+            err && typeof err === "object" && "error" in err
+              ? String((err as { error?: unknown }).error)
+              : "Please try again in a moment.";
+          toast({
+            title: "Couldn't send email",
+            description: message,
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="w-full"
+      disabled={resend.isPending}
+      onClick={handleResend}
+    >
+      {resend.isPending ? (
+        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+      ) : (
+        <Mail className="h-3.5 w-3.5 mr-2" />
+      )}
+      {resend.isPending ? "Sending…" : "Resend email"}
     </Button>
   );
 }
@@ -797,7 +845,10 @@ function VouchersSection({ vouchers }: { vouchers: DashboardVoucher[] }) {
                     </span>
                   </div>
                   {v.kind === "voucher" && v.code && (
-                    <DownloadVoucherButton code={v.code} />
+                    <div className="space-y-2">
+                      <DownloadVoucherButton code={v.code} />
+                      <ResendVoucherEmailButton code={v.code} />
+                    </div>
                   )}
                 </CardContent>
               </Card>

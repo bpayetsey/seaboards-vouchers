@@ -253,6 +253,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /dashboard/vouchers/{code}/resend:
+    post:
+      operationId: resendVoucherEmail
+      tags: [dashboard]
+      summary: Re-send an issued voucher's PDF email to its owner
+      description: >
+        Re-sends the voucher PDF email for a voucher owned by the authenticated
+        client. Scoped strictly to the verified account email — the caller must
+        be one of the voucher's authorised owners, and the email is always sent
+        to that verified address. Rate-limited per voucher so it cannot be used
+        to spam an address. Requires a Clerk session.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The voucher email was re-sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResendVoucherEmailResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: A verified email is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Too many resend requests; try again later
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /pay/{payToken}:
     get:
       operationId: getPayLine
@@ -2009,6 +2057,16 @@ components:
           type: string
         status:
           type: string
+    ResendVoucherEmailResult:
+      type: object
+      required: [status, email]
+      properties:
+        status:
+          type: string
+          description: Always "sent" when the email was re-dispatched.
+        email:
+          type: string
+          description: The verified account email the voucher was sent to.
     PayLine:
       type: object
       required:

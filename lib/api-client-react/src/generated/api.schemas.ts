@@ -252,6 +252,13 @@ export interface ResendResult {
   status: string;
 }
 
+export interface ResendVoucherEmailResult {
+  /** Always "sent" when the email was re-dispatched. */
+  status: string;
+  /** The verified account email the voucher was sent to. */
+  email: string;
+}
+
 export interface PayLine {
   payer_name: string;
   amount_major: number;

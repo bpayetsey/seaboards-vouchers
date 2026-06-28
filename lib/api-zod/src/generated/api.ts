@@ -251,6 +251,21 @@ export const PayOrderInstalmentsResponse = zod.object({
 
 
 /**
+ * Re-sends the voucher PDF email for a voucher owned by the authenticated client. Scoped strictly to the verified account email — the caller must be one of the voucher's authorised owners, and the email is always sent to that verified address. Rate-limited per voucher so it cannot be used to spam an address. Requires a Clerk session.
+
+ * @summary Re-send an issued voucher's PDF email to its owner
+ */
+export const ResendVoucherEmailParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const ResendVoucherEmailResponse = zod.object({
+  "status": zod.string().describe('Always \"sent\" when the email was re-dispatched.'),
+  "email": zod.string().describe('The verified account email the voucher was sent to.')
+})
+
+
+/**
  * @summary Get a payer's line details
  */
 export const GetPayLineParams = zod.object({
