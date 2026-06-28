@@ -90,7 +90,7 @@ export const DAY_PASS_TERMS: TermsSection[] = [
   {
     title: "1. The Day Pass",
     clauses: [
-      "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers and separate from the Golden Jubilee Stay Voucher offer. Day Pass with Room SCR 1,950 (private One-Bedroom for 2 adults, 09:00\u201314:30); Day Pass \u2014 Breakfast & Lunch SCR 495 per person (09:00\u201316:00); Day Pass \u2014 Pool & Lunch SCR 550 per person.",
+      "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers and separate from the Golden Jubilee Stay Voucher offer. Day Pass with Room SCR 1,950 (private One-Bedroom for 2 adults, 09:00\u201314:30); Day Pass \u2014 Breakfast & Lunch SCR 495 per person (09:00\u201316:00); Day Pass \u2014 Pool & Lunch SCR 550 per person (09:00–16:00).",
       "A single pass covers a maximum of six (6) guests. The Day Pass with Room covers 2 adults and may add up to 2 children. Children aged 2\u201310 years are SCR 295 each (including a kids-menu meal); guests aged 11 and over pay the adult rate.",
     ],
   },
@@ -219,7 +219,7 @@ export const VOUCHER_TERMS_FULL: TermsSection[] = [
     title: "10. Day Passes",
     clauses: [
       "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers. They are a separate product from the Golden Jubilee Stay Voucher offer described above; the Golden Fifty perk and the per-room, per-night Half-Board terms do not apply to Day Passes.",
-      "Three Day Passes are offered: Day Pass with Room \u2014 SCR 1,950 for a private One-Bedroom apartment for the day (09:00\u201314:30), for two (2) adults, including \u00e0 la carte breakfast, lunch and pool and day-bed access; Day Pass \u2014 Breakfast & Lunch \u2014 SCR 495 per person (09:00\u201316:00), including \u00e0 la carte breakfast, lunch and pool and day-bed access; and Day Pass \u2014 Pool & Lunch \u2014 SCR 550 per person, including lunch and pool and day-bed access.",
+      "Three Day Passes are offered: Day Pass with Room \u2014 SCR 1,950 for a private One-Bedroom apartment for the day (09:00\u201314:30), for two (2) adults, including \u00e0 la carte breakfast, lunch and pool and day-bed access; Day Pass \u2014 Breakfast & Lunch \u2014 SCR 495 per person (09:00\u201316:00), including \u00e0 la carte breakfast, lunch and pool and day-bed access; and Day Pass \u2014 Pool & Lunch \u2014 SCR 550 per person (09:00–16:00), including lunch and pool and day-bed access.",
       "Lunch includes one (1) main course per person. Beverages are not included unless expressly stated in writing. No outside alcohol may be brought onto the premises; this applies to all Day Passes except the Day Pass with Room.",
       "A single Day Pass covers a maximum of six (6) guests. The Day Pass with Room covers two (2) adults and may add up to two (2) children. Children aged 2\u201310 years are charged SCR 295 each, which includes a kids-menu meal; guests aged 11 years and over are charged at the applicable adult rate.",
       "The Day Pass with Room may be extended until 18:00 for an additional SCR 585 per room, subject to availability.",

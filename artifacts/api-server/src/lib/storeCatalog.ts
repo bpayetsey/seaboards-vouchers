@@ -186,9 +186,10 @@ export const DAY_PASSES: DayPassOption[] = [
     maxGuests: 6,
     childRate: 295,
     childAges: "2–10 years",
-    hours: "Daytime",
+    hours: "09:00 – 16:00",
     desc: "Pool and day-bed access with lunch included — the easy way to spend a day at The Seaboards.",
     feat: [
+      "Access 09:00 – 16:00",
       "Pool & day-bed access",
       "Lunch included",
       "Children (2–10 yrs): SCR 295 each, incl. kids-menu meal",
