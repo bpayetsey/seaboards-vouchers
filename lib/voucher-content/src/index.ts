@@ -240,6 +240,52 @@ export const VOUCHER_TERMS_FULL: TermsSection[] = [
   },
 ];
 
+/**
+ * A single condensed day-pass policy point shown next to the date picker on the
+ * storefront and dashboard. These are the *essentials* a guest needs before
+ * picking a visit date; they condense the substantive rules in
+ * {@link DAY_PASS_TERMS} (Section 5) and must stay in sync with them.
+ */
+export interface DayPassPolicyPoint {
+  /** Short headline, e.g. "Closed Tuesdays". */
+  title: string;
+  /** One-line explanation in plain prose. */
+  detail: string;
+}
+
+/**
+ * Condensed booking & cancellation policy for day passes, sourced from
+ * {@link DAY_PASS_TERMS}. Rendered beside the visit-date calendar on the
+ * storefront and in the dashboard assign-date / reschedule flows so guests
+ * understand the rules before committing. Keep in sync with DAY_PASS_TERMS.
+ */
+export const DAY_PASS_POLICY_POINTS: DayPassPolicyPoint[] = [
+  {
+    title: "Closed on Tuesdays",
+    detail: "The resort does not operate day passes on Tuesdays.",
+  },
+  {
+    title: "Up to 6 guests a day",
+    detail:
+      "A maximum of six day-pass guests are admitted per day, so popular dates can sell out.",
+  },
+  {
+    title: "Reschedule free, twice",
+    detail:
+      "Change your visit date up to two times free of charge, each at least 48 hours before the visit.",
+  },
+  {
+    title: "Cancelling within 24 hours",
+    detail:
+      "Cancel within 24 hours of the visit (or after your two free changes) and 25% is kept; the remaining 75% becomes account credit. No cash refunds.",
+  },
+  {
+    title: "Buy undated as a gift",
+    detail:
+      "Prefer to decide later? Buy it undated or as a gift and choose your visit date anytime from your account.",
+  },
+];
+
 /** Final acceptance / confirmation line shown beneath the clauses. */
 export const TERMS_ACCEPTANCE =
   "By completing payment (or the first instalment under the payment plan), the guest confirms they have read, understood and accepted these Terms & Conditions.";

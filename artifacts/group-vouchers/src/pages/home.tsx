@@ -34,12 +34,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar } from "@/components/ui/calendar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DayPassCalendar,
+  DayPassPolicy,
+} from "@/components/day-pass-date-picker";
 import { useToast } from "@/hooks/use-toast";
 import {
   downloadVoucherPdf,
@@ -50,7 +48,6 @@ import {
   Check,
   CreditCard,
   CalendarClock,
-  Calendar as CalendarIcon,
   Lock,
   ArrowLeft,
   Users,
@@ -89,17 +86,6 @@ function addDaysISO(iso: string, days: number) {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function isoToDate(iso: string) {
-  return new Date(iso + "T00:00:00");
-}
-
-function dateToISO(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 function formatVisitDay(iso: string) {
@@ -324,14 +310,6 @@ function Storefront({ config }: { config: StorefrontConfig }) {
     for (const d of availability.data?.days ?? []) map.set(d.date, d);
     return map;
   }, [availability.data]);
-  const isDayDisabled = (date: Date) => {
-    const iso = dateToISO(date);
-    if (iso < availFrom || iso > availTo) return true;
-    const day = availByDate.get(iso);
-    if (!day) return true;
-    return !day.bookable;
-  };
-
   useEffect(() => {
     if (!visitDate || giftLater) return;
     if (!availability.isSuccess) return;
@@ -841,93 +819,58 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             )}
 
             {datablePass && (
-              <div className="rounded-lg border border-border bg-background/60 p-4 space-y-3">
+              <div className="rounded-lg border border-border bg-background/60 p-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <CalendarClock className="w-4 h-4 text-primary" />
                   <div className="text-sm font-medium text-foreground">
                     Choose your visit date
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  We welcome up to 6 guests a day and are closed on Tuesdays.
-                  Greyed-out days are closed, blocked or fully booked.
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={giftLater}
-                        className={`h-10 w-auto justify-start text-left font-normal ${
-                          !visitDate ? "text-muted-foreground" : ""
-                        }`}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {visitDate
-                          ? formatVisitDay(visitDate)
-                          : "Pick a visit date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={visitDate ? isoToDate(visitDate) : undefined}
-                        onSelect={(date) =>
-                          setVisitDate(date ? dateToISO(date) : "")
-                        }
-                        disabled={isDayDisabled}
-                        defaultMonth={
-                          visitDate ? isoToDate(visitDate) : isoToDate(availFrom)
-                        }
-                        startMonth={isoToDate(availFrom)}
-                        endMonth={isoToDate(availTo)}
-                        initialFocus
+                <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                  <div className="space-y-3">
+                    <DayPassCalendar
+                      availability={availByDate}
+                      selected={giftLater ? "" : visitDate}
+                      onSelect={setVisitDate}
+                      from={availFrom}
+                      to={availTo}
+                      disabled={giftLater}
+                      isLoading={availability.isLoading}
+                    />
+                    {visitDate && !giftLater ? (
+                      <p className="text-xs font-medium text-primary">
+                        {formatVisitDay(visitDate)}
+                        {(() => {
+                          const day = availByDate.get(visitDate);
+                          return day && day.bookable
+                            ? ` · ${day.remaining} place${
+                                day.remaining === 1 ? "" : "s"
+                              } left`
+                            : "";
+                        })()}
+                      </p>
+                    ) : null}
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={giftLater}
+                        onChange={(e) => {
+                          setGiftLater(e.target.checked);
+                          if (e.target.checked) setVisitDate("");
+                        }}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  {visitDate && !giftLater ? (
-                    (() => {
-                      const day = availByDate.get(visitDate);
-                      if (!day) return null;
-                      if (!day.bookable) {
-                        return (
-                          <span className="text-xs font-medium text-destructive">
-                            {day.blocked
-                              ? day.blocked_reason || "Unavailable that day"
-                              : day.closed
-                                ? "Closed that day"
-                                : "Fully booked — choose another day"}
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="text-xs font-medium text-primary">
-                          {day.remaining} place
-                          {day.remaining === 1 ? "" : "s"} left
+                      <span className="text-sm text-foreground/80">
+                        It&rsquo;s a gift / I&rsquo;ll choose the date later
+                        <span className="text-muted-foreground">
+                          {" "}
+                          — book your day anytime from your account.
                         </span>
-                      );
-                    })()
-                  ) : null}
+                      </span>
+                    </label>
+                  </div>
+                  <DayPassPolicy />
                 </div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary"
-                    checked={giftLater}
-                    onChange={(e) => {
-                      setGiftLater(e.target.checked);
-                      if (e.target.checked) setVisitDate("");
-                    }}
-                  />
-                  <span className="text-sm text-foreground/80">
-                    It&rsquo;s a gift / I&rsquo;ll choose the date later
-                    <span className="text-muted-foreground">
-                      {" "}
-                      — book your day anytime from your account.
-                    </span>
-                  </span>
-                </label>
               </div>
             )}
           </div>

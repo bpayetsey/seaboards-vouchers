@@ -6,7 +6,9 @@ import {
   useAssignBookingDate,
   useRescheduleBooking,
   useCancelBooking,
+  useGetDayPassAvailability,
   getGetDashboardQueryKey,
+  getGetDayPassAvailabilityQueryKey,
 } from "@workspace/api-client-react";
 import type {
   DashboardVoucher,
@@ -17,13 +19,13 @@ import type {
   DashboardInstalment,
   DashboardBooking,
   CreditBalance,
+  DayAvailability,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DayPassCalendar,
+  DayPassPolicy,
+} from "@/components/day-pass-date-picker";
 import { formatMoney } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -537,6 +543,12 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function addDaysISO(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function formatVisitDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
     weekday: "long",
@@ -558,6 +570,26 @@ function BookingCard({ booking }: { booking: DashboardBooking }) {
     queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
 
   const cancelled = booking.status === "cancelled";
+  const showPicker =
+    !cancelled && (booking.needs_date || booking.can_reschedule);
+
+  const availFrom = todayISO();
+  // Day passes are valid for 12 months, so allow the full booking horizon here
+  // (the storefront keeps its 60-day window). This preserves the unbounded
+  // date range the previous date input allowed, within voucher validity.
+  const availTo = addDaysISO(availFrom, 365);
+  const availParams = { from: availFrom, to: availTo, pax: booking.pax };
+  const availability = useGetDayPassAvailability(availParams, {
+    query: {
+      enabled: showPicker,
+      queryKey: getGetDayPassAvailabilityQueryKey(availParams),
+    },
+  });
+  const availByDate = useMemo(() => {
+    const map = new Map<string, DayAvailability>();
+    for (const d of availability.data?.days ?? []) map.set(d.date, d);
+    return map;
+  }, [availability.data]);
 
   const doAssign = () => {
     if (!pickDate) {
@@ -678,34 +710,51 @@ function BookingCard({ booking }: { booking: DashboardBooking }) {
           </p>
         ) : null}
 
-        {!cancelled && (booking.needs_date || booking.can_reschedule) ? (
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-            <Input
-              type="date"
-              min={todayISO()}
-              value={pickDate}
-              onChange={(e) => setPickDate(e.target.value)}
-              className="h-9 w-auto"
+        {showPicker ? (
+          <div className="space-y-3 border-t border-border pt-3">
+            <DayPassCalendar
+              availability={availByDate}
+              selected={pickDate}
+              onSelect={setPickDate}
+              from={availFrom}
+              to={availTo}
+              isLoading={availability.isLoading}
             />
-            {booking.needs_date ? (
-              <Button size="sm" onClick={doAssign} disabled={busy}>
-                {assign.isPending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                Book date
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" onClick={doReschedule} disabled={busy}>
-                {reschedule.isPending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                Reschedule
-              </Button>
-            )}
+            {pickDate ? (
+              <p className="text-xs font-medium text-primary">
+                {formatVisitDate(pickDate)}
+                {(() => {
+                  const day = availByDate.get(pickDate);
+                  return day && day.bookable
+                    ? ` · ${day.remaining} place${
+                        day.remaining === 1 ? "" : "s"
+                      } left`
+                    : "";
+                })()}
+              </p>
+            ) : null}
+            <DayPassPolicy />
+            <div className="flex flex-wrap items-center gap-2">
+              {booking.needs_date ? (
+                <Button size="sm" onClick={doAssign} disabled={busy}>
+                  {assign.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Book date
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={doReschedule} disabled={busy}>
+                  {reschedule.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CalendarClock className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Reschedule
+                </Button>
+              )}
+            </div>
           </div>
         ) : null}
 
