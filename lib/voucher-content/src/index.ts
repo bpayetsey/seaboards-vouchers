@@ -213,7 +213,7 @@ export interface BreakfastStyle {
 }
 
 /** Headline shown at the top of the menu page. */
-export const MENU_TITLE = "Half Board Menu";
+export const MENU_TITLE = "Half Board & Day Pass Menu";
 
 /** Short epigraph printed on the resort's menu. */
 export const MENU_EPIGRAPH = {
@@ -222,9 +222,9 @@ export const MENU_EPIGRAPH = {
   attribution: "Unknown",
 } as const;
 
-/** Plain-language summary of what Half Board includes. */
+/** Plain-language summary of what Half Board and Day Pass include. */
 export const MENU_INTRO =
-  "Half Board includes daily breakfast and a two-course dinner \u2014 a main course and a dessert \u2014 for the named adult occupants. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your Half Board.";
+  "Half Board includes daily breakfast and a two-course dinner \u2014 a main course and a dessert \u2014 for the named adult occupants. Day Pass includes lunch with one choice of main course. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your package.";
 
 /** Note explaining that the dessert selection changes each day. */
 export const DESSERT_NOTE = {

@@ -35,7 +35,7 @@ export default function Menu() {
             {RESORT.location}
           </div>
           <div className="mt-6 font-sans text-[12.5px] font-bold uppercase tracking-[0.4em] text-accent">
-            Half Board
+            Half Board &amp; Day Pass
           </div>
           <h1 className="font-serif font-semibold text-primary text-3xl md:text-[46px] leading-[1.08] mt-2 mb-2">
             {MENU_TITLE}
