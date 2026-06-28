@@ -13,6 +13,8 @@ import { logger } from "./lib/logger";
 import { processWebhook } from "./lib/webhookHandlers";
 import { verifyWebhookSignature } from "./lib/whatsappClient";
 import { processWhatsappWebhook } from "./lib/whatsappCampaigns";
+import { verifyEventWebhookSignature } from "./lib/sendgridClient";
+import { processSendgridEvents } from "./lib/emailCampaigns";
 
 const app: Express = express();
 
@@ -111,6 +113,37 @@ app.post(
       await processWhatsappWebhook(payload);
     } catch (err) {
       req.log.error({ err }, "WhatsApp webhook processing error");
+    }
+    return res.sendStatus(200);
+  },
+);
+
+// SendGrid Event Webhook (delivery/open/bounce statuses). Must receive the raw
+// body for ECDSA signature verification, so it is registered BEFORE express.json().
+// Always acks 200 so SendGrid does not retry. When a verification key is
+// configured, only verified payloads are processed; when it is not, events are
+// processed unsigned (they only advance per-message delivery status).
+app.post(
+  "/api/email/webhook",
+  express.raw({ type: () => true }),
+  async (req, res) => {
+    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
+    const signature = req.get(
+      "X-Twilio-Email-Event-Webhook-Signature",
+    );
+    const timestamp = req.get(
+      "X-Twilio-Email-Event-Webhook-Timestamp",
+    );
+    const verdict = verifyEventWebhookSignature(raw, signature, timestamp);
+    if (verdict === false) {
+      // Key configured but signature invalid: ack without processing.
+      return res.sendStatus(200);
+    }
+    try {
+      const payload = JSON.parse(raw.toString("utf8"));
+      await processSendgridEvents(payload);
+    } catch (err) {
+      req.log.error({ err }, "SendGrid event webhook processing error");
     }
     return res.sendStatus(200);
   },

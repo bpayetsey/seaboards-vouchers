@@ -1355,3 +1355,326 @@ export const SendWhatsappCampaignResponse = zod.object({
 })
 
 
+/**
+ * Reports whether SendGrid is configured and returns the verified sender address for the campaign composer.
+
+ * @summary Email sender status
+ */
+export const GetEmailConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "from_email": zod.string().nullish(),
+  "from_name": zod.string().nullish()
+})
+
+
+/**
+ * @summary List/search email contacts
+ */
+export const GetEmailContactsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "audienceId": zod.coerce.string().optional()
+})
+
+export const GetEmailContactsResponse = zod.object({
+  "contacts": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "consent": zod.string(),
+  "opted_out": zod.boolean(),
+  "opted_out_at": zod.string().nullish(),
+  "source": zod.string(),
+  "created_at": zod.string()
+})),
+  "total": zod.number(),
+  "eligible": zod.number().describe('Contacts that are consented and not opted-out')
+})
+
+
+/**
+ * Validates and normalizes email addresses, de-duplicates against existing contacts and within the batch, and returns a per-row summary.
+
+ * @summary Bulk import email contacts from a parsed CSV
+ */
+export const ImportEmailContactsBody = zod.object({
+  "rows": zod.array(zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish()
+})),
+  "consent": zod.boolean().optional().describe('Whether these contacts have consented to marketing (defaults true)'),
+  "audience_id": zod.string().nullish().describe('Optionally add all imported\/matched contacts to this audience')
+})
+
+export const ImportEmailContactsResponse = zod.object({
+  "total": zod.number(),
+  "imported": zod.number(),
+  "duplicates": zod.number(),
+  "rejected": zod.array(zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "reason": zod.string()
+}))
+})
+
+
+/**
+ * @summary Manually mark an email contact opted-out
+ */
+export const OptOutEmailContactParams = zod.object({
+  "contactId": zod.coerce.string()
+})
+
+export const OptOutEmailContactResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "consent": zod.string(),
+  "opted_out": zod.boolean(),
+  "opted_out_at": zod.string().nullish(),
+  "source": zod.string(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Remove an email contact
+ */
+export const DeleteEmailContactParams = zod.object({
+  "contactId": zod.coerce.string()
+})
+
+export const DeleteEmailContactResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary List email audiences with member counts
+ */
+export const GetEmailAudiencesResponse = zod.object({
+  "audiences": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create an email audience
+ */
+export const CreateEmailAudienceBody = zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_ids": zod.array(zod.string()).optional()
+})
+
+export const CreateEmailAudienceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Delete an email audience
+ */
+export const DeleteEmailAudienceParams = zod.object({
+  "audienceId": zod.coerce.string()
+})
+
+export const DeleteEmailAudienceResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Add or remove contacts from an email audience
+ */
+export const UpdateEmailAudienceMembersParams = zod.object({
+  "audienceId": zod.coerce.string()
+})
+
+export const UpdateEmailAudienceMembersBody = zod.object({
+  "add": zod.array(zod.string()).optional(),
+  "remove": zod.array(zod.string()).optional()
+})
+
+export const UpdateEmailAudienceMembersResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "contact_count": zod.number(),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary List email campaigns with delivery stats
+ */
+export const GetEmailCampaignsResponse = zod.object({
+  "campaigns": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "subject": zod.string(),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "opened": zod.number(),
+  "failed": zod.number()
+})
+}))
+})
+
+
+/**
+ * @summary Create an email campaign and optionally send or schedule it
+ */
+export const CreateEmailCampaignBody = zod.object({
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "variables": zod.array(zod.string()).optional().describe('Values that fill positional {{1}}..{{n}} placeholders in subject\/body'),
+  "mode": zod.enum(['draft', 'now', 'schedule']).optional().describe('draft saves only; now sends immediately; schedule defers to scheduled_at'),
+  "scheduled_at": zod.string().nullish(),
+  "daily_limit": zod.number().nullish().describe('Max emails to send per rolling 24h. When set, the campaign sends up to this many per day and automatically resumes the next day until the whole audience is reached. Null = send the entire audience at once.\n')
+})
+
+export const CreateEmailCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "opened": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Email campaign detail with per-recipient delivery status
+ */
+export const GetEmailCampaignParams = zod.object({
+  "campaignId": zod.coerce.string()
+})
+
+export const GetEmailCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "opened": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send or schedule an existing draft email campaign
+ */
+export const SendEmailCampaignParams = zod.object({
+  "campaignId": zod.coerce.string()
+})
+
+export const SendEmailCampaignBody = zod.object({
+  "mode": zod.enum(['now', 'schedule']),
+  "scheduled_at": zod.string().nullish()
+})
+
+export const SendEmailCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "opened": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+

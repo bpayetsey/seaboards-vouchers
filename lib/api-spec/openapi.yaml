@@ -1787,6 +1787,447 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/email/config:
+    get:
+      operationId: getEmailConfig
+      tags: [admin]
+      summary: Email sender status
+      description: >
+        Reports whether SendGrid is configured and returns the verified sender
+        address for the campaign composer.
+      responses:
+        "200":
+          description: Config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailConfig"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/contacts:
+    get:
+      operationId: getEmailContacts
+      tags: [admin]
+      summary: List/search email contacts
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: audienceId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailContactList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/contacts/import:
+    post:
+      operationId: importEmailContacts
+      tags: [admin]
+      summary: Bulk import email contacts from a parsed CSV
+      description: >
+        Validates and normalizes email addresses, de-duplicates against existing
+        contacts and within the batch, and returns a per-row summary.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailImportContactsInput"
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailImportContactsResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/contacts/{contactId}/opt-out:
+    post:
+      operationId: optOutEmailContact
+      tags: [admin]
+      summary: Manually mark an email contact opted-out
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailContact"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/contacts/{contactId}:
+    delete:
+      operationId: deleteEmailContact
+      tags: [admin]
+      summary: Remove an email contact
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/audiences:
+    get:
+      operationId: getEmailAudiences
+      tags: [admin]
+      summary: List email audiences with member counts
+      responses:
+        "200":
+          description: Audiences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAudienceList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createEmailAudience
+      tags: [admin]
+      summary: Create an email audience
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAudienceInput"
+      responses:
+        "200":
+          description: Created audience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAudience"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/audiences/{audienceId}:
+    delete:
+      operationId: deleteEmailAudience
+      tags: [admin]
+      summary: Delete an email audience
+      parameters:
+        - name: audienceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/audiences/{audienceId}/members:
+    post:
+      operationId: updateEmailAudienceMembers
+      tags: [admin]
+      summary: Add or remove contacts from an email audience
+      parameters:
+        - name: audienceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAudienceMembersInput"
+      responses:
+        "200":
+          description: Updated audience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAudience"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/campaigns:
+    get:
+      operationId: getEmailCampaigns
+      tags: [admin]
+      summary: List email campaigns with delivery stats
+      responses:
+        "200":
+          description: Campaigns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailCampaignList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createEmailCampaign
+      tags: [admin]
+      summary: Create an email campaign and optionally send or schedule it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmailCampaignInput"
+      responses:
+        "200":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailCampaignDetail"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/campaigns/{campaignId}:
+    get:
+      operationId: getEmailCampaign
+      tags: [admin]
+      summary: Email campaign detail with per-recipient delivery status
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Campaign detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailCampaignDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/email/campaigns/{campaignId}/send:
+    post:
+      operationId: sendEmailCampaign
+      tags: [admin]
+      summary: Send or schedule an existing draft email campaign
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCampaignInput"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailCampaignDetail"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -3479,3 +3920,251 @@ components:
           type: boolean
         message:
           $ref: "#/components/schemas/InboxMessage"
+    EmailConfig:
+      type: object
+      required: [configured]
+      properties:
+        configured:
+          type: boolean
+        from_email:
+          type: ["string", "null"]
+        from_name:
+          type: ["string", "null"]
+    EmailContact:
+      type: object
+      required: [id, email, consent, opted_out, source, created_at]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        consent:
+          type: string
+        opted_out:
+          type: boolean
+        opted_out_at:
+          type: ["string", "null"]
+        source:
+          type: string
+        created_at:
+          type: string
+    EmailContactList:
+      type: object
+      required: [contacts, total, eligible]
+      properties:
+        contacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailContact"
+        total:
+          type: integer
+        eligible:
+          type: integer
+          description: Contacts that are consented and not opted-out
+    EmailImportContactRow:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+    EmailImportContactsInput:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailImportContactRow"
+        consent:
+          type: boolean
+          description: Whether these contacts have consented to marketing (defaults true)
+        audience_id:
+          type: ["string", "null"]
+          description: Optionally add all imported/matched contacts to this audience
+    EmailRejectedRow:
+      type: object
+      required: [email, reason]
+      properties:
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        reason:
+          type: string
+    EmailImportContactsResult:
+      type: object
+      required: [total, imported, duplicates, rejected]
+      properties:
+        total:
+          type: integer
+        imported:
+          type: integer
+        duplicates:
+          type: integer
+        rejected:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailRejectedRow"
+    EmailAudience:
+      type: object
+      required: [id, name, contact_count, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        contact_count:
+          type: integer
+        created_at:
+          type: string
+    EmailAudienceList:
+      type: object
+      required: [audiences]
+      properties:
+        audiences:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailAudience"
+    CreateEmailCampaignInput:
+      type: object
+      required: [name, audience_id, subject, body]
+      properties:
+        name:
+          type: string
+        audience_id:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+          description: Values that fill positional {{1}}..{{n}} placeholders in subject/body
+        mode:
+          type: string
+          enum: [draft, now, schedule]
+          description: draft saves only; now sends immediately; schedule defers to scheduled_at
+        scheduled_at:
+          type: ["string", "null"]
+        daily_limit:
+          type: ["integer", "null"]
+          description: >
+            Max emails to send per rolling 24h. When set, the campaign sends up to
+            this many per day and automatically resumes the next day until the
+            whole audience is reached. Null = send the entire audience at once.
+    EmailCampaignStats:
+      type: object
+      required: [total, queued, sent, delivered, opened, failed]
+      properties:
+        total:
+          type: integer
+        queued:
+          type: integer
+        sent:
+          type: integer
+        delivered:
+          type: integer
+        opened:
+          type: integer
+        failed:
+          type: integer
+    EmailCampaignSummary:
+      type: object
+      required: [id, name, audience_id, audience_name, subject, status, created_at, stats]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        audience_id:
+          type: string
+        audience_name:
+          type: string
+        subject:
+          type: string
+        status:
+          type: string
+        scheduled_at:
+          type: ["string", "null"]
+        started_at:
+          type: ["string", "null"]
+        completed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        stats:
+          $ref: "#/components/schemas/EmailCampaignStats"
+    EmailCampaignList:
+      type: object
+      required: [campaigns]
+      properties:
+        campaigns:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailCampaignSummary"
+    EmailCampaignRecipient:
+      type: object
+      required: [id, email, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        status:
+          type: string
+        provider_message_id:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+        sent_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    EmailCampaignDetail:
+      type: object
+      required: [id, name, audience_id, audience_name, subject, body, variables, status, created_at, stats, recipients]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        audience_id:
+          type: string
+        audience_name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        scheduled_at:
+          type: ["string", "null"]
+        started_at:
+          type: ["string", "null"]
+        completed_at:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        stats:
+          $ref: "#/components/schemas/EmailCampaignStats"
+        recipients:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailCampaignRecipient"

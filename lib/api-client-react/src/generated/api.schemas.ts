@@ -1191,6 +1191,175 @@ export interface InboxReplyResult {
   message: InboxMessage;
 }
 
+export interface EmailConfig {
+  configured: boolean;
+  /** @nullable */
+  from_email?: string | null;
+  /** @nullable */
+  from_name?: string | null;
+}
+
+export interface EmailContact {
+  id: string;
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  consent: string;
+  opted_out: boolean;
+  /** @nullable */
+  opted_out_at?: string | null;
+  source: string;
+  created_at: string;
+}
+
+export interface EmailContactList {
+  contacts: EmailContact[];
+  total: number;
+  /** Contacts that are consented and not opted-out */
+  eligible: number;
+}
+
+export interface EmailImportContactRow {
+  email: string;
+  /** @nullable */
+  name?: string | null;
+}
+
+export interface EmailImportContactsInput {
+  rows: EmailImportContactRow[];
+  /** Whether these contacts have consented to marketing (defaults true) */
+  consent?: boolean;
+  /**
+     * Optionally add all imported/matched contacts to this audience
+     * @nullable
+     */
+  audience_id?: string | null;
+}
+
+export interface EmailRejectedRow {
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  reason: string;
+}
+
+export interface EmailImportContactsResult {
+  total: number;
+  imported: number;
+  duplicates: number;
+  rejected: EmailRejectedRow[];
+}
+
+export interface EmailAudience {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  contact_count: number;
+  created_at: string;
+}
+
+export interface EmailAudienceList {
+  audiences: EmailAudience[];
+}
+
+/**
+ * draft saves only; now sends immediately; schedule defers to scheduled_at
+ */
+export type CreateEmailCampaignInputMode = typeof CreateEmailCampaignInputMode[keyof typeof CreateEmailCampaignInputMode];
+
+
+export const CreateEmailCampaignInputMode = {
+  draft: 'draft',
+  now: 'now',
+  schedule: 'schedule',
+} as const;
+
+export interface CreateEmailCampaignInput {
+  name: string;
+  audience_id: string;
+  subject: string;
+  body: string;
+  /** Values that fill positional {{1}}..{{n}} placeholders in subject/body */
+  variables?: string[];
+  /** draft saves only; now sends immediately; schedule defers to scheduled_at */
+  mode?: CreateEmailCampaignInputMode;
+  /** @nullable */
+  scheduled_at?: string | null;
+  /**
+     * Max emails to send per rolling 24h. When set, the campaign sends up to this many per day and automatically resumes the next day until the whole audience is reached. Null = send the entire audience at once.
+
+     * @nullable
+     */
+  daily_limit?: number | null;
+}
+
+export interface EmailCampaignStats {
+  total: number;
+  queued: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  failed: number;
+}
+
+export interface EmailCampaignSummary {
+  id: string;
+  name: string;
+  audience_id: string;
+  audience_name: string;
+  subject: string;
+  status: string;
+  /** @nullable */
+  scheduled_at?: string | null;
+  /** @nullable */
+  started_at?: string | null;
+  /** @nullable */
+  completed_at?: string | null;
+  created_at: string;
+  stats: EmailCampaignStats;
+}
+
+export interface EmailCampaignList {
+  campaigns: EmailCampaignSummary[];
+}
+
+export interface EmailCampaignRecipient {
+  id: string;
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  status: string;
+  /** @nullable */
+  provider_message_id?: string | null;
+  /** @nullable */
+  error?: string | null;
+  /** @nullable */
+  sent_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailCampaignDetail {
+  id: string;
+  name: string;
+  audience_id: string;
+  audience_name: string;
+  subject: string;
+  body: string;
+  variables: string[];
+  status: string;
+  /** @nullable */
+  scheduled_at?: string | null;
+  /** @nullable */
+  started_at?: string | null;
+  /** @nullable */
+  completed_at?: string | null;
+  created_at: string;
+  stats: EmailCampaignStats;
+  recipients: EmailCampaignRecipient[];
+}
+
 export type GetAdminInboxParams = {
 channel?: GetAdminInboxChannel;
 unread_only?: boolean;
@@ -1205,6 +1374,11 @@ export const GetAdminInboxChannel = {
 } as const;
 
 export type GetWhatsappContactsParams = {
+search?: string;
+audienceId?: string;
+};
+
+export type GetEmailContactsParams = {
 search?: string;
 audienceId?: string;
 };

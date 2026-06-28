@@ -12,6 +12,8 @@ import {
   Contact,
   MessageCircle,
   Inbox,
+  Mail,
+  Send,
 } from "lucide-react";
 
 const NAV = [
@@ -24,6 +26,8 @@ const NAV = [
   { href: "/admin/whatsapp/audiences", label: "WA Audiences", icon: Contact },
   { href: "/admin/whatsapp/campaigns", label: "WA Broadcasts", icon: MessageCircle },
   { href: "/admin/inbox", label: "Inbox", icon: Inbox },
+  { href: "/admin/email/audiences", label: "Email Audiences", icon: Mail },
+  { href: "/admin/email/campaigns", label: "Email Campaigns", icon: Send },
 ];
 
 function AdminNav() {

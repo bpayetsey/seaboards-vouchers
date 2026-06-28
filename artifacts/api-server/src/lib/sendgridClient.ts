@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { logger } from "./logger";
 
 /**
@@ -173,5 +174,145 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
     throw new Error(
       `SendGrid send failed: ${resp.status} ${resp.statusText} ${detail}`.trim(),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Marketing / campaign sending
+// ---------------------------------------------------------------------------
+
+export interface SendgridSender {
+  email: string;
+  name?: string;
+}
+
+/**
+ * Whether SendGrid sending is possible right now. Mirrors the WhatsApp
+ * "configured?" check but is async because credentials may come from the Replit
+ * connector (a network lookup) rather than env vars. Never throws — used by the
+ * config endpoint and the dispatcher to degrade gracefully when unconfigured.
+ */
+export async function isSendgridConfigured(): Promise<boolean> {
+  try {
+    await getSendgridCredentials();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The verified sender (email + optional name) for display, or null if unset. */
+export async function getSendgridSender(): Promise<SendgridSender | null> {
+  try {
+    const { fromEmail, fromName } = await getSendgridCredentials();
+    return { email: fromEmail, name: fromName };
+  } catch {
+    return null;
+  }
+}
+
+export type CampaignSendResult =
+  | { ok: true; messageId: string }
+  | { ok: false; error: string };
+
+/**
+ * Send a single marketing email and return SendGrid's X-Message-Id so the
+ * campaign sender can record it and later correlate delivery/open events from
+ * the Event Webhook. Returns a result object instead of throwing so a
+ * per-recipient failure is recorded and the batch continues (mirrors the
+ * WhatsApp sendTemplateMessage contract). Custom `headers` carry the
+ * List-Unsubscribe one-click headers.
+ */
+export async function sendCampaignEmail(input: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  headers?: Record<string, string>;
+}): Promise<CampaignSendResult> {
+  let creds: SendgridCredentials;
+  try {
+    creds = await getSendgridCredentials();
+  } catch {
+    return { ok: false, error: "not_configured" };
+  }
+
+  const body = {
+    personalizations: [{ to: [{ email: input.to }] }],
+    from: creds.fromName
+      ? { email: creds.fromEmail, name: creds.fromName }
+      : { email: creds.fromEmail },
+    subject: input.subject,
+    content: [
+      { type: "text/plain", value: input.text },
+      { type: "text/html", value: input.html },
+    ],
+    ...(input.headers && Object.keys(input.headers).length > 0
+      ? { headers: input.headers }
+      : {}),
+  };
+
+  let resp: Response;
+  try {
+    resp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${creds.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (err) {
+    return { ok: false, error: `network_error: ${String(err)}` };
+  }
+
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => "");
+    return {
+      ok: false,
+      error: `${resp.status} ${resp.statusText} ${detail}`.trim(),
+    };
+  }
+
+  // SendGrid returns 202 with the message id in the X-Message-Id header; the
+  // Event Webhook later reports sg_message_id as "<X-Message-Id>.recvd-...".
+  const messageId = resp.headers.get("x-message-id") ?? "";
+  if (!messageId) return { ok: false, error: "no_message_id" };
+  return { ok: true, messageId };
+}
+
+/**
+ * Verify a SendGrid Event Webhook payload using the ECDSA (P-256) public key
+ * from SENDGRID_WEBHOOK_VERIFICATION_KEY. The signed message is
+ * `timestamp + rawBody`. Returns "unconfigured" when no key is set so the
+ * caller can choose to process unsigned events (status advancement only).
+ */
+export function verifyEventWebhookSignature(
+  rawBody: Buffer,
+  signatureB64: string | undefined,
+  timestamp: string | undefined,
+): boolean | "unconfigured" {
+  const publicKeyB64 = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+  if (!publicKeyB64) return "unconfigured";
+  if (!signatureB64 || !timestamp) return false;
+
+  try {
+    const keyObject = crypto.createPublicKey({
+      key: Buffer.from(publicKeyB64, "base64"),
+      format: "der",
+      type: "spki",
+    });
+    const verifier = crypto.createVerify("sha256");
+    verifier.update(timestamp);
+    verifier.update(rawBody);
+    verifier.end();
+    return verifier.verify(
+      keyObject,
+      Buffer.from(signatureB64, "base64"),
+    );
+  } catch (err) {
+    logger.warn({ err }, "SendGrid event webhook signature verify failed");
+    return false;
   }
 }
