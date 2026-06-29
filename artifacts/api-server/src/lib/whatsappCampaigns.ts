@@ -676,12 +676,46 @@ export async function resumeCampaign(
     .where(eq(whatsappCampaigns.id, campaignId))
     .limit(1);
   if (!c) return { ok: false, error: "not_found" };
-  if (c.status !== "sending") {
+  if (c.status !== "sending" && c.status !== "paused") {
     return { ok: false, error: "invalid_state" };
+  }
+  // A campaign manually stopped sits in `paused`; flip it back to `sending`
+  // before dispatching so the scheduler treats it as live again and the
+  // dispatch loop won't immediately bail on its mid-run stop check.
+  if (c.status === "paused") {
+    await db
+      .update(whatsappCampaigns)
+      .set({ status: "sending" })
+      .where(eq(whatsappCampaigns.id, campaignId));
   }
   void dispatchCampaign(campaignId).catch((err) =>
     logger.error({ err, campaignId }, "Campaign resume dispatch failed"),
   );
+  return { ok: true };
+}
+
+/**
+ * Manually stop an in-flight (or scheduled) broadcast. Moves the campaign to
+ * `paused`: recipients not yet messaged stay queued, the daily scheduler skips
+ * paused campaigns, and any dispatch loop currently running notices the status
+ * change on its next iteration and stops promptly. Resume later to continue.
+ */
+export async function stopCampaign(
+  campaignId: string,
+): Promise<SendCampaignResult> {
+  const [c] = await db
+    .select({ id: whatsappCampaigns.id, status: whatsappCampaigns.status })
+    .from(whatsappCampaigns)
+    .where(eq(whatsappCampaigns.id, campaignId))
+    .limit(1);
+  if (!c) return { ok: false, error: "not_found" };
+  if (c.status !== "sending" && c.status !== "scheduled") {
+    return { ok: false, error: "invalid_state" };
+  }
+  await db
+    .update(whatsappCampaigns)
+    .set({ status: "paused" })
+    .where(eq(whatsappCampaigns.id, campaignId));
   return { ok: true };
 }
 
@@ -843,6 +877,15 @@ async function runDispatch(campaignId: string): Promise<void> {
   let sentThisRun = 0;
   for (const msg of queued) {
     if (sentThisRun >= remaining) break;
+    // Honour a manual stop mid-broadcast: if staff paused (or cancelled) the
+    // campaign while this loop is running, stop sending now. Remaining rows stay
+    // queued so a later resume picks up exactly where we left off.
+    const [live] = await db
+      .select({ status: whatsappCampaigns.status })
+      .from(whatsappCampaigns)
+      .where(eq(whatsappCampaigns.id, campaignId))
+      .limit(1);
+    if (!live || live.status !== "sending") break;
     const claimed = await db
       .update(whatsappMessages)
       .set({ status: "sending", updatedAt: new Date() })

@@ -2253,6 +2253,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/whatsapp/campaigns/{campaignId}/stop:
+    post:
+      operationId: stopWhatsappCampaign
+      tags: [admin]
+      summary: Stop broadcasting a campaign
+      description: >
+        Manually halts a campaign that is sending or scheduled, moving it to the
+        paused state. Recipients not yet messaged stay queued; the scheduler will
+        not auto-resume a paused campaign. Resume it later to continue the
+        broadcast where it left off.
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappCampaignDetail"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/email/config:
     get:
       operationId: getEmailConfig

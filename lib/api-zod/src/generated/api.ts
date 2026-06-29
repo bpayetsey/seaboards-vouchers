@@ -1611,6 +1611,50 @@ export const ResumeWhatsappCampaignResponse = zod.object({
 
 
 /**
+ * Manually halts a campaign that is sending or scheduled, moving it to the paused state. Recipients not yet messaged stay queued; the scheduler will not auto-resume a paused campaign. Resume it later to continue the broadcast where it left off.
+
+ * @summary Stop broadcasting a campaign
+ */
+export const StopWhatsappCampaignParams = zod.object({
+  "campaignId": zod.coerce.string()
+})
+
+export const StopWhatsappCampaignResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "audience_id": zod.string(),
+  "audience_name": zod.string(),
+  "template_name": zod.string(),
+  "template_language": zod.string(),
+  "variables": zod.array(zod.string()),
+  "status": zod.string(),
+  "scheduled_at": zod.string().nullish(),
+  "started_at": zod.string().nullish(),
+  "completed_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "stats": zod.object({
+  "total": zod.number(),
+  "queued": zod.number(),
+  "sent": zod.number(),
+  "delivered": zod.number(),
+  "read": zod.number(),
+  "failed": zod.number()
+}),
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "status": zod.string(),
+  "provider_message_id": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "sent_at": zod.string().nullish(),
+  "created_at": zod.string(),
+  "updated_at": zod.string()
+}))
+})
+
+
+/**
  * Reports whether SendGrid is configured and returns the verified sender address for the campaign composer.
 
  * @summary Email sender status

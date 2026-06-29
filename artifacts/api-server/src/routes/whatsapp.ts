@@ -28,6 +28,8 @@ import {
   SendWhatsappCampaignResponse,
   ResumeWhatsappCampaignParams,
   ResumeWhatsappCampaignResponse,
+  StopWhatsappCampaignParams,
+  StopWhatsappCampaignResponse,
 } from "@workspace/api-zod";
 import { requireStaff } from "../middlewares/requireStaff";
 import {
@@ -45,6 +47,7 @@ import {
   createCampaign,
   sendCampaign,
   resumeCampaign,
+  stopCampaign,
   dispatchDueCampaigns,
 } from "../lib/whatsappCampaigns";
 import { uploadMedia } from "../lib/whatsappClient";
@@ -339,6 +342,33 @@ router.post(
     } catch (err) {
       req.log.error({ err }, "Failed to resume WhatsApp campaign");
       return res.status(500).json({ error: "Could not resume campaign." });
+    }
+  },
+);
+
+router.post(
+  "/admin/whatsapp/campaigns/:campaignId/stop",
+  requireStaff,
+  async (req, res) => {
+    const params = StopWhatsappCampaignParams.safeParse(req.params);
+    if (!params.success) {
+      return res.status(400).json({ error: params.error.message });
+    }
+    try {
+      const result = await stopCampaign(params.data.campaignId);
+      if (!result.ok) {
+        if (result.error === "not_found") {
+          return res.status(404).json({ error: "Campaign not found." });
+        }
+        return res.status(400).json({
+          error: "Only a sending or scheduled campaign can be stopped.",
+        });
+      }
+      const detail = await getCampaignDetail(params.data.campaignId);
+      return res.json(StopWhatsappCampaignResponse.parse(detail));
+    } catch (err) {
+      req.log.error({ err }, "Failed to stop WhatsApp campaign");
+      return res.status(500).json({ error: "Could not stop campaign." });
     }
   },
 );

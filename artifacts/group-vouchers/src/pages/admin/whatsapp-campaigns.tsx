@@ -7,6 +7,7 @@ import {
   useCreateWhatsappCampaign,
   useSendWhatsappCampaign,
   useResumeWhatsappCampaign,
+  useStopWhatsappCampaign,
   getGetWhatsappCampaignsQueryKey,
   getGetWhatsappCampaignQueryKey,
   type WhatsappTemplate,
@@ -50,6 +51,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Eye,
+  StopCircle,
 } from "lucide-react";
 
 function formatDate(iso: string | null | undefined) {
@@ -73,6 +75,7 @@ const STATUS_STYLE: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   scheduled: "bg-amber-100 text-amber-800",
   sending: "bg-blue-100 text-blue-800",
+  paused: "bg-orange-100 text-orange-800",
   completed: "bg-primary/10 text-primary",
   failed: "bg-destructive/10 text-destructive",
 };
@@ -459,6 +462,14 @@ function CampaignReport({
   });
   const send = useSendWhatsappCampaign();
   const resume = useResumeWhatsappCampaign();
+  const stop = useStopWhatsappCampaign();
+
+  const invalidate = () => {
+    qc.invalidateQueries({
+      queryKey: getGetWhatsappCampaignQueryKey(campaignId),
+    });
+    qc.invalidateQueries({ queryKey: getGetWhatsappCampaignsQueryKey() });
+  };
 
   const doResume = () => {
     resume.mutate(
@@ -466,13 +477,24 @@ function CampaignReport({
       {
         onSuccess: () => {
           toast({ title: "Broadcast resumed" });
-          qc.invalidateQueries({
-            queryKey: getGetWhatsappCampaignQueryKey(campaignId),
-          });
-          qc.invalidateQueries({ queryKey: getGetWhatsappCampaignsQueryKey() });
+          invalidate();
         },
         onError: () =>
           toast({ title: "Could not resume", variant: "destructive" }),
+      },
+    );
+  };
+
+  const doStop = () => {
+    stop.mutate(
+      { campaignId },
+      {
+        onSuccess: () => {
+          toast({ title: "Broadcast stopped" });
+          invalidate();
+        },
+        onError: () =>
+          toast({ title: "Could not stop", variant: "destructive" }),
       },
     );
   };
@@ -572,7 +594,43 @@ function CampaignReport({
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
                 <span className="text-sm text-muted-foreground">
                   {data.stats.queued} still queued. Sending continues
-                  automatically; use this to nudge it now.
+                  automatically; use these to nudge or stop it now.
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={doStop}
+                    disabled={stop.isPending}
+                  >
+                    {stop.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <StopCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Stop broadcasting
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={doResume}
+                    disabled={resume.isPending}
+                  >
+                    {resume.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
+                    Continue broadcast
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {data.status === "paused" ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
+                <span className="text-sm text-orange-900">
+                  Broadcast stopped with {data.stats.queued} still queued. It
+                  won't resume on its own — restart it when you're ready.
                 </span>
                 <Button
                   size="sm"
@@ -585,7 +643,7 @@ function CampaignReport({
                   ) : (
                     <Send className="mr-2 h-4 w-4" />
                   )}
-                  Continue broadcast
+                  Resume broadcast
                 </Button>
               </div>
             ) : null}

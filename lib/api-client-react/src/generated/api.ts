@@ -5192,6 +5192,78 @@ export const useResumeWhatsappCampaign = <TError = ErrorType<ApiError>,
       return useMutation(getResumeWhatsappCampaignMutationOptions(options));
     }
 
+export const getStopWhatsappCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/admin/whatsapp/campaigns/${campaignId}/stop`
+}
+
+/**
+ * Manually halts a campaign that is sending or scheduled, moving it to the paused state. Recipients not yet messaged stay queued; the scheduler will not auto-resume a paused campaign. Resume it later to continue the broadcast where it left off.
+
+ * @summary Stop broadcasting a campaign
+ */
+export const stopWhatsappCampaign = async (campaignId: string, options?: RequestInit): Promise<WhatsappCampaignDetail> => {
+
+  return customFetch<WhatsappCampaignDetail>(getStopWhatsappCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getStopWhatsappCampaignMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopWhatsappCampaign>>, TError,{campaignId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopWhatsappCampaign>>, TError,{campaignId: string}, TContext> => {
+
+const mutationKey = ['stopWhatsappCampaign'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopWhatsappCampaign>>, {campaignId: string}> = (props) => {
+          const {campaignId} = props ?? {};
+
+          return  stopWhatsappCampaign(campaignId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopWhatsappCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof stopWhatsappCampaign>>>
+
+    export type StopWhatsappCampaignMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Stop broadcasting a campaign
+ */
+export const useStopWhatsappCampaign = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopWhatsappCampaign>>, TError,{campaignId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stopWhatsappCampaign>>,
+        TError,
+        {campaignId: string},
+        TContext
+      > => {
+      return useMutation(getStopWhatsappCampaignMutationOptions(options));
+    }
+
 export const getGetEmailConfigUrl = () => {
 
 
