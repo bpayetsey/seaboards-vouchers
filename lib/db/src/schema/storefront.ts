@@ -162,6 +162,20 @@ export const storeCatalogPrices = pgTable("store_catalog_price", {
 });
 
 /**
+ * Generic single-string site settings, keyed by a stable string key (e.g.
+ * "promo_banner"). One row per editable setting; `value` holds the raw text and
+ * may be empty (which the public pages treat as "hide this element"). Kept
+ * deliberately generic so future small editable copy can reuse the same table.
+ */
+export const siteSettings = pgTable("site_setting", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
  * Privacy-preserving page-view log for the in-house site visitor counter.
  * Each row is one public page view: the normalized path, a salted day-bucketed
  * visitor hash (HMAC of IP + user agent with a daily-rotating salt — never the
@@ -295,4 +309,5 @@ export type StoreInstallment = typeof storeInstallments.$inferSelect;
 export type StoreVoucher = typeof storeVouchers.$inferSelect;
 export type StoreGalleryImage = typeof storeGalleryImages.$inferSelect;
 export type StoreCatalogPrice = typeof storeCatalogPrices.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;

@@ -22,6 +22,7 @@ import {
   Mail,
   Send,
   CalendarDays,
+  Megaphone,
 } from "lucide-react";
 
 const NAV = [
@@ -31,6 +32,7 @@ const NAV = [
   { href: "/admin/calendar", label: "Day-Pass Calendar", icon: CalendarDays },
   { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
   { href: "/admin/pricing", label: "Pricing", icon: Tag },
+  { href: "/admin/site-content", label: "Promo Banner", icon: Megaphone },
   { href: "/admin/gallery", label: "Gallery", icon: Image },
   { href: "/admin/whatsapp/audiences", label: "WA Audiences", icon: Contact },
   { href: "/admin/whatsapp/campaigns", label: "WA Broadcasts", icon: MessageCircle },

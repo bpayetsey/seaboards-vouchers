@@ -4,7 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2, Link as LinkIcon, Check, Copy, ArrowRight } from "lucide-react";
-import { useGetRates, useCreateGroupOrder } from "@workspace/api-client-react";
+import {
+  useGetRates,
+  useCreateGroupOrder,
+  useGetStorefrontConfig,
+} from "@workspace/api-client-react";
 import type { GroupOrderInputMode, LineInputApartmentType, SplitConfigApartmentType } from "@workspace/api-client-react";
 
 import { Layout } from "@/components/layout";
@@ -54,6 +58,7 @@ const formSchema = z.object({
 export default function GroupOrder() {
   const { toast } = useToast();
   const { data: rates, isLoading: ratesLoading } = useGetRates();
+  const { data: config } = useGetStorefrontConfig();
   const createOrder = useCreateGroupOrder();
   
   const [createdResult, setCreatedResult] = useState<any>(null);
@@ -335,13 +340,15 @@ export default function GroupOrder() {
             </li>
           ))}
         </ul>
-        <p className="text-[12.5px] text-muted-foreground mt-2">
-          Offer open 29 June &ndash; 30 June 2026, while allocation lasts. Blackout dates apply. Full{" "}
-          <Link href="/terms" className="text-primary underline underline-offset-2">
-            Terms &amp; Conditions
-          </Link>
-          .
-        </p>
+        {config?.promo_banner?.trim() && (
+          <p className="text-[12.5px] text-muted-foreground mt-2">
+            {config.promo_banner} Full{" "}
+            <Link href="/terms" className="text-primary underline underline-offset-2">
+              Terms &amp; Conditions
+            </Link>
+            .
+          </p>
+        )}
 
         <h2 className="font-serif text-primary text-2xl mt-8 mb-1">Buy as a group — one link each</h2>
         <p className="text-muted-foreground mt-0 mb-6">

@@ -473,12 +473,14 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         </p>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 pt-5 text-center text-sm text-muted-foreground">
-        Voucher for Sale from 27 June &ndash; 30th June 2026, while allocation lasts. Blackout dates apply.{" "}
-        <Link href="/terms" className="text-primary underline underline-offset-2 font-medium whitespace-nowrap">
-          Full Terms &amp; Conditions
-        </Link>
-      </div>
+      {config.promo_banner?.trim() && (
+        <div className="max-w-3xl mx-auto px-6 pt-5 text-center text-sm text-muted-foreground">
+          {config.promo_banner}{" "}
+          <Link href="/terms" className="text-primary underline underline-offset-2 font-medium whitespace-nowrap">
+            Full Terms &amp; Conditions
+          </Link>
+        </div>
+      )}
 
       <div className="container max-w-5xl mx-auto px-6 pt-10 pb-24">
         {!config.payments_enabled && (
@@ -1120,17 +1122,18 @@ function Storefront({ config }: { config: StorefrontConfig }) {
 
         <PhotoGallery />
 
-        <p className="text-[12.5px] text-muted-foreground mt-10">
-          Offer open 29 June &ndash; 30 June 2026, while allocation lasts.
-          Blackout dates apply. Full{" "}
-          <Link
-            href="/terms"
-            className="text-primary underline underline-offset-2"
-          >
-            Terms &amp; Conditions
-          </Link>
-          .
-        </p>
+        {config.promo_banner?.trim() && (
+          <p className="text-[12.5px] text-muted-foreground mt-10">
+            {config.promo_banner} Full{" "}
+            <Link
+              href="/terms"
+              className="text-primary underline underline-offset-2"
+            >
+              Terms &amp; Conditions
+            </Link>
+            .
+          </p>
+        )}
       </div>
     </Layout>
   );

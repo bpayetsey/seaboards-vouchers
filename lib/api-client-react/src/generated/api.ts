@@ -76,6 +76,7 @@ import type {
   PayInstalmentsBody,
   PayInstalmentsResult,
   PayLine,
+  PromoBanner,
   RateTable,
   ReorderGalleryInput,
   RescheduleInput,
@@ -93,6 +94,7 @@ import type {
   UpdateAudienceMembersInput,
   UpdateCatalogPriceInput,
   UpdateGalleryImageInput,
+  UpdatePromoBannerInput,
   UploadUrlRequest,
   UploadUrlResponse,
   VisitorAnalytics,
@@ -4155,6 +4157,154 @@ export const useUpdateCatalogPrice = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getUpdateCatalogPriceMutationOptions(options));
+    }
+
+export const getGetPromoBannerUrl = () => {
+
+
+
+
+  return `/api/admin/site-content/promo-banner`
+}
+
+/**
+ * @summary Get the storefront promo banner text (staff)
+ */
+export const getPromoBanner = async ( options?: RequestInit): Promise<PromoBanner> => {
+
+  return customFetch<PromoBanner>(getGetPromoBannerUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPromoBannerQueryKey = () => {
+    return [
+    `/api/admin/site-content/promo-banner`
+    ] as const;
+    }
+
+
+export const getGetPromoBannerQueryOptions = <TData = Awaited<ReturnType<typeof getPromoBanner>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPromoBanner>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPromoBannerQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPromoBanner>>> = ({ signal }) => getPromoBanner({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPromoBanner>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPromoBannerQueryResult = NonNullable<Awaited<ReturnType<typeof getPromoBanner>>>
+export type GetPromoBannerQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get the storefront promo banner text (staff)
+ */
+
+export function useGetPromoBanner<TData = Awaited<ReturnType<typeof getPromoBanner>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPromoBanner>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPromoBannerQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdatePromoBannerUrl = () => {
+
+
+
+
+  return `/api/admin/site-content/promo-banner`
+}
+
+/**
+ * @summary Update the storefront promo banner text (staff)
+ */
+export const updatePromoBanner = async (updatePromoBannerInput: UpdatePromoBannerInput, options?: RequestInit): Promise<PromoBanner> => {
+
+  return customFetch<PromoBanner>(getUpdatePromoBannerUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePromoBannerInput,)
+  }
+);}
+
+
+
+
+export const getUpdatePromoBannerMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePromoBanner>>, TError,{data: BodyType<UpdatePromoBannerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePromoBanner>>, TError,{data: BodyType<UpdatePromoBannerInput>}, TContext> => {
+
+const mutationKey = ['updatePromoBanner'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePromoBanner>>, {data: BodyType<UpdatePromoBannerInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePromoBanner(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePromoBannerMutationResult = NonNullable<Awaited<ReturnType<typeof updatePromoBanner>>>
+    export type UpdatePromoBannerMutationBody = BodyType<UpdatePromoBannerInput>
+    export type UpdatePromoBannerMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update the storefront promo banner text (staff)
+ */
+export const useUpdatePromoBanner = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePromoBanner>>, TError,{data: BodyType<UpdatePromoBannerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePromoBanner>>,
+        TError,
+        {data: BodyType<UpdatePromoBannerInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePromoBannerMutationOptions(options));
     }
 
 export const getGetWhatsappConfigUrl = () => {

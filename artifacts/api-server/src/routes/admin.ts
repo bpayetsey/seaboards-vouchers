@@ -18,6 +18,9 @@ import {
   UpdateCatalogPriceBody,
   UpdateCatalogPriceParams,
   UpdateCatalogPriceResponse,
+  GetPromoBannerResponse,
+  UpdatePromoBannerBody,
+  UpdatePromoBannerResponse,
   GetAdminVisitorsResponse,
   GetAdminCalendarQueryParams,
   GetAdminCalendarResponse,
@@ -56,6 +59,7 @@ import {
   listCatalogPrices,
   updateCatalogPrice,
 } from "../lib/catalogPrices";
+import { getPromoBanner, updatePromoBanner } from "../lib/siteContent";
 import { getVisitorAnalytics } from "../lib/analytics";
 
 const router: IRouter = Router();
@@ -226,6 +230,32 @@ router.put("/admin/catalog-prices/:itemId", requireStaff, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to update catalog price");
     return res.status(500).json({ error: "Could not update the price." });
+  }
+});
+
+// ── Site content (promo banner) ─────────────────────────────────────────────
+
+router.get("/admin/site-content/promo-banner", requireStaff, async (req, res) => {
+  try {
+    const banner = await getPromoBanner();
+    return res.json(GetPromoBannerResponse.parse({ banner }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load promo banner");
+    return res.status(500).json({ error: "Could not load the banner." });
+  }
+});
+
+router.put("/admin/site-content/promo-banner", requireStaff, async (req, res) => {
+  const parsed = UpdatePromoBannerBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid request." });
+  }
+  try {
+    const banner = await updatePromoBanner(parsed.data.banner);
+    return res.json(UpdatePromoBannerResponse.parse({ banner }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update promo banner");
+    return res.status(500).json({ error: "Could not update the banner." });
   }
 });
 

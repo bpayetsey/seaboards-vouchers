@@ -19,4 +19,7 @@ export interface StorefrontConfig {
   catalog: StorefrontCatalogItem[];
   gift: StorefrontGift;
   day_passes: StorefrontDayPass[];
+  /** Editable promo banner text shown on the storefront and group-order pages. Empty string means hide the banner.
+   */
+  promo_banner: string;
 }

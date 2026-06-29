@@ -427,7 +427,8 @@ export const GetStorefrontConfigResponse = zod.object({
   "label": zod.string(),
   "price": zod.number().describe('Flat add-on price in the storefront currency')
 }).optional()
-}))
+})),
+  "promo_banner": zod.string().describe('Editable promo banner text shown on the storefront and group-order pages. Empty string means hide the banner.\n')
 })
 
 
@@ -1229,6 +1230,30 @@ export const UpdateCatalogPriceResponse = zod.object({
   "rate": zod.number().describe('Per-night price in the storefront currency'),
   "was": zod.number().describe('Original per-night price (struck through)'),
   "min_nights": zod.number()
+})
+
+
+/**
+ * @summary Get the storefront promo banner text (staff)
+ */
+export const GetPromoBannerResponse = zod.object({
+  "banner": zod.string().describe('Promo banner text. Empty string means the banner is hidden.')
+})
+
+
+/**
+ * @summary Update the storefront promo banner text (staff)
+ */
+export const updatePromoBannerBodyBannerMax = 500;
+
+
+
+export const UpdatePromoBannerBody = zod.object({
+  "banner": zod.string().max(updatePromoBannerBodyBannerMax).describe('New promo banner text. Empty string hides the banner.')
+})
+
+export const UpdatePromoBannerResponse = zod.object({
+  "banner": zod.string().describe('Promo banner text. Empty string means the banner is hidden.')
 })
 
 

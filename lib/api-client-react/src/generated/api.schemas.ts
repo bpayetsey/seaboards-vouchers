@@ -38,6 +38,19 @@ export interface UpdateCatalogPriceInput {
   was: number;
 }
 
+export interface PromoBanner {
+  /** Promo banner text. Empty string means the banner is hidden. */
+  banner: string;
+}
+
+export interface UpdatePromoBannerInput {
+  /**
+     * New promo banner text. Empty string hides the banner.
+     * @maxLength 500
+     */
+  banner: string;
+}
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;
@@ -356,6 +369,9 @@ export interface StorefrontConfig {
   catalog: StorefrontCatalogItem[];
   gift: StorefrontGift;
   day_passes: StorefrontDayPass[];
+  /** Editable promo banner text shown on the storefront and group-order pages. Empty string means hide the banner.
+   */
+  promo_banner: string;
 }
 
 export type StoreOrderInputType = typeof StoreOrderInputType[keyof typeof StoreOrderInputType];

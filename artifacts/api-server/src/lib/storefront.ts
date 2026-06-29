@@ -32,6 +32,7 @@ import {
   ensureDayPassBooking,
 } from "./dayPass";
 import { logger } from "./logger";
+import { getPromoBanner } from "./siteContent";
 import {
   sendActionRequiredEmail,
   sendPaymentFailedEmail,
@@ -60,6 +61,7 @@ export async function getStorefrontConfig() {
     catalog: await getEffectiveCatalog(),
     gift: GIFT,
     day_passes: DAY_PASSES,
+    promo_banner: await getPromoBanner(),
   };
 }
 

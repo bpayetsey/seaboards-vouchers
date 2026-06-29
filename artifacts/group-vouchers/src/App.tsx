@@ -23,6 +23,7 @@ import AdminGroupOrders from "@/pages/admin/group-orders";
 import AdminCalendar from "@/pages/admin/calendar";
 import AdminVouchers from "@/pages/admin/vouchers";
 import AdminPricing from "@/pages/admin/pricing";
+import AdminSiteContent from "@/pages/admin/site-content";
 import AdminGallery from "@/pages/admin/gallery";
 import AdminWhatsappAudiences from "@/pages/admin/whatsapp-audiences";
 import AdminWhatsappCampaigns from "@/pages/admin/whatsapp-campaigns";
@@ -265,6 +266,11 @@ function Router() {
       <Route path="/admin/pricing">
         <ProtectedAdmin>
           <AdminPricing />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/site-content">
+        <ProtectedAdmin>
+          <AdminSiteContent />
         </ProtectedAdmin>
       </Route>
       <Route path="/admin/gallery">

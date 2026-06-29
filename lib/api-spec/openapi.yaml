@@ -1766,6 +1766,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/site-content/promo-banner:
+    get:
+      operationId: getPromoBanner
+      tags: [admin]
+      summary: Get the storefront promo banner text (staff)
+      responses:
+        "200":
+          description: Promo banner text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromoBanner"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: updatePromoBanner
+      tags: [admin]
+      summary: Update the storefront promo banner text (staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromoBannerInput"
+      responses:
+        "200":
+          description: Updated promo banner text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromoBanner"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/whatsapp/config:
     get:
       operationId: getWhatsappConfig
@@ -2799,6 +2858,21 @@ components:
           type: number
         was:
           type: number
+    PromoBanner:
+      type: object
+      required: [banner]
+      properties:
+        banner:
+          type: string
+          description: Promo banner text. Empty string means the banner is hidden.
+    UpdatePromoBannerInput:
+      type: object
+      required: [banner]
+      properties:
+        banner:
+          type: string
+          maxLength: 500
+          description: New promo banner text. Empty string hides the banner.
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]
@@ -3222,6 +3296,7 @@ components:
         - catalog
         - gift
         - day_passes
+        - promo_banner
       properties:
         publishable_key:
           type: string
@@ -3245,6 +3320,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/StorefrontDayPass"
+        promo_banner:
+          type: string
+          description: >
+            Editable promo banner text shown on the storefront and group-order
+            pages. Empty string means hide the banner.
     StoreOrderInput:
       type: object
       required: [name, email]
