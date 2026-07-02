@@ -123,6 +123,85 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
+export const getGetMenuPdfUrl = () => {
+
+
+
+
+  return `/api/menu/pdf`
+}
+
+/**
+ * Generates an A4 PDF of the public Half Board & Day Pass menu on the fly from the shared voucher-content library (same single source of truth as the web menu page), so content changes are reflected automatically.
+
+ * @summary Download the Half Board & Day Pass menu as a branded PDF
+ */
+export const getMenuPdf = async ( options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetMenuPdfUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMenuPdfQueryKey = () => {
+    return [
+    `/api/menu/pdf`
+    ] as const;
+    }
+
+
+export const getGetMenuPdfQueryOptions = <TData = Awaited<ReturnType<typeof getMenuPdf>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMenuPdfQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMenuPdf>>> = ({ signal }) => getMenuPdf({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMenuPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getMenuPdf>>>
+export type GetMenuPdfQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Download the Half Board & Day Pass menu as a branded PDF
+ */
+
+export function useGetMenuPdf<TData = Awaited<ReturnType<typeof getMenuPdf>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMenuPdfQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetDashboardUrl = () => {
 
 

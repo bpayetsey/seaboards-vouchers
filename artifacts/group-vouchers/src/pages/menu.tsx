@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Link } from "wouter";
+import { Download, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout";
+import { downloadVoucherPdf } from "@/lib/voucherPdf";
 import {
   RESORT,
   MENU_TITLE,
@@ -24,6 +27,21 @@ function VegBadge() {
 }
 
 export default function Menu() {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setDownloadError(false);
+    try {
+      await downloadVoucherPdf("/api/menu/pdf", "seaboards-menu.pdf");
+    } catch {
+      setDownloadError(true);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Layout>
       <article className="max-w-4xl mx-auto bg-card px-6 sm:px-12 lg:px-[72px] py-10 sm:py-16">
@@ -47,6 +65,30 @@ export default function Menu() {
               &mdash; {MENU_EPIGRAPH.attribution}
             </span>
           </p>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              data-testid="button-download-menu-pdf"
+              className="inline-flex items-center gap-2 rounded-full border border-accent bg-accent/10 px-5 py-2.5 font-sans text-[13px] font-semibold uppercase tracking-[0.12em] text-primary transition-colors hover:bg-accent/20 disabled:opacity-60"
+            >
+              {downloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Download className="h-4 w-4" aria-hidden="true" />
+              )}
+              {downloading ? "Preparing PDF\u2026" : "Download PDF"}
+            </button>
+            {downloadError && (
+              <p
+                className="mt-2 text-[13px] text-destructive"
+                data-testid="text-menu-pdf-error"
+              >
+                Sorry, the PDF could not be generated. Please try again.
+              </p>
+            )}
+          </div>
         </header>
 
         <p className="mt-6 text-center text-[15px] leading-relaxed text-muted-foreground max-w-2xl mx-auto">

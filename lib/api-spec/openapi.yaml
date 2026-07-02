@@ -24,7 +24,32 @@ tags:
     description: Staff admin dashboard (Clerk session + staff allow-list)
   - name: Storage
     description: Object storage upload and serving endpoints
+  - name: menu
+    description: Public Half Board & Day Pass menu content
 paths:
+  /menu/pdf:
+    get:
+      operationId: getMenuPdf
+      tags: [menu]
+      summary: Download the Half Board & Day Pass menu as a branded PDF
+      description: >
+        Generates an A4 PDF of the public Half Board & Day Pass menu on the fly
+        from the shared voucher-content library (same single source of truth as
+        the web menu page), so content changes are reflected automatically.
+      responses:
+        "200":
+          description: The menu PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "500":
+          description: PDF generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /dashboard:
     get:
       operationId: getDashboard

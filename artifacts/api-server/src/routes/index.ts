@@ -12,6 +12,7 @@ import vouchersRouter from "./vouchers";
 import whatsappRouter from "./whatsapp";
 import inboxRouter from "./inbox";
 import emailRouter from "./email";
+import menuRouter from "./menu";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(vouchersRouter);
 router.use(whatsappRouter);
 router.use(inboxRouter);
 router.use(emailRouter);
+router.use(menuRouter);
 
 export default router;
