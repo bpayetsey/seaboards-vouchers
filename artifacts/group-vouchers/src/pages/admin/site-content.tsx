@@ -5,6 +5,9 @@ import {
   useUpdatePromoBanner,
   getGetPromoBannerQueryKey,
   getGetStorefrontConfigQueryKey,
+  useGetWhatsappConfirmationSetting,
+  useUpdateWhatsappConfirmationSetting,
+  getGetWhatsappConfirmationSettingQueryKey,
 } from "@workspace/api-client-react";
 import { AdminShell } from "./AdminShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,6 +118,123 @@ export default function AdminSiteContent() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-6">
+        <WhatsappConfirmationCard />
+      </div>
     </AdminShell>
+  );
+}
+
+/**
+ * Staff-facing selector for the WhatsApp voucher-confirmation template.
+ * Only Meta-approved templates can be chosen; picking "None" disables the
+ * WhatsApp confirmation entirely (email is always sent regardless).
+ */
+function WhatsappConfirmationCard() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data, isLoading, isError } = useGetWhatsappConfirmationSetting();
+  const update = useUpdateWhatsappConfirmationSetting();
+
+  const [selected, setSelected] = useState<string | null>(null);
+  const value = selected ?? data?.template ?? "";
+  const dirty = data ? value !== data.template : false;
+
+  const save = () => {
+    update.mutate(
+      { data: { template: value } },
+      {
+        onSuccess: (res) => {
+          setSelected(res.template);
+          queryClient.invalidateQueries({
+            queryKey: getGetWhatsappConfirmationSettingQueryKey(),
+          });
+          toast({
+            title: res.template
+              ? "WhatsApp confirmations enabled"
+              : "WhatsApp confirmations disabled",
+          });
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not save the setting",
+            description:
+              (err as { error?: string })?.error ?? "Please try again.",
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  return (
+    <Card className="border-border/70 max-w-2xl">
+      <CardHeader>
+        <CardTitle className="font-serif text-primary">
+          WhatsApp voucher confirmations
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex min-h-[10vh] items-center justify-center">
+            <Spinner className="h-6 w-6 text-primary" />
+          </div>
+        ) : isError || !data ? (
+          <p className="text-sm text-destructive">
+            Could not load the WhatsApp setting.
+          </p>
+        ) : !data.configured ? (
+          <p className="text-sm text-muted-foreground">
+            WhatsApp isn't connected yet. Add the WhatsApp Business API
+            credentials to enable voucher confirmations — email confirmations
+            are always sent either way.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="whatsapp-template"
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+              >
+                Approved message template
+              </label>
+              <select
+                id="whatsapp-template"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={value}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                <option value="">None — WhatsApp confirmations off</option>
+                {data.templates.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name} ({t.language})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                When a voucher is issued, buyers receive this Meta-approved
+                template on WhatsApp alongside the email. Free-text messages
+                are never sent.
+              </p>
+              {data.templates.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No approved templates were found on the connected WhatsApp
+                  account. Create and submit one for approval in WhatsApp
+                  Manager first.
+                </p>
+              ) : null}
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={save} disabled={!dirty || update.isPending}>
+                {update.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Save setting
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

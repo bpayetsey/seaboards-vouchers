@@ -21,4 +21,9 @@ export interface PayLine {
      * @nullable
      */
   order_number?: string | null;
+  /**
+     * Saved payer mobile (E.164), used to prefill the pay form
+     * @nullable
+     */
+  payer_phone?: string | null;
 }

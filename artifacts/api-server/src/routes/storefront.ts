@@ -109,6 +109,8 @@ router.post("/storefront/orders", async (req, res) => {
       }
       const messages: Record<string, string> = {
         invalid_buyer: "Enter your name and a valid email.",
+        invalid_phone:
+          "Enter a valid mobile number including the country code (e.g. +248 2 510 000).",
         invalid_selection: "Invalid voucher selection.",
         date_unavailable:
           "That date is no longer available. Please choose another day.",

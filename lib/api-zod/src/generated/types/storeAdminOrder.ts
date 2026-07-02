@@ -13,6 +13,11 @@ export interface StoreAdminOrder {
   product_name: string;
   buyer_name: string;
   buyer_email: string;
+  /**
+     * Buyer mobile in E.164, when captured at checkout
+     * @nullable
+     */
+  buyer_phone?: string | null;
   currency: string;
   total_major: number;
   installments: number;

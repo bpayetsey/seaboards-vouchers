@@ -492,6 +492,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePayCheckoutInput"
       responses:
         "200":
           description: Checkout session created
@@ -1825,6 +1831,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/site-content/whatsapp-confirmation:
+    get:
+      operationId: getWhatsappConfirmationSetting
+      tags: [admin]
+      summary: Get the WhatsApp voucher-confirmation template setting (staff)
+      description: >
+        Returns the currently selected Meta-approved template name (empty means
+        confirmations are disabled), whether the WhatsApp sender is configured,
+        and the list of approved templates to pick from.
+      responses:
+        "200":
+          description: Confirmation template setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappConfirmationSetting"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: updateWhatsappConfirmationSetting
+      tags: [admin]
+      summary: Update the WhatsApp voucher-confirmation template (staff)
+      description: >
+        Sets the Meta-approved template used for voucher WhatsApp confirmations.
+        An empty template name clears the selection and disables confirmations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWhatsappConfirmationInput"
+      responses:
+        "200":
+          description: Updated confirmation template setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappConfirmationSetting"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/whatsapp/config:
     get:
       operationId: getWhatsappConfig
@@ -2962,7 +3034,7 @@ components:
               type: integer
     GroupOrderInput:
       type: object
-      required: [mode, organiser_email, lines]
+      required: [mode, organiser_email, organiser_phone, lines]
       properties:
         mode:
           type: string
@@ -2973,6 +3045,14 @@ components:
         organiser_email:
           type: string
           minLength: 1
+        organiser_phone:
+          type: string
+          minLength: 5
+          maxLength: 30
+          description: >-
+            Organiser mobile number including country code. Validated and
+            normalised to E.164 server-side; used for the WhatsApp voucher
+            confirmation (split master voucher).
         due_by:
           type: ["string", "null"]
           description: ISO 8601 pay-by deadline
@@ -3165,6 +3245,21 @@ components:
         order_number:
           type: ["string", "null"]
           description: Human-readable order reference for this group order
+        payer_phone:
+          type: ["string", "null"]
+          description: Saved payer mobile (E.164), used to prefill the pay form
+    CreatePayCheckoutInput:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          minLength: 5
+          maxLength: 30
+          description: >-
+            Payer mobile number including country code. Validated and normalised
+            to E.164 server-side, stored on the payer line, and used for the
+            WhatsApp voucher confirmation.
     CheckoutSession:
       type: object
       required: [url]
@@ -3327,7 +3422,7 @@ components:
             pages. Empty string means hide the banner.
     StoreOrderInput:
       type: object
-      required: [name, email]
+      required: [name, email, phone]
       properties:
         product_id:
           type: ["string", "null"]
@@ -3364,6 +3459,14 @@ components:
         email:
           type: string
           minLength: 3
+        phone:
+          type: string
+          minLength: 5
+          maxLength: 30
+          description: >-
+            Buyer mobile number including country code (e.g. +248 2 510 000).
+            Validated and normalised to E.164 server-side; used for the WhatsApp
+            voucher confirmation.
     StoreOrderCreated:
       type: object
       required: [order_id, client_secret]
@@ -3438,6 +3541,9 @@ components:
           type: string
         buyer_email:
           type: string
+        buyer_phone:
+          type: ["string", "null"]
+          description: Buyer mobile in E.164, when captured at checkout
         currency:
           type: string
         total_major:
@@ -4136,6 +4242,9 @@ components:
           type: string
         buyer_email:
           type: string
+        buyer_phone:
+          type: ["string", "null"]
+          description: Buyer mobile in E.164, when captured at checkout
         currency:
           type: string
         total_minor:
@@ -4177,6 +4286,9 @@ components:
           type: string
         payer_email:
           type: string
+        payer_phone:
+          type: ["string", "null"]
+          description: Payer mobile in E.164, when captured on the pay form
         amount_minor:
           type: integer
         status:
@@ -4225,6 +4337,9 @@ components:
           type: string
         organiser_email:
           type: string
+        organiser_phone:
+          type: ["string", "null"]
+          description: Organiser mobile in E.164, when captured at order creation
         currency:
           type: string
         created_at:
@@ -4352,6 +4467,31 @@ components:
         header_format:
           type: string
           description: Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT
+    WhatsappConfirmationSetting:
+      type: object
+      required: [template, configured, templates]
+      properties:
+        template:
+          type: string
+          description: >-
+            Name of the selected Meta-approved template. Empty string means no
+            template is selected and voucher WhatsApp confirmations are skipped.
+        configured:
+          type: boolean
+          description: Whether the WhatsApp Cloud API sender is configured
+        templates:
+          type: array
+          description: Approved templates available to pick from
+          items:
+            $ref: "#/components/schemas/WhatsappTemplate"
+    UpdateWhatsappConfirmationInput:
+      type: object
+      required: [template]
+      properties:
+        template:
+          type: string
+          maxLength: 512
+          description: Template name to use; empty string clears the selection
     WhatsappConfig:
       type: object
       required: [configured, templates]

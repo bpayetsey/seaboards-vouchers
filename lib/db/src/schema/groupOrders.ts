@@ -17,6 +17,9 @@ export const groupOrders = pgTable("group_order", {
   mode: text("mode").notNull(),
   organiserName: text("organiser_name").notNull(),
   organiserEmail: text("organiser_email").notNull(),
+  // Organiser mobile in E.164, used for the split master-voucher WhatsApp
+  // confirmation. Nullable so pre-existing orders remain valid.
+  organiserPhone: text("organiser_phone"),
   status: text("status").notNull().default("open"),
   splitApartmentType: text("split_apartment_type"),
   splitNights: integer("split_nights"),
@@ -50,6 +53,9 @@ export const voucherLines = pgTable(
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
     payerName: text("payer_name").notNull(),
     payerEmail: text("payer_email").notNull(),
+    // Payer mobile in E.164, captured on the pay-link form; used for the
+    // per-share voucher WhatsApp confirmation. Nullable for older lines.
+    payerPhone: text("payer_phone"),
     payToken: text("pay_token").notNull().unique(),
     status: text("status").notNull().default("pending"),
     stripeSessionId: text("stripe_session_id"),

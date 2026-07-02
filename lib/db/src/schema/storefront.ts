@@ -29,6 +29,9 @@ export const storeOrders = pgTable(
     type: text("type").notNull().default("package"),
     buyerName: text("buyer_name").notNull(),
     buyerEmail: text("buyer_email").notNull(),
+    // Buyer mobile number in E.164 (e.g. +2482510000), used for the WhatsApp
+    // voucher confirmation. Nullable so pre-existing orders remain valid.
+    buyerPhone: text("buyer_phone"),
     currency: text("currency").notNull(),
     totalMinor: bigint("total_minor", { mode: "number" }).notNull(),
     installments: integer("installments").notNull().default(1),

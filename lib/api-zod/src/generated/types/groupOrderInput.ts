@@ -19,6 +19,12 @@ export interface GroupOrderInput {
   /** @minLength 1 */
   organiser_email: string;
   /**
+     * Organiser mobile number including country code. Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation (split master voucher).
+     * @minLength 5
+     * @maxLength 30
+     */
+  organiser_phone: string;
+  /**
      * ISO 8601 pay-by deadline
      * @nullable
      */

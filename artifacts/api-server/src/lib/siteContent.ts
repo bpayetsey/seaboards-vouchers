@@ -44,3 +44,35 @@ export async function updatePromoBanner(value: string): Promise<string> {
     });
   return trimmed;
 }
+
+/**
+ * Stable key for the WhatsApp voucher-confirmation template setting. The value
+ * is the NAME of a Meta-approved template; empty string means "not set" and the
+ * WhatsApp confirmation send is skipped (with a log line).
+ */
+export const WHATSAPP_CONFIRMATION_TEMPLATE_KEY =
+  "whatsapp_confirmation_template";
+
+/** Read the configured confirmation template name ("" = unset → skip). */
+export async function getWhatsappConfirmationTemplate(): Promise<string> {
+  const [row] = await db
+    .select()
+    .from(siteSettings)
+    .where(eq(siteSettings.key, WHATSAPP_CONFIRMATION_TEMPLATE_KEY));
+  return row?.value.trim() ?? "";
+}
+
+/** Upsert the confirmation template name. Empty clears the selection. */
+export async function updateWhatsappConfirmationTemplate(
+  value: string,
+): Promise<string> {
+  const trimmed = value.trim();
+  await db
+    .insert(siteSettings)
+    .values({ key: WHATSAPP_CONFIRMATION_TEMPLATE_KEY, value: trimmed })
+    .onConflictDoUpdate({
+      target: siteSettings.key,
+      set: { value: trimmed, updatedAt: new Date() },
+    });
+  return trimmed;
+}

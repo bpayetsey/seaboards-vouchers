@@ -33,6 +33,8 @@ import {
 } from "./dayPass";
 import { logger } from "./logger";
 import { getPromoBanner } from "./siteContent";
+import { normalizePhone } from "./phone";
+import { sendVoucherWhatsappConfirmation } from "./whatsappConfirmation";
 import {
   sendActionRequiredEmail,
   sendPaymentFailedEmail,
@@ -76,6 +78,8 @@ interface CreateOrderInput {
   plan?: string | null;
   name: string;
   email: string;
+  /** Buyer mobile including country code; normalised to E.164 server-side. */
+  phone: string;
   /** Day-pass visit date (YYYY-MM-DD). Null/omitted = undated (decide later). */
   visit_date?: string | null;
   /** Account credit to apply, in minor units. Requires an authenticated buyer. */
@@ -89,6 +93,7 @@ type CreateOrderResult =
   | {
       error:
         | "invalid_buyer"
+        | "invalid_phone"
         | "invalid_selection"
         | "payments_unavailable"
         | "date_unavailable"
@@ -111,12 +116,19 @@ export async function createStoreOrder(
     plan,
     name,
     email,
+    phone,
     visit_date,
     credit_minor,
     authed_email,
   } = input;
   if (!name?.trim() || !email?.includes("@")) {
     return { error: "invalid_buyer" };
+  }
+  // Numbers without a "+" are interpreted as Seychelles-local; anything with a
+  // country code passes through. Stored in E.164 for WhatsApp delivery.
+  const normalizedPhone = normalizePhone(phone ?? "", "SC");
+  if (!normalizedPhone.ok) {
+    return { error: "invalid_phone" };
   }
 
   // Price comes from the catalog, never from the client.
@@ -207,6 +219,7 @@ export async function createStoreOrder(
       type,
       buyerName: name,
       buyerEmail: email,
+      buyerPhone: normalizedPhone.e164,
       currency: CUR,
       totalMinor,
       creditAppliedMinor: creditMinor,
@@ -668,6 +681,7 @@ export async function processPaidIntent(
       order.buyerName,
       voucher.code,
       propagateEmailError,
+      order.buyerPhone,
     );
   }
 }
@@ -684,6 +698,7 @@ async function emailVoucherOnce(
   recipientName: string | null,
   code: string,
   propagateError: boolean,
+  phone?: string | null,
 ): Promise<void> {
   const claimed = await db
     .update(storeVouchers)
@@ -696,6 +711,9 @@ async function emailVoucherOnce(
 
   try {
     await sendIssuedVoucherEmail({ to, recipientName, code });
+    // Best-effort WhatsApp confirmation alongside the email. Fire-and-forget:
+    // it never throws and must not delay or fail the voucher-issue path.
+    void sendVoucherWhatsappConfirmation({ phone, recipientName, code });
   } catch (err) {
     // Release the claim so a later attempt (webhook retry) can resend.
     await db
@@ -923,6 +941,7 @@ export async function getAdminOrders() {
       product_name: order.productName,
       buyer_name: order.buyerName,
       buyer_email: order.buyerEmail,
+      buyer_phone: order.buyerPhone,
       currency: order.currency,
       total_major: Number(order.totalMinor) / 100,
       installments: order.installments,

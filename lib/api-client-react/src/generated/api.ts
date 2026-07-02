@@ -43,6 +43,7 @@ import type {
   CreateAudienceInput,
   CreateCampaignInput,
   CreateEmailCampaignInput,
+  CreatePayCheckoutInput,
   DashboardView,
   EmailAudience,
   EmailAudienceList,
@@ -95,6 +96,7 @@ import type {
   UpdateCatalogPriceInput,
   UpdateGalleryImageInput,
   UpdatePromoBannerInput,
+  UpdateWhatsappConfirmationInput,
   UploadUrlRequest,
   UploadUrlResponse,
   VisitorAnalytics,
@@ -104,6 +106,7 @@ import type {
   WhatsappCampaignDetail,
   WhatsappCampaignList,
   WhatsappConfig,
+  WhatsappConfirmationSetting,
   WhatsappContact,
   WhatsappContactList
 } from './api.schemas';
@@ -1107,14 +1110,16 @@ export const getCreateCheckoutUrl = (payToken: string,) => {
 
  * @summary Create a Stripe Checkout session for a payer
  */
-export const createCheckout = async (payToken: string, options?: RequestInit): Promise<CheckoutSession> => {
+export const createCheckout = async (payToken: string,
+    createPayCheckoutInput: CreatePayCheckoutInput, options?: RequestInit): Promise<CheckoutSession> => {
 
   return customFetch<CheckoutSession>(getCreateCheckoutUrl(payToken),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPayCheckoutInput,)
   }
 );}
 
@@ -1122,8 +1127,8 @@ export const createCheckout = async (payToken: string, options?: RequestInit): P
 
 
 export const getCreateCheckoutMutationOptions = <TError = ErrorType<ApiError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string;data: BodyType<CreatePayCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string;data: BodyType<CreatePayCheckoutInput>}, TContext> => {
 
 const mutationKey = ['createCheckout'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1135,10 +1140,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckout>>, {payToken: string}> = (props) => {
-          const {payToken} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckout>>, {payToken: string;data: BodyType<CreatePayCheckoutInput>}> = (props) => {
+          const {payToken,data} = props ?? {};
 
-          return  createCheckout(payToken,requestOptions)
+          return  createCheckout(payToken,data,requestOptions)
         }
 
 
@@ -1149,18 +1154,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckout>>>
-
+    export type CreateCheckoutMutationBody = BodyType<CreatePayCheckoutInput>
     export type CreateCheckoutMutationError = ErrorType<ApiError>
 
     /**
  * @summary Create a Stripe Checkout session for a payer
  */
 export const useCreateCheckout = <TError = ErrorType<ApiError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckout>>, TError,{payToken: string;data: BodyType<CreatePayCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCheckout>>,
         TError,
-        {payToken: string},
+        {payToken: string;data: BodyType<CreatePayCheckoutInput>},
         TContext
       > => {
       return useMutation(getCreateCheckoutMutationOptions(options));
@@ -4305,6 +4310,158 @@ export const useUpdatePromoBanner = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getUpdatePromoBannerMutationOptions(options));
+    }
+
+export const getGetWhatsappConfirmationSettingUrl = () => {
+
+
+
+
+  return `/api/admin/site-content/whatsapp-confirmation`
+}
+
+/**
+ * Returns the currently selected Meta-approved template name (empty means confirmations are disabled), whether the WhatsApp sender is configured, and the list of approved templates to pick from.
+
+ * @summary Get the WhatsApp voucher-confirmation template setting (staff)
+ */
+export const getWhatsappConfirmationSetting = async ( options?: RequestInit): Promise<WhatsappConfirmationSetting> => {
+
+  return customFetch<WhatsappConfirmationSetting>(getGetWhatsappConfirmationSettingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWhatsappConfirmationSettingQueryKey = () => {
+    return [
+    `/api/admin/site-content/whatsapp-confirmation`
+    ] as const;
+    }
+
+
+export const getGetWhatsappConfirmationSettingQueryOptions = <TData = Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWhatsappConfirmationSettingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>> = ({ signal }) => getWhatsappConfirmationSetting({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWhatsappConfirmationSettingQueryResult = NonNullable<Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>>
+export type GetWhatsappConfirmationSettingQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get the WhatsApp voucher-confirmation template setting (staff)
+ */
+
+export function useGetWhatsappConfirmationSetting<TData = Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWhatsappConfirmationSetting>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWhatsappConfirmationSettingQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateWhatsappConfirmationSettingUrl = () => {
+
+
+
+
+  return `/api/admin/site-content/whatsapp-confirmation`
+}
+
+/**
+ * Sets the Meta-approved template used for voucher WhatsApp confirmations. An empty template name clears the selection and disables confirmations.
+
+ * @summary Update the WhatsApp voucher-confirmation template (staff)
+ */
+export const updateWhatsappConfirmationSetting = async (updateWhatsappConfirmationInput: UpdateWhatsappConfirmationInput, options?: RequestInit): Promise<WhatsappConfirmationSetting> => {
+
+  return customFetch<WhatsappConfirmationSetting>(getUpdateWhatsappConfirmationSettingUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateWhatsappConfirmationInput,)
+  }
+);}
+
+
+
+
+export const getUpdateWhatsappConfirmationSettingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>, TError,{data: BodyType<UpdateWhatsappConfirmationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>, TError,{data: BodyType<UpdateWhatsappConfirmationInput>}, TContext> => {
+
+const mutationKey = ['updateWhatsappConfirmationSetting'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>, {data: BodyType<UpdateWhatsappConfirmationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWhatsappConfirmationSetting(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWhatsappConfirmationSettingMutationResult = NonNullable<Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>>
+    export type UpdateWhatsappConfirmationSettingMutationBody = BodyType<UpdateWhatsappConfirmationInput>
+    export type UpdateWhatsappConfirmationSettingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update the WhatsApp voucher-confirmation template (staff)
+ */
+export const useUpdateWhatsappConfirmationSetting = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>, TError,{data: BodyType<UpdateWhatsappConfirmationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWhatsappConfirmationSetting>>,
+        TError,
+        {data: BodyType<UpdateWhatsappConfirmationInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateWhatsappConfirmationSettingMutationOptions(options));
     }
 
 export const getGetWhatsappConfigUrl = () => {

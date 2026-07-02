@@ -20,6 +20,11 @@ export interface AdminGroupOrder {
   status: string;
   organiser_name: string;
   organiser_email: string;
+  /**
+     * Organiser mobile in E.164, when captured at order creation
+     * @nullable
+     */
+  organiser_phone?: string | null;
   currency: string;
   created_at: string;
   /** @nullable */

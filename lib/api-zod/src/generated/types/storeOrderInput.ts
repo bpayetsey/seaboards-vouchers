@@ -55,4 +55,10 @@ export interface StoreOrderInput {
   name: string;
   /** @minLength 3 */
   email: string;
+  /**
+     * Buyer mobile number including country code (e.g. +248 2 510 000). Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation.
+     * @minLength 5
+     * @maxLength 30
+     */
+  phone: string;
 }

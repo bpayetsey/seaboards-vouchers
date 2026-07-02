@@ -28,6 +28,10 @@ import {
 import { resendLineForOrganiser } from "../lib/groupVouchers";
 import { resolveVoucherByCode, buildVoucherPdf } from "../lib/voucherPdf";
 import { sendIssuedVoucherEmail } from "../lib/voucherEmail";
+import {
+  sendVoucherWhatsappConfirmation,
+  findPhoneForVoucherCode,
+} from "../lib/whatsappConfirmation";
 import { rateLimit } from "../lib/rateLimit";
 import { sendVoucherPdf } from "./vouchers";
 
@@ -172,6 +176,15 @@ router.post(
       }
 
       await sendIssuedVoucherEmail({ to: userEmail, code: voucher.code });
+      // Best-effort WhatsApp confirmation alongside the resend, using the
+      // mobile captured at purchase time. Fire-and-forget: never throws.
+      void findPhoneForVoucherCode(voucher.code).then((phone) =>
+        sendVoucherWhatsappConfirmation({
+          phone,
+          recipientName: null,
+          code: voucher.code,
+        }),
+      );
       return res.json({ status: "sent", email: userEmail });
     } catch (err) {
       req.log.error({ err }, "Failed to resend voucher email from dashboard");

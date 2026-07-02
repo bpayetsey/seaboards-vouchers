@@ -191,6 +191,12 @@ export interface GroupOrderInput {
   /** @minLength 1 */
   organiser_email: string;
   /**
+     * Organiser mobile number including country code. Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation (split master voucher).
+     * @minLength 5
+     * @maxLength 30
+     */
+  organiser_phone: string;
+  /**
      * ISO 8601 pay-by deadline
      * @nullable
      */
@@ -287,6 +293,20 @@ export interface PayLine {
      * @nullable
      */
   order_number?: string | null;
+  /**
+     * Saved payer mobile (E.164), used to prefill the pay form
+     * @nullable
+     */
+  payer_phone?: string | null;
+}
+
+export interface CreatePayCheckoutInput {
+  /**
+     * Payer mobile number including country code. Validated and normalised to E.164 server-side, stored on the payer line, and used for the WhatsApp voucher confirmation.
+     * @minLength 5
+     * @maxLength 30
+     */
+  phone: string;
 }
 
 export interface CheckoutSession {
@@ -431,6 +451,12 @@ export interface StoreOrderInput {
   name: string;
   /** @minLength 3 */
   email: string;
+  /**
+     * Buyer mobile number including country code (e.g. +248 2 510 000). Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation.
+     * @minLength 5
+     * @maxLength 30
+     */
+  phone: string;
 }
 
 export interface StoreOrderCreated {
@@ -471,6 +497,11 @@ export interface StoreAdminOrder {
   product_name: string;
   buyer_name: string;
   buyer_email: string;
+  /**
+     * Buyer mobile in E.164, when captured at checkout
+     * @nullable
+     */
+  buyer_phone?: string | null;
   currency: string;
   total_major: number;
   installments: number;
@@ -892,6 +923,11 @@ export interface AdminOrder {
   product_name: string;
   buyer_name: string;
   buyer_email: string;
+  /**
+     * Buyer mobile in E.164, when captured at checkout
+     * @nullable
+     */
+  buyer_phone?: string | null;
   currency: string;
   total_minor: number;
   installments: number;
@@ -912,6 +948,11 @@ export interface AdminGroupParticipant {
   id: string;
   payer_name: string;
   payer_email: string;
+  /**
+     * Payer mobile in E.164, when captured on the pay form
+     * @nullable
+     */
+  payer_phone?: string | null;
   amount_minor: number;
   /** paid, pending or expired */
   status: string;
@@ -947,6 +988,11 @@ export interface AdminGroupOrder {
   status: string;
   organiser_name: string;
   organiser_email: string;
+  /**
+     * Organiser mobile in E.164, when captured at order creation
+     * @nullable
+     */
+  organiser_phone?: string | null;
   currency: string;
   created_at: string;
   /** @nullable */
@@ -1031,6 +1077,23 @@ export interface WhatsappTemplate {
   variable_count: number;
   /** Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT */
   header_format: string;
+}
+
+export interface WhatsappConfirmationSetting {
+  /** Name of the selected Meta-approved template. Empty string means no template is selected and voucher WhatsApp confirmations are skipped. */
+  template: string;
+  /** Whether the WhatsApp Cloud API sender is configured */
+  configured: boolean;
+  /** Approved templates available to pick from */
+  templates: WhatsappTemplate[];
+}
+
+export interface UpdateWhatsappConfirmationInput {
+  /**
+     * Template name to use; empty string clears the selection
+     * @maxLength 512
+     */
+  template: string;
 }
 
 export interface WhatsappConfig {

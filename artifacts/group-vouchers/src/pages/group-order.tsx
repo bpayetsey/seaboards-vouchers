@@ -43,6 +43,13 @@ const formSchema = z.object({
   mode: z.enum(["independent", "split"] as const),
   organiser_name: z.string().min(1, "Name is required"),
   organiser_email: z.string().email("Invalid email"),
+  organiser_phone: z
+    .string()
+    .min(1, "Mobile number is required")
+    .regex(
+      /^\+?[0-9][0-9\s\-()]{5,}$/,
+      "Enter a valid mobile number including the country code (e.g. +248 2 510 000)",
+    ),
   due_by: z.date().optional(),
   split: z.object({
     apartment_type: z.enum(["one_bedroom", "two_bedroom"] as const),
@@ -70,6 +77,7 @@ export default function GroupOrder() {
       mode: "independent",
       organiser_name: "",
       organiser_email: "",
+      organiser_phone: "",
       independent_lines: [
         { payer_name: "", payer_email: "", apartment_type: "one_bedroom", nights: 1 }
       ],
@@ -170,6 +178,7 @@ export default function GroupOrder() {
         mode: values.mode as GroupOrderInputMode,
         organiser_name: values.organiser_name,
         organiser_email: values.organiser_email,
+        organiser_phone: values.organiser_phone.trim(),
         due_by: values.due_by ? values.due_by.toISOString() : undefined,
         split: values.mode === "split" && values.split ? {
           apartment_type: values.split.apartment_type as SplitConfigApartmentType,
@@ -382,6 +391,16 @@ export default function GroupOrder() {
                     <Input id="organiser_email" type="email" {...form.register("organiser_email")} placeholder="jane@example.com" />
                     {form.formState.errors.organiser_email && (
                       <p className="text-sm text-destructive">{form.formState.errors.organiser_email.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="organiser_phone">Mobile Number (WhatsApp)</Label>
+                    <Input id="organiser_phone" type="tel" {...form.register("organiser_phone")} placeholder="+248 2 510 000" />
+                    <p className="text-xs text-muted-foreground">
+                      Include the country code — voucher confirmations are also sent on WhatsApp.
+                    </p>
+                    {form.formState.errors.organiser_phone && (
+                      <p className="text-sm text-destructive">{form.formState.errors.organiser_phone.message}</p>
                     )}
                   </div>
                   <div className="space-y-2">

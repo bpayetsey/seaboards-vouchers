@@ -10,6 +10,11 @@ export interface AdminGroupParticipant {
   id: string;
   payer_name: string;
   payer_email: string;
+  /**
+     * Payer mobile in E.164, when captured on the pay form
+     * @nullable
+     */
+  payer_phone?: string | null;
   amount_minor: number;
   /** paid, pending or expired */
   status: string;

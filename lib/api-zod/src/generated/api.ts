@@ -135,6 +135,9 @@ export const GetRatesResponse = zod.object({
  * @summary Create a group voucher order
  */
 
+export const createGroupOrderBodyOrganiserPhoneMin = 5;
+export const createGroupOrderBodyOrganiserPhoneMax = 30;
+
 
 
 
@@ -144,6 +147,7 @@ export const CreateGroupOrderBody = zod.object({
   "mode": zod.enum(['independent', 'split', 'flat']),
   "organiser_name": zod.string().nullish().describe('Optional; defaults to the organiser email (e.g. flat mode)'),
   "organiser_email": zod.string().min(1),
+  "organiser_phone": zod.string().min(createGroupOrderBodyOrganiserPhoneMin).max(createGroupOrderBodyOrganiserPhoneMax).describe('Organiser mobile number including country code. Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation (split master voucher).'),
   "due_by": zod.string().nullish().describe('ISO 8601 pay-by deadline'),
   "per_person_minor": zod.number().nullish().describe('Per-person amount in minor units; required for flat mode'),
   "split": zod.union([zod.object({
@@ -361,7 +365,8 @@ export const GetPayLineResponse = zod.object({
   "payable": zod.boolean(),
   "voucher_code": zod.string().nullish(),
   "organiser_name": zod.string().optional(),
-  "order_number": zod.string().nullish().describe('Human-readable order reference for this group order')
+  "order_number": zod.string().nullish().describe('Human-readable order reference for this group order'),
+  "payer_phone": zod.string().nullish().describe('Saved payer mobile (E.164), used to prefill the pay form')
 })
 
 
@@ -372,6 +377,15 @@ export const GetPayLineResponse = zod.object({
  */
 export const CreateCheckoutParams = zod.object({
   "payToken": zod.coerce.string()
+})
+
+export const createCheckoutBodyPhoneMin = 5;
+export const createCheckoutBodyPhoneMax = 30;
+
+
+
+export const CreateCheckoutBody = zod.object({
+  "phone": zod.string().min(createCheckoutBodyPhoneMin).max(createCheckoutBodyPhoneMax).describe('Payer mobile number including country code. Validated and normalised to E.164 server-side, stored on the payer line, and used for the WhatsApp voucher confirmation.')
 })
 
 export const CreateCheckoutResponse = zod.object({
@@ -465,6 +479,9 @@ export const GetDayPassAvailabilityResponse = zod.object({
 
 export const createStoreOrderBodyEmailMin = 3;
 
+export const createStoreOrderBodyPhoneMin = 5;
+export const createStoreOrderBodyPhoneMax = 30;
+
 
 
 export const CreateStoreOrderBody = zod.object({
@@ -479,7 +496,8 @@ export const CreateStoreOrderBody = zod.object({
   "visit_date": zod.string().nullish().describe('Day-pass visit date (YYYY-MM-DD). Only honoured for the per-person passes; null\/omitted books undated (decide later).'),
   "credit_minor": zod.number().nullish().describe('Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.'),
   "name": zod.string().min(1),
-  "email": zod.string().min(createStoreOrderBodyEmailMin)
+  "email": zod.string().min(createStoreOrderBodyEmailMin),
+  "phone": zod.string().min(createStoreOrderBodyPhoneMin).max(createStoreOrderBodyPhoneMax).describe('Buyer mobile number including country code (e.g. +248 2 510 000). Validated and normalised to E.164 server-side; used for the WhatsApp voucher confirmation.')
 })
 
 export const CreateStoreOrderResponse = zod.object({
@@ -526,6 +544,7 @@ export const GetStoreAdminOrdersResponse = zod.object({
   "product_name": zod.string(),
   "buyer_name": zod.string(),
   "buyer_email": zod.string(),
+  "buyer_phone": zod.string().nullish().describe('Buyer mobile in E.164, when captured at checkout'),
   "currency": zod.string(),
   "total_major": zod.number(),
   "installments": zod.number(),
@@ -863,6 +882,7 @@ export const GetAdminOrdersDetailedResponse = zod.object({
   "product_name": zod.string(),
   "buyer_name": zod.string(),
   "buyer_email": zod.string(),
+  "buyer_phone": zod.string().nullish().describe('Buyer mobile in E.164, when captured at checkout'),
   "currency": zod.string(),
   "total_minor": zod.number(),
   "installments": zod.number(),
@@ -938,6 +958,7 @@ export const GetAdminGroupOrdersResponse = zod.object({
   "status": zod.string().describe('open, complete or expired'),
   "organiser_name": zod.string(),
   "organiser_email": zod.string(),
+  "organiser_phone": zod.string().nullish().describe('Organiser mobile in E.164, when captured at order creation'),
   "currency": zod.string(),
   "created_at": zod.string(),
   "due_by": zod.string().nullish(),
@@ -953,6 +974,7 @@ export const GetAdminGroupOrdersResponse = zod.object({
   "id": zod.string(),
   "payer_name": zod.string(),
   "payer_email": zod.string(),
+  "payer_phone": zod.string().nullish().describe('Payer mobile in E.164, when captured on the pay form'),
   "amount_minor": zod.number(),
   "status": zod.string().describe('paid, pending or expired'),
   "paid_at": zod.string().nullish(),
@@ -1254,6 +1276,52 @@ export const UpdatePromoBannerBody = zod.object({
 
 export const UpdatePromoBannerResponse = zod.object({
   "banner": zod.string().describe('Promo banner text. Empty string means the banner is hidden.')
+})
+
+
+/**
+ * Returns the currently selected Meta-approved template name (empty means confirmations are disabled), whether the WhatsApp sender is configured, and the list of approved templates to pick from.
+
+ * @summary Get the WhatsApp voucher-confirmation template setting (staff)
+ */
+export const GetWhatsappConfirmationSettingResponse = zod.object({
+  "template": zod.string().describe('Name of the selected Meta-approved template. Empty string means no template is selected and voucher WhatsApp confirmations are skipped.'),
+  "configured": zod.boolean().describe('Whether the WhatsApp Cloud API sender is configured'),
+  "templates": zod.array(zod.object({
+  "name": zod.string(),
+  "language": zod.string(),
+  "category": zod.string(),
+  "body": zod.string(),
+  "variable_count": zod.number(),
+  "header_format": zod.string().describe('Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT')
+})).describe('Approved templates available to pick from')
+})
+
+
+/**
+ * Sets the Meta-approved template used for voucher WhatsApp confirmations. An empty template name clears the selection and disables confirmations.
+
+ * @summary Update the WhatsApp voucher-confirmation template (staff)
+ */
+export const updateWhatsappConfirmationSettingBodyTemplateMax = 512;
+
+
+
+export const UpdateWhatsappConfirmationSettingBody = zod.object({
+  "template": zod.string().max(updateWhatsappConfirmationSettingBodyTemplateMax).describe('Template name to use; empty string clears the selection')
+})
+
+export const UpdateWhatsappConfirmationSettingResponse = zod.object({
+  "template": zod.string().describe('Name of the selected Meta-approved template. Empty string means no template is selected and voucher WhatsApp confirmations are skipped.'),
+  "configured": zod.boolean().describe('Whether the WhatsApp Cloud API sender is configured'),
+  "templates": zod.array(zod.object({
+  "name": zod.string(),
+  "language": zod.string(),
+  "category": zod.string(),
+  "body": zod.string(),
+  "variable_count": zod.number(),
+  "header_format": zod.string().describe('Header requirement of the template — NONE, TEXT, IMAGE, VIDEO, or DOCUMENT')
+})).describe('Approved templates available to pick from')
 })
 
 

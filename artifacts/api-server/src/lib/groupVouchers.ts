@@ -9,6 +9,8 @@ import {
 import { getEffectiveCatalog } from "./storeCatalog";
 import { sendIssuedVoucherEmail } from "./voucherEmail";
 import { logger } from "./logger";
+import { normalizePhone } from "./phone";
+import { sendVoucherWhatsappConfirmation } from "./whatsappConfirmation";
 
 // Default per-night rates; kept as a fallback when the catalog can't be read.
 export const RATES: Record<string, number> = {
@@ -71,6 +73,8 @@ interface CreateGroupOrderInput {
   mode: "independent" | "split" | "flat";
   organiser_name?: string | null;
   organiser_email: string;
+  /** Organiser mobile including country code; normalised to E.164 server-side. */
+  organiser_phone: string;
   due_by?: string | null;
   per_person_minor?: number | null;
   split?: {
@@ -90,11 +94,26 @@ interface PreparedLine {
 }
 
 export async function createGroupOrder(input: CreateGroupOrderInput) {
-  const { mode, organiser_name, organiser_email, lines, split, due_by } = input;
+  const {
+    mode,
+    organiser_name,
+    organiser_email,
+    organiser_phone,
+    lines,
+    split,
+    due_by,
+  } = input;
 
   if (!["independent", "split", "flat"].includes(mode))
     throw new Error("invalid mode");
   if (!organiser_email) throw new Error("organiser email required");
+  // Numbers without a "+" are interpreted as Seychelles-local; anything with a
+  // country code passes through. Stored in E.164 for WhatsApp delivery.
+  const normalizedPhone = normalizePhone(organiser_phone ?? "", "SC");
+  if (!normalizedPhone.ok)
+    throw new Error(
+      "Enter a valid mobile number including the country code (e.g. +248 2 510 000)",
+    );
   if (!Array.isArray(lines) || lines.length === 0)
     throw new Error("at least one payer required");
 
@@ -186,6 +205,7 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
         mode,
         organiserName: organiserName,
         organiserEmail: organiser_email,
+        organiserPhone: normalizedPhone.e164,
         splitApartmentType: splitApt,
         splitNights: splitNights,
         splitAmountMinor: splitAmount,
@@ -230,11 +250,12 @@ export async function createGroupOrder(input: CreateGroupOrderInput) {
 
 type CheckoutResult =
   | { url: string }
-  | { error: "not_found" | "already_paid" | "closed" };
+  | { error: "not_found" | "already_paid" | "closed" | "invalid_phone" };
 
 export async function startCheckout(
   payToken: string,
   origin: string,
+  phone: string,
 ): Promise<CheckoutResult> {
   const [line] = await db
     .select()
@@ -253,6 +274,15 @@ export async function startCheckout(
     return { error: "closed" };
   if (order.dueBy && new Date(order.dueBy) < new Date())
     return { error: "closed" };
+
+  // Capture the payer's mobile before checkout so the voucher WhatsApp
+  // confirmation can reach them. Numbers without "+" are Seychelles-local.
+  const normalizedPhone = normalizePhone(phone ?? "", "SC");
+  if (!normalizedPhone.ok) return { error: "invalid_phone" };
+  await db
+    .update(voucherLines)
+    .set({ payerPhone: normalizedPhone.e164, updatedAt: new Date() })
+    .where(eq(voucherLines.id, line.id));
 
   const descr = line.apartmentType
     ? `Golden Jubilee — ${line.apartmentType.replace("_", " ")}, ${line.nights} night(s)`
@@ -431,6 +461,7 @@ export async function handleSessionCompleted(
       freshLine.payerName,
       freshLine.voucherCode,
       propagateEmailError,
+      freshLine.payerPhone,
     );
   }
 
@@ -453,6 +484,7 @@ export async function handleSessionCompleted(
       freshOrder.organiserName,
       freshOrder.splitVoucherCode,
       propagateEmailError,
+      freshOrder.organiserPhone,
     );
   }
 }
@@ -469,6 +501,7 @@ async function emailLineVoucherOnce(
   name: string | null,
   code: string,
   propagateError: boolean,
+  phone?: string | null,
 ): Promise<void> {
   const claimed = await db
     .update(voucherLines)
@@ -481,6 +514,9 @@ async function emailLineVoucherOnce(
 
   try {
     await sendIssuedVoucherEmail({ to, recipientName: name, code });
+    // Best-effort WhatsApp confirmation alongside the email. Fire-and-forget:
+    // it never throws and must not delay or fail the voucher-issue path.
+    void sendVoucherWhatsappConfirmation({ phone, recipientName: name, code });
   } catch (err) {
     // Release the claim so a later attempt (webhook retry) can resend.
     await db
@@ -499,6 +535,7 @@ async function emailSplitVoucherOnce(
   name: string | null,
   code: string,
   propagateError: boolean,
+  phone?: string | null,
 ): Promise<void> {
   const claimed = await db
     .update(groupOrders)
@@ -514,6 +551,9 @@ async function emailSplitVoucherOnce(
 
   try {
     await sendIssuedVoucherEmail({ to, recipientName: name, code });
+    // Best-effort WhatsApp confirmation alongside the email. Fire-and-forget:
+    // it never throws and must not delay or fail the voucher-issue path.
+    void sendVoucherWhatsappConfirmation({ phone, recipientName: name, code });
   } catch (err) {
     // Release the claim so a later attempt (webhook retry) can resend.
     await db
@@ -601,6 +641,7 @@ export async function getPayLine(payToken: string) {
     voucher_code: line.voucherCode,
     organiser_name: order.organiserName,
     order_number: order.orderNumber,
+    payer_phone: line.payerPhone,
   };
 }
 

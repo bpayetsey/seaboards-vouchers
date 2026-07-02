@@ -281,6 +281,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const [plan, setPlan] = useState<"full" | "instalments" | "split">("full");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [checkout, setCheckout] = useState<{
     orderId: string;
     clientSecret: string;
@@ -363,6 +364,15 @@ function Storefront({ config }: { config: StorefrontConfig }) {
       });
       return;
     }
+    if (!PHONE_RE.test(phone.trim())) {
+      toast({
+        title: "Enter your mobile number",
+        description:
+          "Include your country code, e.g. +248 2 510 000. We'll send your voucher confirmation on WhatsApp too.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (datablePass && !giftLater && !visitDate) {
       toast({
         title: "Choose a visit date",
@@ -414,6 +424,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           plan: plan === "instalments" ? String(config.instalments) : undefined,
           name,
           email,
+          phone: phone.trim(),
         },
       },
       {
@@ -1045,6 +1056,20 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                   placeholder="jane@example.com"
                 />
               </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="buyer_phone">Mobile number (WhatsApp)</Label>
+                <Input
+                  id="buyer_phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+248 2 510 000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Include your country code — we'll also send your voucher
+                  confirmation on WhatsApp.
+                </p>
+              </div>
             </div>
 
             {isSignedIn && creditBalanceMinor > 0 && total > 0 && (
@@ -1467,6 +1492,9 @@ function GroupLinksResult({
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Light client-side sanity check only; the server normalises to E.164 and is
+// the source of truth for phone validity.
+const PHONE_RE = /^\+?[0-9][0-9\s\-()]{5,}$/;
 
 /**
  * Inline "split this voucher with a group" setup, seeded from the storefront
@@ -1490,6 +1518,7 @@ function VoucherSplitSetup({
   const createGroupOrder = useCreateGroupOrder();
 
   const [organiserEmail, setOrganiserEmail] = useState("");
+  const [organiserPhone, setOrganiserPhone] = useState("");
   const [participants, setParticipants] = useState<
     { email: string; share: string }[]
   >([
@@ -1520,6 +1549,7 @@ function VoucherSplitSetup({
   const reset = () => {
     setResult(null);
     setOrganiserEmail("");
+    setOrganiserPhone("");
     setParticipants([
       { email: "", share: "" },
       { email: "", share: "" },
@@ -1532,6 +1562,15 @@ function VoucherSplitSetup({
       toast({
         title: "Organiser email required",
         description: "Please enter a valid organiser email.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!PHONE_RE.test(organiserPhone.trim())) {
+      toast({
+        title: "Organiser mobile number required",
+        description:
+          "Include the country code, e.g. +248 2 510 000. We'll send voucher confirmations on WhatsApp too.",
         variant: "destructive",
       });
       return;
@@ -1630,6 +1669,7 @@ function VoucherSplitSetup({
         data: {
           mode: "split",
           organiser_email: organiserEmail.trim(),
+          organiser_phone: organiserPhone.trim(),
           split,
           lines,
         },
@@ -1695,6 +1735,24 @@ function VoucherSplitSetup({
             placeholder="you@example.com"
             className="mt-1.5"
           />
+        </div>
+
+        <div className="max-w-md">
+          <Label htmlFor="split-organiser-phone">
+            Your mobile number (WhatsApp)
+          </Label>
+          <Input
+            id="split-organiser-phone"
+            type="tel"
+            value={organiserPhone}
+            onChange={(e) => setOrganiserPhone(e.target.value)}
+            placeholder="+248 2 510 000"
+            className="mt-1.5"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Include the country code — voucher confirmations are also sent on
+            WhatsApp.
+          </p>
         </div>
 
         <div>
@@ -1771,6 +1829,7 @@ function GroupLinksSection() {
   const [expanded, setExpanded] = useState(false);
   const [amount, setAmount] = useState("");
   const [organiserEmail, setOrganiserEmail] = useState("");
+  const [organiserPhone, setOrganiserPhone] = useState("");
   const [participants, setParticipants] = useState<string[]>(["", ""]);
   const [result, setResult] = useState<GroupOrderCreated | null>(null);
 
@@ -1788,6 +1847,7 @@ function GroupLinksSection() {
     setResult(null);
     setAmount("");
     setOrganiserEmail("");
+    setOrganiserPhone("");
     setParticipants(["", ""]);
   };
 
@@ -1811,6 +1871,15 @@ function GroupLinksSection() {
       });
       return;
     }
+    if (!PHONE_RE.test(organiserPhone.trim())) {
+      toast({
+        title: "Organiser mobile number required",
+        description:
+          "Include the country code, e.g. +248 2 510 000. We'll send voucher confirmations on WhatsApp too.",
+        variant: "destructive",
+      });
+      return;
+    }
     const emails = participants.map((p) => p.trim()).filter(Boolean);
     if (emails.length === 0 || !emails.every((e) => emailRe.test(e))) {
       toast({
@@ -1826,6 +1895,7 @@ function GroupLinksSection() {
         data: {
           mode: "flat",
           organiser_email: organiserEmail.trim(),
+          organiser_phone: organiserPhone.trim(),
           per_person_minor: Math.round(amountMajor * rates.minor_per_major),
           lines: emails.map((email) => ({ payer_email: email })),
         },
@@ -1912,6 +1982,23 @@ function GroupLinksSection() {
                 placeholder="you@example.com"
                 className="mt-1.5"
               />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="group-organiser-phone">
+                Your mobile number (WhatsApp)
+              </Label>
+              <Input
+                id="group-organiser-phone"
+                type="tel"
+                value={organiserPhone}
+                onChange={(e) => setOrganiserPhone(e.target.value)}
+                placeholder="+248 2 510 000"
+                className="mt-1.5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Include the country code — voucher confirmations are also sent
+                on WhatsApp.
+              </p>
             </div>
           </div>
 

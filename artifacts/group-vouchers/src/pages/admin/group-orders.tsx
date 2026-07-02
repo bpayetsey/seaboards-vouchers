@@ -63,6 +63,7 @@ function ParticipantRow({
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {p.payer_email}
+          {p.payer_phone ? <> · {p.payer_phone}</> : null}
         </p>
         {p.voucher_code ? (
           <p className="mt-1 text-xs">
@@ -146,6 +147,7 @@ function GroupOrderCard({ order }: { order: AdminGroupOrder }) {
             </div>
             <p className="text-sm text-muted-foreground">
               {order.organiser_name} · {order.organiser_email}
+              {order.organiser_phone ? <> · {order.organiser_phone}</> : null}
             </p>
             <p className="text-xs text-muted-foreground">
               Placed {formatDate(order.created_at)}

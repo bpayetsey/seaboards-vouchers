@@ -1,18 +1,27 @@
+import { useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { useGetPayLine, useCreateCheckout } from "@workspace/api-client-react";
 import { formatMoney } from "@/lib/format";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, Lock, CreditCard, AlertCircle } from "lucide-react";
 import { getGetPayLineQueryKey } from "@workspace/api-client-react";
 import resortHero from "@/assets/resort-hero.jpg";
 
+// Light client-side sanity check only; the server normalises to E.164 and is
+// the source of truth for phone validity.
+const PHONE_RE = /^\+?[0-9][0-9\s\-()]{5,}$/;
+
 export default function PayLine() {
   const params = useParams();
   const payToken = params.payToken as string;
-  
+  const { toast } = useToast();
+
   const { data: line, isLoading, error } = useGetPayLine(payToken, {
     query: {
       enabled: !!payToken,
@@ -20,12 +29,36 @@ export default function PayLine() {
     }
   });
 
+  const [phone, setPhone] = useState("");
+
+  // Prefill from a previously saved number so a retry doesn't re-ask.
+  useEffect(() => {
+    if (line?.payer_phone) setPhone((prev) => prev || line.payer_phone!);
+  }, [line?.payer_phone]);
+
   const checkout = useCreateCheckout();
 
   const handleCheckout = () => {
-    checkout.mutate({ payToken }, {
+    if (!PHONE_RE.test(phone.trim())) {
+      toast({
+        title: "Enter your mobile number",
+        description:
+          "Include your country code, e.g. +248 2 510 000. We'll send your voucher confirmation on WhatsApp too.",
+        variant: "destructive",
+      });
+      return;
+    }
+    checkout.mutate({ payToken, data: { phone: phone.trim() } }, {
       onSuccess: (data) => {
         window.location.href = data.url;
+      },
+      onError: (err) => {
+        toast({
+          title: "Could not start checkout",
+          description:
+            (err as { error?: string })?.error ?? "Please try again.",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -108,6 +141,21 @@ export default function PayLine() {
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Description</h3>
                 <p className="font-medium">{line.description}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payer_phone">Mobile number (WhatsApp)</Label>
+                <Input
+                  id="payer_phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+248 2 510 000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Include your country code — we'll also send your voucher
+                  confirmation on WhatsApp.
+                </p>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4 flex items-start gap-3">

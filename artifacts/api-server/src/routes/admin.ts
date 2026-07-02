@@ -21,6 +21,9 @@ import {
   GetPromoBannerResponse,
   UpdatePromoBannerBody,
   UpdatePromoBannerResponse,
+  GetWhatsappConfirmationSettingResponse,
+  UpdateWhatsappConfirmationSettingBody,
+  UpdateWhatsappConfirmationSettingResponse,
   GetAdminVisitorsResponse,
   GetAdminCalendarQueryParams,
   GetAdminCalendarResponse,
@@ -59,7 +62,16 @@ import {
   listCatalogPrices,
   updateCatalogPrice,
 } from "../lib/catalogPrices";
-import { getPromoBanner, updatePromoBanner } from "../lib/siteContent";
+import {
+  getPromoBanner,
+  updatePromoBanner,
+  getWhatsappConfirmationTemplate,
+  updateWhatsappConfirmationTemplate,
+} from "../lib/siteContent";
+import {
+  isWhatsappConfigured,
+  fetchApprovedTemplates,
+} from "../lib/whatsappClient";
 import { getVisitorAnalytics } from "../lib/analytics";
 
 const router: IRouter = Router();
@@ -258,6 +270,87 @@ router.put("/admin/site-content/promo-banner", requireStaff, async (req, res) =>
     return res.status(500).json({ error: "Could not update the banner." });
   }
 });
+
+// ── Site content (WhatsApp voucher-confirmation template) ───────────────────
+
+/** Map an internal camelCase template to the snake_case API schema shape. */
+function toApiTemplate(t: {
+  name: string;
+  language: string;
+  category: string;
+  body: string;
+  variableCount: number;
+  headerFormat: string;
+}) {
+  return {
+    name: t.name,
+    language: t.language,
+    category: t.category,
+    body: t.body,
+    variable_count: t.variableCount,
+    header_format: t.headerFormat,
+  };
+}
+
+router.get(
+  "/admin/site-content/whatsapp-confirmation",
+  requireStaff,
+  async (req, res) => {
+    try {
+      const [template, templates] = await Promise.all([
+        getWhatsappConfirmationTemplate(),
+        fetchApprovedTemplates(),
+      ]);
+      return res.json(
+        GetWhatsappConfirmationSettingResponse.parse({
+          template,
+          configured: isWhatsappConfigured(),
+          templates: templates.map(toApiTemplate),
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to load WhatsApp confirmation setting");
+      return res
+        .status(500)
+        .json({ error: "Could not load the WhatsApp confirmation setting." });
+    }
+  },
+);
+
+router.put(
+  "/admin/site-content/whatsapp-confirmation",
+  requireStaff,
+  async (req, res) => {
+    const parsed = UpdateWhatsappConfirmationSettingBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid request." });
+    }
+    try {
+      // Non-empty selections must reference a currently approved template so a
+      // typo or stale name can't silently disable confirmations.
+      const templates = await fetchApprovedTemplates();
+      const requested = parsed.data.template.trim();
+      if (requested && !templates.some((t) => t.name === requested)) {
+        return res.status(400).json({
+          error: "That template is not in the approved template list.",
+        });
+      }
+      const template = await updateWhatsappConfirmationTemplate(requested);
+      return res.json(
+        UpdateWhatsappConfirmationSettingResponse.parse({
+          template,
+          configured: isWhatsappConfigured(),
+          templates: templates.map(toApiTemplate),
+        }),
+      );
+    } catch (err) {
+      req.log.error({ err }, "Failed to update WhatsApp confirmation setting");
+      return res
+        .status(500)
+        .json({ error: "Could not update the WhatsApp confirmation setting." });
+    }
+  },
+);
 
 // ── Day-pass calendar & bookings ────────────────────────────────────────────
 

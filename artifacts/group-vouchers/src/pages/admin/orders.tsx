@@ -169,6 +169,7 @@ function OrderCard({ order, onChanged }: { order: OrderRow; onChanged: () => voi
             </div>
             <p className="text-sm text-muted-foreground">
               {order.buyer_name} · {order.buyer_email}
+              {order.buyer_phone ? <> · {order.buyer_phone}</> : null}
             </p>
             <p className="text-xs text-muted-foreground">
               Placed {formatDate(order.created_at)}
