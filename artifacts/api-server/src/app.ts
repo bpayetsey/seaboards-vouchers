@@ -2,12 +2,6 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { processWebhook } from "./lib/webhookHandlers";
@@ -18,17 +12,12 @@ import { processSendgridEvents } from "./lib/emailCampaigns";
 
 const app: Express = express();
 
-// Trust the Replit edge proxy so that req.ip, req.protocol, and the
-// x-forwarded-* headers resolve to the real client values rather than
-// the internal proxy address. Without this, Express ignores the incoming
-// x-forwarded-for chain and req.ip would return the proxy's loopback IP,
-// which would cause all users to share the same apparent IP for any
-// per-IP rate limiting or Clerk auth that inspects req.ip.
-//
-// The clerkProxyMiddleware reads req.headers["x-forwarded-for"] directly
-// (bypassing Express trust-proxy entirely), but setting trust proxy is
-// still required for correctness elsewhere in the stack (e.g. session
-// security, protocol detection, any future per-IP middleware).
+// Trust the platform's edge proxy (Railway) so that req.ip, req.protocol,
+// and the x-forwarded-* headers resolve to the real client values rather
+// than the internal proxy address. Without this, Express ignores the
+// incoming x-forwarded-for chain and req.ip would return the proxy's
+// loopback IP, which would cause all users to share the same apparent IP
+// for any per-IP rate limiting.
 app.set("trust proxy", true);
 
 app.use(
@@ -50,10 +39,6 @@ app.use(
     },
   }),
 );
-
-// Clerk Frontend API proxy. Must be mounted BEFORE the body parsers since it
-// streams raw bytes. No-op in development (Clerk hits its FAPI directly there).
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 // Stripe webhook must receive the raw body and be registered BEFORE express.json().
 app.post(
@@ -176,17 +161,7 @@ app.use(
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-// Resolve the publishable key from the incoming request host so the same server
-// can serve multiple Clerk custom domains. Falls back to CLERK_PUBLISHABLE_KEY
-// when the host doesn't map to a custom domain.
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+app.use(clerkMiddleware());
 
 app.use("/api", router);
 
