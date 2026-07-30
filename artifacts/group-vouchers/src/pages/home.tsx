@@ -472,11 +472,8 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         <div className="font-sans text-xs font-bold uppercase tracking-[0.32em] text-primary">
           The Seaboards Apartments &middot; Anse La Mouche &middot; Mah&eacute;
         </div>
-        <div className="mt-4 font-sans text-xs font-bold uppercase tracking-[0.4em] text-accent">
-          50 Years of Freedom
-        </div>
-        <h1 className="font-serif text-primary text-4xl md:text-5xl mt-2 mb-1">
-          Jubilee Voucher Collection
+        <h1 className="font-serif text-primary text-4xl md:text-5xl mt-4 mb-1">
+          Resident Rate &amp; Day Pass Booking
         </h1>
         <p className="font-serif italic text-muted-foreground m-0">
           Reserve your island stay &middot; pay in full or spread it over{" "}

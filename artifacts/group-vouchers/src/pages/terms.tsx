@@ -17,10 +17,7 @@ export default function Terms() {
           <div className="text-[12.5px] text-muted-foreground tracking-[0.04em] mt-1">
             {RESORT.location}
           </div>
-          <div className="mt-6 font-sans text-[12.5px] font-bold uppercase tracking-[0.4em] text-accent">
-            50 Years of Freedom
-          </div>
-          <h1 className="font-serif font-semibold text-primary text-3xl md:text-[46px] leading-[1.08] mt-2 mb-1">
+          <h1 className="font-serif font-semibold text-primary text-3xl md:text-[46px] leading-[1.08] mt-6 mb-1">
             {RESORT.offerTitle}
           </h1>
           <p className="font-serif italic text-muted-foreground text-[17px] m-0">
