@@ -81,6 +81,43 @@ export const CATALOG: CatalogItem[] = [
       "Valid for 1 year",
     ],
   },
+  {
+    id: "one-bedroom-bb",
+    type: "package",
+    ribbon: "One-Bedroom · B&B",
+    featured: false,
+    name: "One-Bedroom Apartment (Bed & Breakfast)",
+    rate: 1950,
+    was: 0,
+    minNights: 1,
+    desc: "A 58.7 sqm apartment opening to a private balcony with tropical mountain views — ideal for couples or a family with small children.",
+    feat: [
+      "58.7 sqm with private balcony",
+      "Tropical mountain views",
+      "Ideal for couples or a family with small children",
+      "Bed & Breakfast included",
+      "Valid for 1 year",
+    ],
+  },
+  {
+    id: "two-bedroom-bb",
+    type: "package",
+    ribbon: "Two-Bedroom · B&B",
+    featured: false,
+    name: "Two-Bedroom Apartment (Bed & Breakfast)",
+    rate: 2850,
+    was: 0,
+    minNights: 1,
+    desc: "A 71.2 sqm apartment with two queen-bed bedrooms (each en-suite), a spacious open-plan living area and a fully equipped kitchen — ideal for families or groups of 4–6 adults.",
+    feat: [
+      "71.2 sqm open-plan layout",
+      "Two queen bedrooms, each en-suite",
+      "Fully equipped kitchen",
+      "Ideal for families or groups of 4–6 adults",
+      "Bed & Breakfast included",
+      "Valid for 1 year",
+    ],
+  },
 ];
 
 export const GIFT = {

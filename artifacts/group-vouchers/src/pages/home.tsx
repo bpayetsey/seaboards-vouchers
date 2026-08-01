@@ -530,9 +530,11 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                   {item.name}
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-muted-foreground line-through text-sm">
-                    {money(symbol, item.was)}
-                  </span>
+                  {item.was > item.rate && (
+                    <span className="text-muted-foreground line-through text-sm">
+                      {money(symbol, item.was)}
+                    </span>
+                  )}
                   <span className="text-2xl font-extrabold text-primary">
                     {money(symbol, item.rate)}
                   </span>
