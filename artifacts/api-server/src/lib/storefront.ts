@@ -30,7 +30,6 @@ import {
   spendCredit,
   restoreReservedCredit,
   ensureDayPassBooking,
-  isValidDateStr,
   resortToday,
 } from "./dayPass";
 import { logger } from "./logger";
@@ -54,32 +53,33 @@ const newCode = (): string =>
   ).join("-");
 
 // Every instalment should clear at least this many days before the buyer's
-// travel date, so the last charge isn't attempted (or still pending) after
-// they've already checked in.
-const TRAVEL_BUFFER_DAYS = 3;
+// day-pass visit date, so the last charge isn't attempted (or still pending)
+// after they've already visited.
+const VISIT_BUFFER_DAYS = 3;
 
 /**
  * The gap, in days, between successive instalment due dates for an order.
- * Defaults to the standard SETTINGS.intervalDays (e.g. 30). But when the
- * buyer gave a travel date and the standard schedule wouldn't fully clear
- * before then, the remaining instalments are compressed to evenly-spaced
- * payments that fit inside the time actually available — instead of billing
- * across the full 3 months regardless of how soon they're staying.
+ * Defaults to the standard SETTINGS.intervalDays (e.g. 30). But for a dated
+ * day pass (Breakfast & Lunch / Pool & Lunch) where the standard schedule
+ * wouldn't fully clear before the visit date, the remaining instalments are
+ * compressed to evenly-spaced payments that fit inside the time actually
+ * available — instead of billing across the full 3 months regardless of how
+ * soon the visit is.
  */
 function instalmentIntervalDays(
   installments: number,
-  travelDate: string | null,
+  dayPassVisitDate: string | null,
 ): number {
-  if (!travelDate || installments <= 1) return SETTINGS.intervalDays;
+  if (!dayPassVisitDate || installments <= 1) return SETTINGS.intervalDays;
   const gaps = installments - 1;
   const standardWindowDays = SETTINGS.intervalDays * gaps;
   const today = resortToday();
-  const daysUntilTravel = Math.round(
-    (new Date(`${travelDate}T00:00:00Z`).getTime() -
+  const daysUntilVisit = Math.round(
+    (new Date(`${dayPassVisitDate}T00:00:00Z`).getTime() -
       new Date(`${today}T00:00:00Z`).getTime()) /
       86_400_000,
   );
-  const availableDays = Math.max(daysUntilTravel - TRAVEL_BUFFER_DAYS, 0);
+  const availableDays = Math.max(daysUntilVisit - VISIT_BUFFER_DAYS, 0);
   if (availableDays >= standardWindowDays) return SETTINGS.intervalDays;
   return Math.max(Math.floor(availableDays / gaps), 1);
 }
@@ -115,11 +115,6 @@ interface CreateOrderInput {
   phone: string;
   /** Day-pass visit date (YYYY-MM-DD). Null/omitted = undated (decide later). */
   visit_date?: string | null;
-  /**
-   * Buyer's intended check-in/travel date (YYYY-MM-DD) for an apartment
-   * package. Drives instalment-schedule compression — see createStoreOrder.
-   */
-  travel_date?: string | null;
   /** Account credit to apply, in minor units. Requires an authenticated buyer. */
   credit_minor?: number | null;
   /** Verified email of the logged-in buyer, set server-side (never trusted from body). */
@@ -135,7 +130,6 @@ type CreateOrderResult =
         | "invalid_selection"
         | "payments_unavailable"
         | "date_unavailable"
-        | "invalid_travel_date"
         | "credit_requires_auth"
         | "credit_too_large"
         | "insufficient_credit";
@@ -157,22 +151,11 @@ export async function createStoreOrder(
     email,
     phone,
     visit_date,
-    travel_date,
     credit_minor,
     authed_email,
   } = input;
   if (!name?.trim() || !email?.includes("@")) {
     return { error: "invalid_buyer" };
-  }
-  // Travel date is optional, but if the buyer gave one it must be a real
-  // calendar date in the future — it's about to drive the instalment
-  // schedule, so a garbage or past date can't be allowed through silently.
-  let travelDate: string | null = null;
-  if (travel_date) {
-    if (!isValidDateStr(travel_date) || travel_date < resortToday()) {
-      return { error: "invalid_travel_date" };
-    }
-    travelDate = travel_date;
   }
   // Numbers without a "+" are interpreted as Seychelles-local; anything with a
   // country code passes through. Stored in E.164 for WhatsApp delivery.
@@ -275,7 +258,6 @@ export async function createStoreOrder(
       creditAppliedMinor: creditMinor,
       dayPassPax: pax,
       dayPassVisitDate: visitDate,
-      travelDate,
       installments,
       stripeCustomerId: customer.id,
       status: "pending",
@@ -529,7 +511,7 @@ export async function processPaidIntent(
           const per = Math.round(cashMinor / order.installments);
           const intervalDays = instalmentIntervalDays(
             order.installments,
-            order.travelDate,
+            order.dayPassVisitDate,
           );
           const rows = [];
           for (let i = 2; i <= order.installments; i++) {

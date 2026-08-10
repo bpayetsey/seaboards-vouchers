@@ -47,12 +47,6 @@ export const storeOrders = pgTable(
     // requested visit day (null = undated / decide later).
     dayPassPax: integer("day_pass_pax"),
     dayPassVisitDate: date("day_pass_visit_date", { mode: "string" }),
-    // Buyer's intended check-in/travel date for an apartment package order
-    // (null = not provided, e.g. pay-in-full orders or older orders predating
-    // this field). Drives the instalment scheduler: when the travel date is
-    // sooner than the standard instalment window, the remaining instalments are
-    // compressed to evenly-spaced payments that all clear before travel.
-    travelDate: date("travel_date", { mode: "string" }),
     // Account credit applied at checkout, in minor units. The cash actually
     // charged (via Stripe) is `totalMinor - creditAppliedMinor`; `totalMinor`
     // stays the full product price so the issued voucher carries full value.

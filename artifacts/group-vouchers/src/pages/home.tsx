@@ -281,7 +281,6 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const [dayChildren, setDayChildren] = useState(0);
   const [dayExtension, setDayExtension] = useState(false);
   const [visitDate, setVisitDate] = useState("");
-  const [travelDate, setTravelDate] = useState("");
   const [giftLater, setGiftLater] = useState(false);
   const [applyCredit, setApplyCredit] = useState(false);
   const [giftAmount, setGiftAmount] = useState<string>("");
@@ -359,19 +358,19 @@ function Storefront({ config }: { config: StorefrontConfig }) {
   const perInstalment =
     Math.round((cashDue / config.instalments) * 100) / 100;
 
-  // Pay-in-N is only meaningful for apartment packages (gifts and day passes
-  // have their own flows), and we need to know when the buyer is travelling so
-  // the schedule can be compressed to fit before then.
-  const needsTravelDate =
-    selection?.kind === "package" && plan === "instalments";
+  // Dated day passes (Breakfast & Lunch / Pool & Lunch) already capture a
+  // visit date above. When paying in instalments for one of these, the
+  // schedule compresses to fit before the visit if it's sooner than the
+  // standard instalment window — warn the buyer up front when that applies.
   const standardWindowDays = config.interval_days * (config.instalments - 1);
-  const daysUntilTravel = travelDate
-    ? daysBetweenISO(todayISODate(), travelDate)
-    : null;
-  const travelSoonerThanPlan =
-    needsTravelDate &&
-    daysUntilTravel !== null &&
-    daysUntilTravel < standardWindowDays;
+  const daysUntilVisit =
+    datablePass && !giftLater && visitDate
+      ? daysBetweenISO(todayISODate(), visitDate)
+      : null;
+  const visitSoonerThanPlan =
+    plan === "instalments" &&
+    daysUntilVisit !== null &&
+    daysUntilVisit < standardWindowDays;
 
   const startCheckout = () => {
     if (!selection) {
@@ -390,15 +389,6 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         title: "Enter your mobile number",
         description:
           "Include your country code, e.g. +248 2 510 000. We'll send your voucher confirmation on WhatsApp too.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (needsTravelDate && !travelDate) {
-      toast({
-        title: "When are you traveling?",
-        description:
-          "We need your travel date to set up your payment plan correctly.",
         variant: "destructive",
       });
       return;
@@ -447,7 +437,6 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             selection.kind === "day_pass" ? dayExtension : undefined,
           visit_date:
             datablePass && !giftLater && visitDate ? visitDate : undefined,
-          travel_date: needsTravelDate && travelDate ? travelDate : undefined,
           credit_minor:
             creditAppliedMajor > 0
               ? Math.round(creditAppliedMajor * 100)
@@ -893,6 +882,17 @@ function Storefront({ config }: { config: StorefrontConfig }) {
                         })()}
                       </p>
                     ) : null}
+                    {visitSoonerThanPlan && (
+                      <p className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm text-muted-foreground">
+                        <strong className="text-primary">Heads up.</strong>{" "}
+                        Your visit date is less than{" "}
+                        {Math.round(standardWindowDays / 30)} months away, so
+                        the standard {config.instalments}-payment schedule
+                        wouldn't finish in time. We'll space your{" "}
+                        {config.instalments} payments evenly so the last one
+                        clears before your visit.
+                      </p>
+                    )}
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1039,29 +1039,6 @@ function Storefront({ config }: { config: StorefrontConfig }) {
             </p>
           </button>
         </div>
-
-        {needsTravelDate && (
-          <div className="mt-6 max-w-md space-y-2">
-            <Label htmlFor="travel_date">When are you traveling?</Label>
-            <Input
-              id="travel_date"
-              type="date"
-              min={todayISODate()}
-              value={travelDate}
-              onChange={(e) => setTravelDate(e.target.value)}
-            />
-            {travelSoonerThanPlan && (
-              <p className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm text-muted-foreground">
-                <strong className="text-primary">Heads up.</strong> Your travel
-                date is less than {Math.round(standardWindowDays / 30)} months
-                away, so the standard {config.instalments}-payment schedule
-                wouldn't finish in time. We'll space your{" "}
-                {config.instalments} payments evenly so the last one clears
-                before you arrive.
-              </p>
-            )}
-          </div>
-        )}
 
         {plan === "split" ? (
           !selection ? (
