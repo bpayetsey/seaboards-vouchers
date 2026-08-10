@@ -47,6 +47,11 @@ export interface StoreOrderInput {
      */
   visit_date?: string | null;
   /**
+     * Buyer's intended check-in/travel date (YYYY-MM-DD) for an apartment package. When paying in instalments and this date is less than the full instalment window away, the schedule is compressed to evenly-spaced payments that all clear before the travel date.
+     * @nullable
+     */
+  travel_date?: string | null;
+  /**
      * Account credit to apply at checkout, in minor units. Requires the buyer to be signed in with a matching verified email; must leave a positive cash balance.
      * @nullable
      */

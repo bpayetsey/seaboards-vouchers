@@ -114,6 +114,8 @@ router.post("/storefront/orders", async (req, res) => {
         invalid_selection: "Invalid voucher selection.",
         date_unavailable:
           "That date is no longer available. Please choose another day.",
+        invalid_travel_date:
+          "Enter a valid travel date in the future.",
         credit_requires_auth:
           "Sign in with the account that holds the credit to use it.",
         credit_too_large:
