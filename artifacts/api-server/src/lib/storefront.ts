@@ -16,10 +16,10 @@ import {
 } from "./stripeClient";
 import {
   GIFT,
-  DAY_PASSES,
   SETTINGS,
   SYMBOLS,
   getEffectiveCatalog,
+  getEffectiveDayPasses,
   priceFor,
   nameFor,
   paxFor,
@@ -95,7 +95,7 @@ export async function getStorefrontConfig() {
     interval_days: SETTINGS.intervalDays,
     catalog: await getEffectiveCatalog(),
     gift: GIFT,
-    day_passes: DAY_PASSES,
+    day_passes: await getEffectiveDayPasses(),
     promo_banner: await getPromoBanner(),
   };
 }

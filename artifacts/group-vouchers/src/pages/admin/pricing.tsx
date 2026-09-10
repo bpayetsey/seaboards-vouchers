@@ -29,23 +29,52 @@ function PriceCard({
 }) {
   const { toast } = useToast();
   const update = useUpdateCatalogPrice();
+  const isDayPass = item.type === "day_pass";
   const [rate, setRate] = useState(String(item.rate));
-  const [was, setWas] = useState(String(item.was));
+  const [was, setWas] = useState(String(item.was ?? 0));
+  const [childRate, setChildRate] = useState(String(item.child_rate ?? 0));
 
-  const dirty =
-    rate !== String(item.rate) || was !== String(item.was);
+  const dirty = isDayPass
+    ? rate !== String(item.rate) || childRate !== String(item.child_rate ?? 0)
+    : rate !== String(item.rate) || was !== String(item.was ?? 0);
 
   const save = () => {
     const rateNum = Number(rate);
-    const wasNum = Number(was);
     if (!Number.isFinite(rateNum) || rateNum <= 0) {
       toast({
         title: "Enter a valid price",
-        description: "The per-night price must be a positive number.",
+        description: "The price must be a positive number.",
         variant: "destructive",
       });
       return;
     }
+    if (isDayPass) {
+      const childRateNum = Number(childRate);
+      if (!Number.isFinite(childRateNum) || childRateNum < 0) {
+        toast({
+          title: "Enter a valid child price",
+          description: "The child price can't be negative.",
+          variant: "destructive",
+        });
+        return;
+      }
+      update.mutate(
+        { itemId: item.id, data: { rate: rateNum, child_rate: childRateNum } },
+        {
+          onSuccess: () => {
+            onSaved();
+            toast({ title: `${item.name} price updated` });
+          },
+          onError: () =>
+            toast({
+              title: "Could not save the price",
+              variant: "destructive",
+            }),
+        },
+      );
+      return;
+    }
+    const wasNum = Number(was);
     if (!Number.isFinite(wasNum) || wasNum < 0) {
       toast({
         title: "Enter a valid original price",
@@ -82,7 +111,9 @@ function PriceCard({
               htmlFor={`rate-${item.id}`}
               className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
             >
-              Price per night ({currency.toUpperCase()})
+              {isDayPass
+                ? `Price per adult (${currency.toUpperCase()})`
+                : `Price per night (${currency.toUpperCase()})`}
             </label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{symbol}</span>
@@ -96,30 +127,56 @@ function PriceCard({
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label
-              htmlFor={`was-${item.id}`}
-              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              Original price (struck through)
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{symbol}</span>
-              <Input
-                id={`was-${item.id}`}
-                type="number"
-                min={0}
-                step={1}
-                value={was}
-                onChange={(e) => setWas(e.target.value)}
-              />
+          {isDayPass ? (
+            <div className="space-y-1.5">
+              <label
+                htmlFor={`child-rate-${item.id}`}
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+              >
+                Price per child ({currency.toUpperCase()})
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {symbol}
+                </span>
+                <Input
+                  id={`child-rate-${item.id}`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={childRate}
+                  onChange={(e) => setChildRate(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label
+                htmlFor={`was-${item.id}`}
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+              >
+                Original price (struck through)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {symbol}
+                </span>
+                <Input
+                  id={`was-${item.id}`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={was}
+                  onChange={(e) => setWas(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Shown on the storefront and used to price both direct and group
-          orders. Minimum stay: {item.min_nights} night
-          {item.min_nights === 1 ? "" : "s"}.
+          {isDayPass
+            ? "Shown on the storefront and used to price day-pass orders."
+            : `Shown on the storefront and used to price both direct and group orders. Minimum stay: ${item.min_nights} night${item.min_nights === 1 ? "" : "s"}.`}
         </p>
         <div className="flex justify-end">
           <Button onClick={save} disabled={!dirty || update.isPending}>
@@ -148,10 +205,13 @@ export default function AdminPricing() {
     queryClient.invalidateQueries({ queryKey: getGetRatesQueryKey() });
   };
 
+  const packageItems = data?.items.filter((i) => i.type === "package") ?? [];
+  const dayPassItems = data?.items.filter((i) => i.type === "day_pass") ?? [];
+
   return (
     <AdminShell
       title="Voucher Pricing"
-      subtitle="Set the per-night prices for each apartment voucher. Changes apply immediately to the storefront and to group orders."
+      subtitle="Set prices for apartment vouchers and day passes. Changes apply immediately to the storefront and to group orders."
     >
       {isLoading ? (
         <div className="flex min-h-[30vh] items-center justify-center">
@@ -167,16 +227,41 @@ export default function AdminPricing() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {data.items.map((item) => (
-            <PriceCard
-              key={item.id}
-              item={item}
-              currency={data.currency}
-              symbol={data.symbol}
-              onSaved={invalidate}
-            />
-          ))}
+        <div className="space-y-10">
+          {packageItems.length > 0 && (
+            <div className="space-y-5">
+              <h2 className="font-serif text-lg text-primary">
+                Apartment Vouchers
+              </h2>
+              <div className="grid gap-5 lg:grid-cols-2">
+                {packageItems.map((item) => (
+                  <PriceCard
+                    key={item.id}
+                    item={item}
+                    currency={data.currency}
+                    symbol={data.symbol}
+                    onSaved={invalidate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {dayPassItems.length > 0 && (
+            <div className="space-y-5">
+              <h2 className="font-serif text-lg text-primary">Day Passes</h2>
+              <div className="grid gap-5 lg:grid-cols-2">
+                {dayPassItems.map((item) => (
+                  <PriceCard
+                    key={item.id}
+                    item={item}
+                    currency={data.currency}
+                    symbol={data.symbol}
+                    onSaved={invalidate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </AdminShell>

@@ -8,5 +8,14 @@
 
 export interface UpdateCatalogPriceInput {
   rate: number;
-  was: number;
+  /**
+     * Package items only; ignored for day passes.
+     * @nullable
+     */
+  was?: number | null;
+  /**
+     * Day pass items only; ignored for packages.
+     * @nullable
+     */
+  child_rate?: number | null;
 }

@@ -2921,20 +2921,28 @@ components:
           type: boolean
     AdminCatalogPriceItem:
       type: object
-      required: [id, name, rate, was, min_nights]
+      required: [id, type, name, rate]
       properties:
         id:
           type: string
+        type:
+          type: string
+          enum: [package, day_pass]
+          description: Which pricing fields apply — packages use "was" (struck-through original price) and "min_nights"; day passes use "child_rate".
         name:
           type: string
         rate:
           type: number
-          description: Per-night price in the storefront currency
+          description: Package — per-night price. Day pass — per-adult (or flat) price. In the storefront currency.
         was:
-          type: number
-          description: Original per-night price (struck through)
+          type: ["number", "null"]
+          description: Package only. Original per-night price (struck through). Null for day passes.
         min_nights:
-          type: integer
+          type: ["integer", "null"]
+          description: Package only. Null for day passes.
+        child_rate:
+          type: ["number", "null"]
+          description: Day pass only. Per-child price. Null for packages.
     AdminCatalogPrices:
       type: object
       required: [currency, symbol, items]
@@ -2949,12 +2957,16 @@ components:
             $ref: "#/components/schemas/AdminCatalogPriceItem"
     UpdateCatalogPriceInput:
       type: object
-      required: [rate, was]
+      required: [rate]
       properties:
         rate:
           type: number
         was:
-          type: number
+          type: ["number", "null"]
+          description: Package items only; ignored for day passes.
+        child_rate:
+          type: ["number", "null"]
+          description: Day pass items only; ignored for packages.
     PromoBanner:
       type: object
       required: [banner]

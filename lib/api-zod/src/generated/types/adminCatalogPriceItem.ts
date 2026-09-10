@@ -5,13 +5,28 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminCatalogPriceItemType } from './adminCatalogPriceItemType';
 
 export interface AdminCatalogPriceItem {
   id: string;
+  /** Which pricing fields apply — packages use "was" (struck-through original price) and "min_nights"; day passes use "child_rate". */
+  type: AdminCatalogPriceItemType;
   name: string;
-  /** Per-night price in the storefront currency */
+  /** Package — per-night price. Day pass — per-adult (or flat) price. In the storefront currency. */
   rate: number;
-  /** Original per-night price (struck through) */
-  was: number;
-  min_nights: number;
+  /**
+     * Package only. Original per-night price (struck through). Null for day passes.
+     * @nullable
+     */
+  was?: number | null;
+  /**
+     * Package only. Null for day passes.
+     * @nullable
+     */
+  min_nights?: number | null;
+  /**
+     * Day pass only. Per-child price. Null for packages.
+     * @nullable
+     */
+  child_rate?: number | null;
 }

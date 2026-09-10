@@ -11,6 +11,7 @@ export * from './adminBooking';
 export * from './adminCalendarDay';
 export * from './adminCalendarResponse';
 export * from './adminCatalogPriceItem';
+export * from './adminCatalogPriceItemType';
 export * from './adminCatalogPrices';
 export * from './adminGroupOrder';
 export * from './adminGroupOrders';

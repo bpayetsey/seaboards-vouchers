@@ -1226,10 +1226,12 @@ export const GetAdminCatalogPricesResponse = zod.object({
   "symbol": zod.string(),
   "items": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['package', 'day_pass']).describe('Which pricing fields apply — packages use \"was\" (struck-through original price) and \"min_nights\"; day passes use \"child_rate\".'),
   "name": zod.string(),
-  "rate": zod.number().describe('Per-night price in the storefront currency'),
-  "was": zod.number().describe('Original per-night price (struck through)'),
-  "min_nights": zod.number()
+  "rate": zod.number().describe('Package — per-night price. Day pass — per-adult (or flat) price. In the storefront currency.'),
+  "was": zod.number().nullish().describe('Package only. Original per-night price (struck through). Null for day passes.'),
+  "min_nights": zod.number().nullish().describe('Package only. Null for day passes.'),
+  "child_rate": zod.number().nullish().describe('Day pass only. Per-child price. Null for packages.')
 }))
 })
 
@@ -1243,15 +1245,18 @@ export const UpdateCatalogPriceParams = zod.object({
 
 export const UpdateCatalogPriceBody = zod.object({
   "rate": zod.number(),
-  "was": zod.number()
+  "was": zod.number().nullish().describe('Package items only; ignored for day passes.'),
+  "child_rate": zod.number().nullish().describe('Day pass items only; ignored for packages.')
 })
 
 export const UpdateCatalogPriceResponse = zod.object({
   "id": zod.string(),
+  "type": zod.enum(['package', 'day_pass']).describe('Which pricing fields apply — packages use \"was\" (struck-through original price) and \"min_nights\"; day passes use \"child_rate\".'),
   "name": zod.string(),
-  "rate": zod.number().describe('Per-night price in the storefront currency'),
-  "was": zod.number().describe('Original per-night price (struck through)'),
-  "min_nights": zod.number()
+  "rate": zod.number().describe('Package — per-night price. Day pass — per-adult (or flat) price. In the storefront currency.'),
+  "was": zod.number().nullish().describe('Package only. Original per-night price (struck through). Null for day passes.'),
+  "min_nights": zod.number().nullish().describe('Package only. Null for day passes.'),
+  "child_rate": zod.number().nullish().describe('Day pass only. Per-child price. Null for packages.')
 })
 
 

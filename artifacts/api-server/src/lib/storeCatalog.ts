@@ -305,6 +305,33 @@ export async function getEffectiveCatalog(): Promise<CatalogItem[]> {
   });
 }
 
+/**
+ * Day passes with any staff price overrides applied (rate and/or child rate).
+ * Falls back to the built-in defaults if the overrides can't be read, so the
+ * storefront never goes dark over a transient DB issue.
+ */
+export async function getEffectiveDayPasses(): Promise<DayPassOption[]> {
+  let overrides: Record<string, { rate: number; childRate: number | null }> =
+    {};
+  try {
+    const rows = await db.select().from(storeCatalogPrices);
+    overrides = Object.fromEntries(
+      rows.map((r) => [r.itemId, { rate: r.rate, childRate: r.childRate }]),
+    );
+  } catch {
+    overrides = {};
+  }
+  return DAY_PASSES.map((opt) => {
+    const o = overrides[opt.id];
+    if (!o) return opt;
+    return {
+      ...opt,
+      rate: o.rate,
+      childRate: o.childRate ?? opt.childRate,
+    };
+  });
+}
+
 /** Validate an incoming order against the catalog so the price can't be tampered with. */
 export async function priceFor({
   productId,
@@ -329,7 +356,8 @@ export async function priceFor({
     return Math.round(a * 100) / 100;
   }
   if (type === "day_pass") {
-    const opt = getDayPass(productId);
+    const dayPasses = await getEffectiveDayPasses();
+    const opt = dayPasses.find((d) => d.id === productId);
     if (!opt) return null;
     const kids = Number(children ?? 0);
     if (!Number.isInteger(kids) || kids < 0) return null;

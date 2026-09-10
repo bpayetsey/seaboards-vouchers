@@ -229,6 +229,7 @@ router.put("/admin/catalog-prices/:itemId", requireStaff, async (req, res) => {
     const result = await updateCatalogPrice(itemId, {
       rate: parsed.data.rate,
       was: parsed.data.was,
+      childRate: parsed.data.child_rate,
     });
     if ("error" in result) {
       if (result.error === "not_found") {

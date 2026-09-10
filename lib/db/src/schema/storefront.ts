@@ -149,16 +149,22 @@ export const storeGalleryImages = pgTable(
 
 /**
  * Staff-editable price overrides for storefront catalog items, keyed by the
- * catalog item id (e.g. "one-bedroom"). When a row exists it overrides the
- * built-in default rate/was for that item across the storefront and the group
+ * item id (e.g. "one-bedroom", "day-pass-bnl"). When a row exists it overrides
+ * the built-in default rate for that item across the storefront and the group
  * split pricing, so prices stay in one place and can be edited from the admin.
  * Values are whole-currency major units (the same representation the catalog
  * uses), matching the resort's SCR pricing.
+ *
+ * `was` (struck-through original price) only applies to apartment packages;
+ * `childRate` only applies to day passes. Each is null/0 on rows for the
+ * other item type — see `catalogPrices.ts` for which fields a given item id
+ * actually reads.
  */
 export const storeCatalogPrices = pgTable("store_catalog_price", {
   itemId: text("item_id").primaryKey(),
   rate: integer("rate").notNull(),
-  was: integer("was").notNull(),
+  was: integer("was").notNull().default(0),
+  childRate: integer("child_rate"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

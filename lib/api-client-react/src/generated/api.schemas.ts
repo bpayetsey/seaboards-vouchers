@@ -17,14 +17,39 @@ export interface OkResult {
   ok: boolean;
 }
 
+/**
+ * Which pricing fields apply — packages use "was" (struck-through original price) and "min_nights"; day passes use "child_rate".
+ */
+export type AdminCatalogPriceItemType = typeof AdminCatalogPriceItemType[keyof typeof AdminCatalogPriceItemType];
+
+
+export const AdminCatalogPriceItemType = {
+  package: 'package',
+  day_pass: 'day_pass',
+} as const;
+
 export interface AdminCatalogPriceItem {
   id: string;
+  /** Which pricing fields apply — packages use "was" (struck-through original price) and "min_nights"; day passes use "child_rate". */
+  type: AdminCatalogPriceItemType;
   name: string;
-  /** Per-night price in the storefront currency */
+  /** Package — per-night price. Day pass — per-adult (or flat) price. In the storefront currency. */
   rate: number;
-  /** Original per-night price (struck through) */
-  was: number;
-  min_nights: number;
+  /**
+     * Package only. Original per-night price (struck through). Null for day passes.
+     * @nullable
+     */
+  was?: number | null;
+  /**
+     * Package only. Null for day passes.
+     * @nullable
+     */
+  min_nights?: number | null;
+  /**
+     * Day pass only. Per-child price. Null for packages.
+     * @nullable
+     */
+  child_rate?: number | null;
 }
 
 export interface AdminCatalogPrices {
@@ -35,7 +60,16 @@ export interface AdminCatalogPrices {
 
 export interface UpdateCatalogPriceInput {
   rate: number;
-  was: number;
+  /**
+     * Package items only; ignored for day passes.
+     * @nullable
+     */
+  was?: number | null;
+  /**
+     * Day pass items only; ignored for packages.
+     * @nullable
+     */
+  child_rate?: number | null;
 }
 
 export interface PromoBanner {
