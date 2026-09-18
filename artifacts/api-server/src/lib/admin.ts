@@ -17,6 +17,8 @@ import {
 } from "./stripeClient";
 import { processPaidIntent } from "./storefront";
 import { sendActionRequiredEmail, sendPaymentFailedEmail } from "./storeEmail";
+import { sendIssuedVoucherEmail } from "./voucherEmail";
+import { sendVoucherWhatsappConfirmation } from "./whatsappConfirmation";
 import { logger } from "./logger";
 
 const newCode = (): string =>
@@ -613,6 +615,44 @@ export async function cancelOrder(
     .where(eq(storeOrders.id, orderId));
 
   return { status: "cancelled", cancelled_instalments: cancelled.length };
+}
+
+/**
+ * Staff-triggered resend of an order's issued voucher — email (with the PDF
+ * attached) plus a best-effort WhatsApp confirmation. Only meaningful once the
+ * order's voucher is fully issued (`status: "active"`); a not-yet-fully-paid
+ * order has no voucher yet, so callers should surface `no_voucher` as a clear
+ * "nothing to resend" rather than a generic failure.
+ */
+export async function resendVoucherEmail(
+  orderId: string,
+): Promise<{ ok: true } | { error: "not_found" | "no_voucher" }> {
+  const [order] = await db
+    .select()
+    .from(storeOrders)
+    .where(eq(storeOrders.id, orderId));
+  if (!order) return { error: "not_found" };
+
+  const [voucher] = await db
+    .select()
+    .from(storeVouchers)
+    .where(eq(storeVouchers.orderId, orderId));
+  if (!voucher || voucher.status !== "active") {
+    return { error: "no_voucher" };
+  }
+
+  await sendIssuedVoucherEmail({
+    to: order.buyerEmail,
+    recipientName: order.buyerName,
+    code: voucher.code,
+  });
+  await sendVoucherWhatsappConfirmation({
+    phone: order.buyerPhone,
+    recipientName: order.buyerName,
+    code: voucher.code,
+  });
+
+  return { ok: true };
 }
 
 function voucherDto(v: StoreVoucher) {

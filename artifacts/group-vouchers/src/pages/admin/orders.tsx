@@ -5,6 +5,7 @@ import {
   getGetAdminOverviewQueryKey,
   useRetryInstalment,
   useCancelOrder,
+  useResendVoucher,
   type AdminOrder,
   type AdminInstalment,
 } from "@workspace/api-client-react";
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
-import { RotateCw, Ban, ChevronDown } from "lucide-react";
+import { RotateCw, Ban, ChevronDown, Mail } from "lucide-react";
 
 function fromMinor(amountMinor: number) {
   return amountMinor / 100;
@@ -147,7 +148,9 @@ function OrderCard({ order, onChanged }: { order: OrderRow; onChanged: () => voi
   const [confirmCancel, setConfirmCancel] = useState(false);
   const { toast } = useToast();
   const cancel = useCancelOrder();
+  const resend = useResendVoucher();
   const cancellable = order.status !== "cancelled" && order.status !== "expired";
+  const voucherIssued = order.voucher?.status === "active";
 
   return (
     <Card className="border-border/70">
@@ -210,6 +213,36 @@ function OrderCard({ order, onChanged }: { order: OrderRow; onChanged: () => voi
             />
             {open ? "Hide" : "Show"} instalments ({order.instalments.length + 1})
           </Button>
+          {voucherIssued ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={resend.isPending}
+              onClick={() => {
+                resend.mutate(
+                  { orderId: order.id },
+                  {
+                    onSuccess: () => {
+                      toast({
+                        title: "Voucher resent",
+                        description: `Emailed to ${order.buyer_email}.`,
+                      });
+                    },
+                    onError: () => {
+                      toast({
+                        title: "Could not resend",
+                        description: "Please try again.",
+                        variant: "destructive",
+                      });
+                    },
+                  },
+                );
+              }}
+            >
+              <Mail className="mr-1 h-3.5 w-3.5" />
+              Resend voucher
+            </Button>
+          ) : null}
           {cancellable ? (
             <Button
               size="sm"

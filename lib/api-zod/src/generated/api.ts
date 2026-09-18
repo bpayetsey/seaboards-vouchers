@@ -947,6 +947,19 @@ export const CancelOrderResponse = zod.object({
 
 
 /**
+ * Re-sends the voucher PDF email to the order's buyer. Only available once the order's voucher is fully issued (status "active") — a not-yet-fully-paid order has no voucher to resend. Also best-effort resends the WhatsApp confirmation when a phone number and template are configured.
+ * @summary Resend the issued voucher email (and WhatsApp confirmation) to the buyer
+ */
+export const ResendVoucherParams = zod.object({
+  "orderId": zod.coerce.string()
+})
+
+export const ResendVoucherResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * Group ordering orders (independent, flat and split) with each participant share's paid/pending/expired status, per-paid-share receipt, paid-vs-total progress, and whether a split order's combined master voucher has been released (only once every share is paid).
  * @summary All group/split orders with per-share status and progress
  */

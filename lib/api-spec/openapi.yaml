@@ -1326,6 +1326,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/orders/{orderId}/resend-voucher:
+    post:
+      operationId: resendVoucher
+      tags: [admin]
+      summary: Resend the issued voucher email (and WhatsApp confirmation) to the buyer
+      description: Re-sends the voucher PDF email to the order's buyer. Only available once the order's voucher is fully issued (status "active") — a not-yet-fully-paid order has no voucher to resend. Also best-effort resends the WhatsApp confirmation when a phone number and template are configured.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resend result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Order has no issued voucher yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/group-orders:
     get:
       operationId: getAdminGroupOrders

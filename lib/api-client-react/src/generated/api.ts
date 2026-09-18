@@ -3131,6 +3131,77 @@ export const useCancelOrder = <TError = ErrorType<ApiError>,
       return useMutation(getCancelOrderMutationOptions(options));
     }
 
+export const getResendVoucherUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/admin/orders/${orderId}/resend-voucher`
+}
+
+/**
+ * Re-sends the voucher PDF email to the order's buyer. Only available once the order's voucher is fully issued (status "active") — a not-yet-fully-paid order has no voucher to resend. Also best-effort resends the WhatsApp confirmation when a phone number and template are configured.
+ * @summary Resend the issued voucher email (and WhatsApp confirmation) to the buyer
+ */
+export const resendVoucher = async (orderId: string, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getResendVoucherUrl(orderId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendVoucherMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVoucher>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendVoucher>>, TError,{orderId: string}, TContext> => {
+
+const mutationKey = ['resendVoucher'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendVoucher>>, {orderId: string}> = (props) => {
+          const {orderId} = props ?? {};
+
+          return  resendVoucher(orderId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendVoucherMutationResult = NonNullable<Awaited<ReturnType<typeof resendVoucher>>>
+
+    export type ResendVoucherMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Resend the issued voucher email (and WhatsApp confirmation) to the buyer
+ */
+export const useResendVoucher = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendVoucher>>, TError,{orderId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendVoucher>>,
+        TError,
+        {orderId: string},
+        TContext
+      > => {
+      return useMutation(getResendVoucherMutationOptions(options));
+    }
+
 export const getGetAdminGroupOrdersUrl = () => {
 
 

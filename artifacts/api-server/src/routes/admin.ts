@@ -8,6 +8,8 @@ import {
   RetryInstalmentResponse,
   CancelOrderParams,
   CancelOrderResponse,
+  ResendVoucherParams,
+  ResendVoucherResponse,
   IssueVoucherBody,
   IssueVoucherResponse,
   LookupVoucherParams,
@@ -45,6 +47,7 @@ import {
   getAdminGroupOrders,
   retryInstalment,
   cancelOrder,
+  resendVoucherEmail,
   issueVoucher,
   lookupVoucher,
   redeemVoucher,
@@ -158,6 +161,30 @@ router.post(
     } catch (err) {
       req.log.error({ err }, "Failed to cancel order");
       return res.status(500).json({ error: "Could not cancel the order." });
+    }
+  },
+);
+
+router.post(
+  "/admin/orders/:orderId/resend-voucher",
+  requireStaff,
+  async (req, res) => {
+    const { orderId } = ResendVoucherParams.parse(req.params);
+    try {
+      const result = await resendVoucherEmail(orderId);
+      if ("error" in result) {
+        if (result.error === "not_found") {
+          return res.status(404).json({ error: "Order not found." });
+        }
+        return res.status(409).json({
+          error:
+            "This order's voucher hasn't been issued yet — it must be fully paid first.",
+        });
+      }
+      return res.json(ResendVoucherResponse.parse(result));
+    } catch (err) {
+      req.log.error({ err }, "Failed to resend voucher");
+      return res.status(500).json({ error: "Could not resend the voucher." });
     }
   },
 );
