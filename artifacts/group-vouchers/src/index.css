@@ -89,10 +89,12 @@
   --text-9xl: 8rem;
   --text-9xl--line-height: 1;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* square corners, as on theseaboards.com */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
 }
 
 /* LIGHT MODE */
@@ -103,31 +105,31 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Golden Jubilee — navy & gold editorial aesthetic */
-  --background: 44 33% 96%; /* #F8F6F1 warm cream */
-  --foreground: 213 13% 19%; /* #2A2E35 ink */
-  --border: 38 23% 87%; /* #E4E0D8 line */
-  --input: 38 23% 87%;
-  --ring: 215 51% 25%;
+  /* The Seaboards (theseaboards.com): ivory, deep garden green, gold */
+  --background: 42 41% 94%; /* #F5F1E8 ivory */
+  --foreground: 153 13% 13%; /* #1D2622 ink */
+  --border: 40 19% 82%; /* hairline */
+  --input: 40 19% 78%;
+  --ring: 154 25% 18%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 213 13% 19%;
-  --card-border: 38 23% 89%;
+  --card: 43 45% 97%; /* #FBF9F4 paper */
+  --card-foreground: 153 13% 13%;
+  --card-border: 40 19% 84%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 213 13% 19%;
-  --popover-border: 38 23% 89%;
+  --popover: 43 45% 97%;
+  --popover-foreground: 153 13% 13%;
+  --popover-border: 40 19% 84%;
 
-  --primary: 215 51% 25%; /* #1F3A5F navy */
-  --primary-foreground: 44 33% 98%;
+  --primary: 154 25% 18%; /* #22392F deep green */
+  --primary-foreground: 42 41% 94%;
 
-  --secondary: 45 53% 91%; /* #F5EEDC light gold */
-  --secondary-foreground: 43 89% 38%;
+  --secondary: 39 36% 86%; /* #E8DFCF sand */
+  --secondary-foreground: 154 25% 18%;
 
-  --muted: 210 33% 94%; /* #E8EEF4 light navy */
-  --muted-foreground: 220 9% 46%; /* #6B7280 */
+  --muted: 40 30% 90%;
+  --muted-foreground: 150 6% 38%;
 
-  --accent: 43 89% 38%; /* #B8860B gold */
+  --accent: 37 34% 53%; /* #AF8F5D gold */
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 70% 50%;
@@ -139,19 +141,19 @@
   --chart-4: 25 50% 50%;
   --chart-5: 280 40% 40%;
 
-  --sidebar: 40 33% 98%;
-  --sidebar-foreground: 215 40% 15%;
-  --sidebar-border: 40 20% 85%;
-  --sidebar-primary: 215 50% 25%;
-  --sidebar-primary-foreground: 40 33% 98%;
-  --sidebar-accent: 40 20% 92%;
-  --sidebar-accent-foreground: 215 50% 25%;
-  --sidebar-ring: 215 50% 30%;
+  --sidebar: 43 45% 97%;
+  --sidebar-foreground: 153 13% 13%;
+  --sidebar-border: 40 19% 84%;
+  --sidebar-primary: 154 25% 18%;
+  --sidebar-primary-foreground: 42 41% 94%;
+  --sidebar-accent: 39 36% 86%;
+  --sidebar-accent-foreground: 154 25% 18%;
+  --sidebar-ring: 154 25% 18%;
 
-  --app-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --app-font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --app-font-sans: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+  --app-font-serif: 'Cormorant Garamond', 'Cormorant', 'Times New Roman', serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 0rem;
   
   --shadow-sm: 0px 2px 4px -1px rgba(10, 25, 45, 0.05);
   --shadow: 0px 4px 8px -2px rgba(10, 25, 45, 0.1);
@@ -227,7 +229,9 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-tight;
+    @apply font-serif;
+    font-weight: 500;
+    letter-spacing: 0;
   }
 }
 
@@ -238,4 +242,13 @@
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
+}
+
+/* theseaboards.com buttons: small caps with wide tracking (unlayered, so they
+   beat the utilities the shadcn button carries) */
+[data-slot="button"], button.inline-flex.bg-primary, a.inline-flex.bg-primary, button.inline-flex.bg-secondary, button.inline-flex.border {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 500;
 }

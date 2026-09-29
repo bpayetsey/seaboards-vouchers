@@ -295,7 +295,7 @@ export default function GroupOrder() {
     <Layout>
       <header className="text-center px-6 pt-12 pb-8 border-b-2 border-accent max-w-3xl mx-auto">
         <div className="font-sans text-xs font-bold uppercase tracking-[0.32em] text-primary">
-          The Seaboards Apartments &middot; Anse La Mouche &middot; Mah&eacute;
+          The Seaboards Apartments &middot; Anse La Mouche &middot; Mahe
         </div>
         <h1 className="font-serif text-primary text-4xl md:text-5xl mt-4 mb-1">
           Golden Jubilee Stay Offer

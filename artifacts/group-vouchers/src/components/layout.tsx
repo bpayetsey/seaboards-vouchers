@@ -98,12 +98,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary selection:text-primary-foreground">
       <header className="w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-3">
           <Link
             href="/"
-            className="font-sans text-[11px] font-bold uppercase tracking-[0.32em] text-primary transition-opacity hover:opacity-80"
+            className="transition-opacity hover:opacity-80"
+            aria-label="The Seaboards Apartments — vouchers home"
           >
-            The Seaboards Apartments
+            <img
+              src={`${basePath}/seaboards-logo-gold.png`}
+              alt="The Seaboards Apartments"
+              width={875}
+              height={227}
+              className="h-9 w-auto"
+            />
           </Link>
           <AuthNav />
         </div>
@@ -115,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             Celebrating 50 Years of Seychelles Independence &middot; 1976&ndash;2026
           </p>
           <p className="font-sans text-xs tracking-[0.04em] text-primary">
-            The Seaboards Apartments &middot; Anse La Mouche &middot; Mah&eacute; &middot; Seychelles
+            The Seaboards Apartments &middot; Anse La Mouche &middot; Mahe &middot; Seychelles
           </p>
         </div>
       </footer>

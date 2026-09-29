@@ -112,7 +112,7 @@ const FALLBACK_GALLERY: { src: string; alt: string }[] = [
   { src: `${galleryBase}/gallery/03-bedroom.jpg`, alt: "Bright apartment bedroom with ocean view" },
   { src: `${galleryBase}/gallery/04-pool.jpg`, alt: "Resort swimming pool overlooking the ocean" },
   { src: `${galleryBase}/gallery/05-dining.jpg`, alt: "Half-board dining with a sunset terrace view" },
-  { src: `${galleryBase}/gallery/06-aerial.jpg`, alt: "Aerial view of Anse La Mouche bay in Mahé, Seychelles" },
+  { src: `${galleryBase}/gallery/06-aerial.jpg`, alt: "Aerial view of Anse La Mouche bay in Mahe, Seychelles" },
 ];
 
 function PhotoGallery() {
@@ -131,7 +131,7 @@ function PhotoGallery() {
         A glimpse of The Seaboards
       </h2>
       <p className="text-sm text-muted-foreground mb-5">
-        Anse La Mouche, Mahé
+        Anse La Mouche, Mahe
       </p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {photos.map((photo) => (
@@ -162,10 +162,10 @@ function AboutSection() {
         About The Seaboards
       </h2>
       <p className="text-sm text-muted-foreground mb-4">
-        A boutique apartment haven in the southern region of Mahé.
+        A boutique apartment haven in the southern region of Mahe.
       </p>
       <p className="text-[15px] leading-relaxed text-foreground/80">
-        Tucked into the verdant tropical vegetation of southern Mahé, The
+        Tucked into the verdant tropical vegetation of southern Mahe, The
         Seaboards is a tranquil boutique retreat with great mountain views.
         Unwind by the swimming pool, stretch out on the day beds, and dine at
         the in-house restaurant &amp; bar.
@@ -198,7 +198,7 @@ const AMENITIES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Car,
     title: "Car rental",
-    desc: "Explore Mahé at your own pace.",
+    desc: "Explore Mahe at your own pace.",
   },
 ];
 
@@ -490,7 +490,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
     <Layout>
       <header className="text-center px-6 pt-12 pb-8 border-b-2 border-accent max-w-3xl mx-auto">
         <div className="font-sans text-xs font-bold uppercase tracking-[0.32em] text-primary">
-          The Seaboards Apartments &middot; Anse La Mouche &middot; Mah&eacute;
+          The Seaboards Apartments &middot; Anse La Mouche &middot; Mahe
         </div>
         <h1 className="font-serif text-primary text-4xl md:text-5xl mt-4 mb-1">
           Resident Rate &amp; Day Pass Booking
