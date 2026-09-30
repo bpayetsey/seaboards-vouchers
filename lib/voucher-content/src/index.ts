@@ -352,66 +352,6 @@ export const DESSERT_NOTE = {
 /** Dinner & à la carte menu, grouped by course. */
 export const DINNER_SECTIONS: MenuSection[] = [
   {
-    title: "Appetizers & Starters",
-    items: [
-      {
-        name: "Mixed Garden Salad",
-        description: "capsicum, cucumber, cabbage, lettuce, olives",
-        price: "SCR 175",
-        veg: true,
-      },
-      {
-        name: "Cajun Spiced Seared Tuna",
-        description: "garden leaves, marinated seared tuna",
-        price: "SCR 195",
-      },
-      {
-        name: "Smoked Fish Salad",
-        description: "with garden salad, vinaigrette",
-        price: "SCR 285",
-      },
-      {
-        name: "Greek Salad",
-        description: "feta, capsicum, cucumber, tomato, olives, onion",
-        price: "SCR 285",
-        veg: true,
-      },
-      {
-        name: "Mixed Seafood Salad",
-        description:
-          "prawns, calamari, mussels, octopus, crab, vinaigrette, with garlic bread",
-        price: "SCR 295",
-      },
-      {
-        name: "Marinated Calamari",
-        description: "with salad & garlic sauce",
-        price: "SCR 295",
-      },
-      {
-        name: "Prawns Torpedo",
-        description: "fried breaded prawns with sweet chilli sauce",
-        price: "SCR 285",
-      },
-      {
-        name: "Soup of the Day",
-        description: "chef selection of the day",
-        price: "SCR 125",
-        veg: true,
-      },
-      {
-        name: "Prawns Cocktail",
-        description: "tomato, lettuce, with marie rose sauce",
-        price: "SCR 225",
-      },
-      {
-        name: "Quinoa Salad",
-        description: "with grilled vegetables, vinaigrette",
-        price: "SCR 200",
-        veg: true,
-      },
-    ],
-  },
-  {
     title: "From the Land",
     items: [
       {
