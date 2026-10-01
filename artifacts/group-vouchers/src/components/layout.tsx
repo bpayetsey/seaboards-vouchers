@@ -10,6 +10,7 @@ import {
 } from "./ui/sheet";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const HOTEL_WEBSITE = "https://theseaboards.com/";
 
 const linkClass =
   "font-sans text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-primary";
@@ -99,10 +100,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary selection:text-primary-foreground">
       <header className="w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-3">
-          <Link
-            href="/"
+          <a
+            href={HOTEL_WEBSITE}
             className="transition-opacity hover:opacity-80"
-            aria-label="The Seaboards Apartments — vouchers home"
+            aria-label="The Seaboards Apartments — hotel website"
           >
             <img
               src={`${basePath}/seaboards-logo-gold.png`}
@@ -111,7 +112,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               height={227}
               className="h-9 w-auto"
             />
-          </Link>
+          </a>
           <AuthNav />
         </div>
       </header>

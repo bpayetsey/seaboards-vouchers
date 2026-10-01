@@ -55,7 +55,7 @@ const clerkAppearance = {
   cssLayerName: "clerk",
   options: {
     logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
+    logoLinkUrl: "https://theseaboards.com/",
     logoImageUrl: `${window.location.origin}${basePath}/seaboards-logo-gold.png`,
   },
   variables: {
