@@ -345,7 +345,7 @@ export default function AdminCalendar() {
   return (
     <AdminShell
       title="Day-Pass Calendar"
-      subtitle="Live day-pass availability (max 6 guests/day, closed Tuesdays). Block dates, and reschedule or cancel any booking on a guest's behalf. Admin actions follow the same policy as guests: reschedules need 48h notice and max 2 per booking; cancellations within 24h or after 2 reschedules keep a 25% penalty and convert the remaining 75% to account credit (otherwise the full value becomes credit)."
+      subtitle="Live day-pass availability (max 10 guests/day, closed Tuesdays). Block dates, and reschedule or cancel any booking on a guest's behalf. Admin actions follow the same policy as guests: reschedules need 48h notice and max 2 per booking; cancellations within 24h or after 2 reschedules keep a 25% penalty and convert the remaining 75% to account credit (otherwise the full value becomes credit)."
     >
       {isLoading ? (
         <div className="flex min-h-[30vh] items-center justify-center">

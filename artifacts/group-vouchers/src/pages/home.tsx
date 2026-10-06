@@ -642,7 +642,7 @@ function Storefront({ config }: { config: StorefrontConfig }) {
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
           Spend the day at The Seaboards — pool, dining and more. To keep it
-          intimate, a maximum of 6 guests at a time. Children 2–10 yrs pay the
+          intimate, a maximum of 10 guests at a time. Children 2–10 yrs pay the
           per-pass child rate shown below (incl. a kids-menu meal); ages 11+ pay
           the adult rate.
         </p>

@@ -6,7 +6,7 @@
  *  - Capacity: every reservation takes a transaction-scoped Postgres advisory
  *    lock keyed on the visit date, then re-counts and inserts/updates inside the
  *    same transaction. Two concurrent bookings for the same day are serialised,
- *    so the 6-pax daily cap can never be oversold.
+ *    so the 10-pax daily cap can never be oversold.
  *  - Credit: spending uses a single conditional decrement
  *    (… WHERE balance_minor >= amount), so the same credit can never be
  *    double-spent; posting credit upserts the balance and appends a ledger row
@@ -28,7 +28,7 @@ import { SETTINGS, isDatableDayPass, paxFor } from "./storeCatalog";
 import { logger } from "./logger";
 import { sendVisitReminderEmail } from "./storeEmail";
 
-export const DAY_PASS_DAILY_CAPACITY = 6;
+export const DAY_PASS_DAILY_CAPACITY = 10;
 export const MAX_RESCHEDULES = 2;
 export const RESCHEDULE_MIN_HOURS = 48;
 export const CANCEL_PENALTY_HOURS = 24;

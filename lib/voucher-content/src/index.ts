@@ -91,7 +91,7 @@ export const DAY_PASS_TERMS: TermsSection[] = [
     title: "1. The Day Pass",
     clauses: [
       "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers and separate from the Golden Jubilee Stay Voucher offer. Day Pass with Room SCR 1,950 (private One-Bedroom for 2 adults, 09:00\u201314:30); Day Pass \u2014 Breakfast & Lunch SCR 795 per person (09:00\u201316:00); Day Pass \u2014 Pool & Lunch SCR 550 per person (09:00–16:00).",
-      "A single pass covers a maximum of six (6) guests. The Day Pass with Room covers 2 adults and may add up to 2 children. Children aged 2\u201310 years are SCR 295 each on the Day Pass with Room and Pool & Lunch passes, and SCR 495 each on the Breakfast & Lunch pass (including a kids-menu meal); guests aged 11 and over pay the adult rate.",
+      "A single Breakfast & Lunch or Pool & Lunch pass covers a maximum of ten (10) guests. The Day Pass with Room covers 2 adults and may add up to 2 children. Children aged 2\u201310 years are SCR 295 each on the Day Pass with Room and Pool & Lunch passes, and SCR 495 each on the Breakfast & Lunch pass (including a kids-menu meal); guests aged 11 and over pay the adult rate.",
     ],
   },
   {
@@ -119,7 +119,7 @@ export const DAY_PASS_TERMS: TermsSection[] = [
     title: "5. Validity & Booking",
     clauses: [
       "Day Pass vouchers are valid for twelve (12) months from the date of issue and are sold year-round with no blackout dates.",
-      "Per-person Day Passes (Breakfast & Lunch and Pool & Lunch) may be booked for a specific visit date at the time of purchase, subject to live availability, or bought undated as a gift and assigned a date later from your account. The resort admits a maximum of six (6) day-pass guests per day and does not operate on Tuesdays, so dates may sell out.",
+      "Per-person Day Passes (Breakfast & Lunch and Pool & Lunch) may be booked for a specific visit date at the time of purchase, subject to live availability, or bought undated as a gift and assigned a date later from your account. The resort admits a maximum of ten (10) day-pass guests per day and does not operate on Tuesdays, so dates may sell out.",
       "A confirmed visit date may be changed up to two (2) times free of charge, provided each change is made at least forty-eight (48) hours before the booked visit. Reschedules requested within 48 hours, or beyond the two free changes, are not permitted online \u2014 please contact reservations.",
       "Day Passes are non-refundable in cash. If you cancel a booked visit, the value paid converts to account credit: cancellations made more than 24 hours before the visit and within the two free reschedules convert at one hundred percent (100%); cancellations made within 24 hours of the visit, or after the two free reschedules have been used, are subject to a twenty-five percent (25%) cancellation charge, with the remaining seventy-five percent (75%) converted to account credit. Account credit is valid for twelve (12) months and may be applied to future purchases at checkout.",
       "All visits are subject to availability and advance booking, and Day Passes do not operate on Tuesdays. Reserve on " +
@@ -224,10 +224,10 @@ export const VOUCHER_TERMS_FULL: TermsSection[] = [
       "Day Passes are fixed-price, same-day experiences at The Seaboards, sold as vouchers. They are a separate product from the Golden Jubilee Stay Voucher offer described above; the Golden Fifty perk and the per-room, per-night Half-Board terms do not apply to Day Passes.",
       "Three Day Passes are offered: Day Pass with Room \u2014 SCR 1,950 for a private One-Bedroom apartment for the day (09:00\u201314:30), for two (2) adults, including \u00e0 la carte breakfast, lunch and pool and day-bed access; Day Pass \u2014 Breakfast & Lunch \u2014 SCR 795 per person (09:00\u201316:00), including \u00e0 la carte breakfast, lunch and pool and day-bed access; and Day Pass \u2014 Pool & Lunch \u2014 SCR 550 per person (09:00–16:00), including lunch and pool and day-bed access.",
       "Lunch includes one (1) main course per person. Beverages are not included unless expressly stated in writing. No outside alcohol may be brought onto the premises; this applies to all Day Passes except the Day Pass with Room.",
-      "A single Day Pass covers a maximum of six (6) guests. The Day Pass with Room covers two (2) adults and may add up to two (2) children. Children aged 2\u201310 years are charged SCR 295 each on the Day Pass with Room and Pool & Lunch passes, and SCR 495 each on the Breakfast & Lunch pass, which includes a kids-menu meal; guests aged 11 years and over are charged at the applicable adult rate.",
+      "A single Breakfast & Lunch or Pool & Lunch Day Pass covers a maximum of ten (10) guests. The Day Pass with Room covers two (2) adults and may add up to two (2) children. Children aged 2\u201310 years are charged SCR 295 each on the Day Pass with Room and Pool & Lunch passes, and SCR 495 each on the Breakfast & Lunch pass, which includes a kids-menu meal; guests aged 11 years and over are charged at the applicable adult rate.",
       "The Day Pass with Room may be extended until 18:00 for an additional SCR 585 per room, subject to availability.",
       "Day Passes are sold throughout the year with no blackout dates. All visits are subject to availability and advance booking, and Day Passes do not operate on Tuesdays.",
-      "Per-person Day Passes (Breakfast & Lunch and Pool & Lunch) may be booked for a specific visit date at the time of purchase, subject to live availability, or purchased undated as a gift and assigned a visit date later from the purchaser's account. The resort admits a maximum of six (6) day-pass guests per calendar day; once a day is full, no further day-pass visits can be booked for that date.",
+      "Per-person Day Passes (Breakfast & Lunch and Pool & Lunch) may be booked for a specific visit date at the time of purchase, subject to live availability, or purchased undated as a gift and assigned a visit date later from the purchaser's account. The resort admits a maximum of ten (10) day-pass guests per calendar day; once a day is full, no further day-pass visits can be booked for that date.",
       "A confirmed Day Pass visit date may be changed up to two (2) times free of charge, provided each change is made at least forty-eight (48) hours before the booked visit. Date changes requested within forty-eight (48) hours of the visit, or beyond the two (2) free changes, cannot be made online and require contacting reservations.",
       "Day Passes are non-refundable in cash. Where a guest cancels a booked visit, the value paid in is converted to account credit rather than refunded. A cancellation made more than twenty-four (24) hours before the visit, and within the two (2) free reschedules, converts at one hundred percent (100%) of the value paid. A cancellation made within twenty-four (24) hours of the visit, or after the two (2) free reschedules have been used, is subject to a twenty-five percent (25%) cancellation charge, with the remaining seventy-five percent (75%) converted to account credit. On cancellation the underlying booking is cancelled and any issued voucher is voided. Account credit is valid for twelve (12) months from the date of conversion and may be applied towards future purchases at checkout.",
       "Day Pass vouchers are valid for twelve (12) months from the date of issue.",
@@ -265,9 +265,9 @@ export const DAY_PASS_POLICY_POINTS: DayPassPolicyPoint[] = [
     detail: "The resort does not operate day passes on Tuesdays.",
   },
   {
-    title: "Up to 6 guests a day",
+    title: "Up to 10 guests a day",
     detail:
-      "A maximum of six day-pass guests are admitted per day, so popular dates can sell out.",
+      "A maximum of ten day-pass guests are admitted per day, so popular dates can sell out.",
   },
   {
     title: "Reschedule free, twice",
