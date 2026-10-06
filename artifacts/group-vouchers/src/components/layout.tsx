@@ -118,9 +118,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 w-full relative">{children}</main>
       <footer className="border-t-2 border-accent/70 py-8 bg-card mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p className="font-serif italic mb-2">
-            Celebrating 50 Years of Seychelles Independence &middot; 1976&ndash;2026
-          </p>
           <p className="font-sans text-xs tracking-[0.04em] text-primary">
             The Seaboards Apartments &middot; Anse La Mouche &middot; Mahe &middot; Seychelles
           </p>

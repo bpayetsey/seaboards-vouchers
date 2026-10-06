@@ -300,9 +300,6 @@ export default function GroupOrder() {
         <h1 className="font-serif text-primary text-4xl md:text-5xl mt-4 mb-1">
           Golden Jubilee Stay Offer
         </h1>
-        <p className="font-serif italic text-muted-foreground m-0">
-          Celebrating 50 Years of Seychelles Independence &middot; 1976&ndash;2026
-        </p>
       </header>
 
       <div className="container max-w-3xl mx-auto px-6 pt-8 pb-24">
