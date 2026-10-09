@@ -25,17 +25,26 @@ tags:
   - name: Storage
     description: Object storage upload and serving endpoints
   - name: menu
-    description: Public Half Board & Day Pass menu content
+    description: Public Half Board and Day Pass menu content
 paths:
   /menu/pdf:
     get:
       operationId: getMenuPdf
       tags: [menu]
-      summary: Download the Half Board & Day Pass menu as a branded PDF
+      summary: Download the Half Board or Day Pass menu as a branded PDF
       description: >
-        Generates an A4 PDF of the public Half Board & Day Pass menu on the fly
-        from the shared voucher-content library (same single source of truth as
-        the web menu page), so content changes are reflected automatically.
+        Generates an A4 PDF of the public Half Board menu (default) or the
+        Day Pass menu (type=day-pass) on the fly from the shared
+        voucher-content library (same single source of truth as the web menu
+        page), so content changes are reflected automatically.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [half-board, day-pass]
+          description: Which menu to render. Defaults to half-board.
       responses:
         "200":
           description: The menu PDF

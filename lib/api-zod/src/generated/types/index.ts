@@ -77,6 +77,8 @@ export * from './getAdminInboxChannel';
 export * from './getAdminInboxParams';
 export * from './getDayPassAvailabilityParams';
 export * from './getEmailContactsParams';
+export * from './getMenuPdfParams';
+export * from './getMenuPdfType';
 export * from './getWhatsappContactsParams';
 export * from './groupOrderCreated';
 export * from './groupOrderInput';

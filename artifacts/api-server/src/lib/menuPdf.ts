@@ -13,6 +13,12 @@ import {
   DINNER_SECTIONS,
   DESSERT_NOTE,
   BREAKFAST_STYLES,
+  DAY_PASS_MENU_TITLE,
+  DAY_PASS_MENU_INTRO,
+  DAY_PASS_SECTIONS,
+  DAY_PASS_DESSERT_NOTE,
+  DAY_PASS_BREAKFAST_NOTE,
+  type MenuSection,
 } from "@workspace/voucher-content";
 
 // Shares the branding conventions of the voucher PDF (see voucherPdf.ts).
@@ -181,7 +187,13 @@ function itemHeight(
 function drawDish(
   cur: PageCursor,
   fonts: Fonts,
-  item: { name: string; description?: string; price?: string; veg?: boolean },
+  item: {
+    name: string;
+    description?: string;
+    price?: string;
+    supplement?: string;
+    veg?: boolean;
+  },
 ): void {
   cur.ensure(itemHeight(item, fonts));
 
@@ -189,15 +201,18 @@ function drawDish(
   const name = item.veg ? `${item.name}  (V)` : item.name;
   cur.drawLeft(name, fonts.bold, nameSize, INK);
 
-  if (item.price) {
+  // Right-hand column: a menu price (Half Board) or a package supplement (Day
+  // Pass). Supplements are set in gold so they stand out from plain prices.
+  const rightText = item.price ?? item.supplement;
+  if (rightText) {
     const priceSize = 9.5;
-    const priceW = fonts.bold.widthOfTextAtSize(item.price, priceSize);
-    cur.page.drawText(item.price, {
+    const priceW = fonts.bold.widthOfTextAtSize(rightText, priceSize);
+    cur.page.drawText(rightText, {
       x: A4.width - MARGIN - priceW,
       y: cur.y,
       size: priceSize,
       font: fonts.bold,
-      color: NAVY,
+      color: item.price ? NAVY : GOLD,
     });
     // Dotted leader between name and price.
     const nameW = fonts.bold.widthOfTextAtSize(name, nameSize);
@@ -221,10 +236,44 @@ function drawDish(
   cur.y -= 4;
 }
 
+export type MenuKind = "half-board" | "day-pass";
+
+interface MenuConfig {
+  /** Small gold label above the title. */
+  label: string;
+  title: string;
+  intro: string;
+  sections: MenuSection[];
+  dessert: { title: string; text: string };
+  /** Optional line under the breakfast heading. */
+  breakfastNote?: string;
+}
+
+const MENUS: Record<MenuKind, MenuConfig> = {
+  "half-board": {
+    label: "HALF BOARD",
+    title: MENU_TITLE,
+    intro: MENU_INTRO,
+    sections: DINNER_SECTIONS,
+    dessert: DESSERT_NOTE,
+  },
+  "day-pass": {
+    label: "DAY PASS",
+    title: DAY_PASS_MENU_TITLE,
+    intro: DAY_PASS_MENU_INTRO,
+    sections: DAY_PASS_SECTIONS,
+    dessert: DAY_PASS_DESSERT_NOTE,
+    breakfastNote: DAY_PASS_BREAKFAST_NOTE,
+  },
+};
+
 /** Build the branded A4 menu PDF. Returns the encoded PDF bytes. */
-export async function buildMenuPdf(): Promise<Uint8Array> {
+export async function buildMenuPdf(
+  kind: MenuKind = "half-board",
+): Promise<Uint8Array> {
+  const menu = MENUS[kind];
   const pdf = await PDFDocument.create();
-  pdf.setTitle(`${RESORT.name} \u2013 ${MENU_TITLE}`);
+  pdf.setTitle(`${RESORT.name} \u2013 ${menu.title}`);
   pdf.setAuthor(RESORT.name);
 
   const fonts: Fonts = {
@@ -241,9 +290,9 @@ export async function buildMenuPdf(): Promise<Uint8Array> {
   cur.y -= 14;
   cur.drawCentered(RESORT.location, fonts.regular, 9, MUTED);
   cur.y -= 24;
-  cur.drawCentered("HALF BOARD & DAY PASS", fonts.bold, 9, GOLD);
+  cur.drawCentered(menu.label, fonts.bold, 9, GOLD);
   cur.y -= 24;
-  cur.drawCentered(MENU_TITLE, fonts.bold, 22, NAVY);
+  cur.drawCentered(menu.title, fonts.bold, 22, NAVY);
   cur.y -= 20;
   cur.centeredParagraph(
     `\u201c${MENU_EPIGRAPH.quote}\u201d \u2014 ${MENU_EPIGRAPH.attribution}`,
@@ -257,11 +306,11 @@ export async function buildMenuPdf(): Promise<Uint8Array> {
   cur.y -= 18;
 
   // --- Intro ---------------------------------------------------------------
-  cur.centeredParagraph(MENU_INTRO, fonts.regular, 9, INK, CONTENT_WIDTH - 40, 3.5);
+  cur.centeredParagraph(menu.intro, fonts.regular, 9, INK, CONTENT_WIDTH - 40, 3.5);
   cur.y -= 14;
 
   // --- Dinner sections -------------------------------------------------------
-  for (const section of DINNER_SECTIONS) {
+  for (const section of menu.sections) {
     // Keep the heading with at least the first dish.
     const firstItem = section.items[0];
     cur.ensure(40 + (firstItem ? itemHeight(firstItem, fonts) : 0));
@@ -286,9 +335,9 @@ export async function buildMenuPdf(): Promise<Uint8Array> {
   cur.ensure(64);
   cur.rule(GOLD, 0.75);
   cur.y -= 18;
-  cur.drawCentered(DESSERT_NOTE.title, fonts.bold, 13, NAVY);
+  cur.drawCentered(menu.dessert.title, fonts.bold, 13, NAVY);
   cur.y -= 16;
-  cur.centeredParagraph(DESSERT_NOTE.text, fonts.regular, 9, MUTED, CONTENT_WIDTH - 60, 3);
+  cur.centeredParagraph(menu.dessert.text, fonts.regular, 9, MUTED, CONTENT_WIDTH - 60, 3);
   cur.y -= 14;
 
   // --- Breakfast ---------------------------------------------------------
@@ -300,6 +349,11 @@ export async function buildMenuPdf(): Promise<Uint8Array> {
   cur.drawCentered("Breakfast", fonts.bold, 18, NAVY);
   cur.y -= 15;
   cur.drawCentered("Choose your style each morning.", fonts.regular, 9, MUTED);
+  if (menu.breakfastNote) {
+    cur.y -= 13;
+    cur.centeredParagraph(menu.breakfastNote, fonts.oblique, 8.5, MUTED, CONTENT_WIDTH - 60, 3);
+    cur.y -= 4;
+  }
   cur.y -= 22;
 
   for (const style of BREAKFAST_STYLES) {

@@ -1603,6 +1603,21 @@ export interface EmailCampaignDetail {
   recipients: EmailCampaignRecipient[];
 }
 
+export type GetMenuPdfParams = {
+/**
+ * Which menu to render. Defaults to half-board.
+ */
+type?: GetMenuPdfType;
+};
+
+export type GetMenuPdfType = typeof GetMenuPdfType[keyof typeof GetMenuPdfType];
+
+
+export const GetMenuPdfType = {
+  'half-board': 'half-board',
+  'day-pass': 'day-pass',
+} as const;
+
 export type GetDayPassAvailabilityParams = {
 /**
  * Range start (YYYY-MM-DD)

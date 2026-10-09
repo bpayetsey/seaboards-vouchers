@@ -11,7 +11,37 @@ import {
   DINNER_SECTIONS,
   DESSERT_NOTE,
   BREAKFAST_STYLES,
+  DAY_PASS_MENU_TITLE,
+  DAY_PASS_MENU_INTRO,
+  DAY_PASS_SECTIONS,
+  DAY_PASS_DESSERT_NOTE,
+  DAY_PASS_BREAKFAST_NOTE,
 } from "@workspace/voucher-content";
+
+export type MenuVariant = "half-board" | "day-pass";
+
+const MENU_CONFIG = {
+  "half-board": {
+    label: "Half Board",
+    title: MENU_TITLE,
+    intro: MENU_INTRO,
+    sections: DINNER_SECTIONS,
+    dessert: DESSERT_NOTE,
+    breakfastNote: undefined as string | undefined,
+    pdfUrl: "/api/menu/pdf",
+    pdfName: "seaboards-menu.pdf",
+  },
+  "day-pass": {
+    label: "Day Pass",
+    title: DAY_PASS_MENU_TITLE,
+    intro: DAY_PASS_MENU_INTRO,
+    sections: DAY_PASS_SECTIONS,
+    dessert: DAY_PASS_DESSERT_NOTE,
+    breakfastNote: DAY_PASS_BREAKFAST_NOTE as string | undefined,
+    pdfUrl: "/api/menu/pdf?type=day-pass",
+    pdfName: "seaboards-day-pass-menu.pdf",
+  },
+} as const;
 
 function VegBadge() {
   return (
@@ -26,7 +56,12 @@ function VegBadge() {
   );
 }
 
-export default function Menu() {
+export default function Menu({
+  variant = "half-board",
+}: {
+  variant?: MenuVariant;
+}) {
+  const menu = MENU_CONFIG[variant];
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(false);
 
@@ -34,7 +69,7 @@ export default function Menu() {
     setDownloading(true);
     setDownloadError(false);
     try {
-      await downloadVoucherPdf("/api/menu/pdf", "seaboards-menu.pdf");
+      await downloadVoucherPdf(menu.pdfUrl, menu.pdfName);
     } catch {
       setDownloadError(true);
     } finally {
@@ -53,10 +88,10 @@ export default function Menu() {
             {RESORT.location}
           </div>
           <div className="mt-6 font-sans text-[12.5px] font-bold uppercase tracking-[0.4em] text-accent">
-            Half Board &amp; Day Pass
+            {menu.label}
           </div>
           <h1 className="font-serif font-semibold text-primary text-3xl md:text-[46px] leading-[1.08] mt-2 mb-2">
-            {MENU_TITLE}
+            {menu.title}
           </h1>
           <p className="font-serif italic text-muted-foreground text-[16px] m-0 max-w-xl mx-auto">
             &ldquo;{MENU_EPIGRAPH.quote}&rdquo;
@@ -65,6 +100,26 @@ export default function Menu() {
               &mdash; {MENU_EPIGRAPH.attribution}
             </span>
           </p>
+          <nav
+            aria-label="Choose a menu"
+            className="mt-5 inline-flex rounded-full border border-accent/50 p-1 font-sans text-[12.5px] font-semibold uppercase tracking-[0.12em]"
+          >
+            {(["half-board", "day-pass"] as const).map((v) => (
+              <Link
+                key={v}
+                href={v === "day-pass" ? "/menu/day-pass" : "/menu"}
+                aria-current={v === variant ? "page" : undefined}
+                data-testid={`link-menu-${v}`}
+                className={`rounded-full px-4 py-1.5 transition-colors ${
+                  v === variant
+                    ? "bg-accent/20 text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                {MENU_CONFIG[v].label}
+              </Link>
+            ))}
+          </nav>
           <div className="mt-6">
             <button
               type="button"
@@ -92,12 +147,12 @@ export default function Menu() {
         </header>
 
         <p className="mt-6 text-center text-[15px] leading-relaxed text-muted-foreground max-w-2xl mx-auto">
-          {MENU_INTRO}
+          {menu.intro}
         </p>
 
         {/* Dinner & à la carte */}
         <div className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-2">
-          {DINNER_SECTIONS.map((section) => (
+          {menu.sections.map((section) => (
             <section key={section.title} className="break-inside-avoid">
               <h2 className="font-serif text-primary text-[22px] font-semibold border-b border-accent/40 pb-2 mb-4">
                 {section.title}
@@ -115,11 +170,15 @@ export default function Menu() {
                         {item.name}
                       </span>
                       {item.veg && <VegBadge />}
-                      {item.price && (
+                      {(item.price ?? item.supplement) && (
                         <>
                           <span className="flex-1 border-b border-dotted border-border/70 translate-y-[-3px]" />
-                          <span className="font-sans text-[14px] font-semibold text-primary whitespace-nowrap">
-                            {item.price}
+                          <span
+                            className={`font-sans text-[14px] font-semibold whitespace-nowrap ${
+                              item.price ? "text-primary" : "text-accent"
+                            }`}
+                          >
+                            {item.price ?? item.supplement}
                           </span>
                         </>
                       )}
@@ -139,10 +198,10 @@ export default function Menu() {
         {/* Dessert */}
         <div className="mt-12 rounded-2xl border border-accent/50 bg-accent/5 px-6 py-7 text-center">
           <h2 className="font-serif text-primary text-[24px] font-semibold mb-2">
-            {DESSERT_NOTE.title}
+            {menu.dessert.title}
           </h2>
           <p className="text-[15px] leading-relaxed text-muted-foreground max-w-2xl mx-auto">
-            {DESSERT_NOTE.text}
+            {menu.dessert.text}
           </p>
         </div>
 
@@ -158,6 +217,11 @@ export default function Menu() {
             <p className="text-[14px] text-muted-foreground mt-1">
               Choose your style each morning.
             </p>
+            {menu.breakfastNote && (
+              <p className="text-[13px] text-muted-foreground italic mt-1">
+                {menu.breakfastNote}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">

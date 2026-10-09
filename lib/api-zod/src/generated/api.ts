@@ -9,6 +9,16 @@ import * as zod from 'zod';
 
 
 /**
+ * Generates an A4 PDF of the public Half Board menu (default) or the Day Pass menu (type=day-pass) on the fly from the shared voucher-content library (same single source of truth as the web menu page), so content changes are reflected automatically.
+
+ * @summary Download the Half Board or Day Pass menu as a branded PDF
+ */
+export const GetMenuPdfQueryParams = zod.object({
+  "type": zod.enum(['half-board', 'day-pass']).optional().describe('Which menu to render. Defaults to half-board.')
+})
+
+
+/**
  * Returns all vouchers/credits, payments and downloadable Stripe receipts belonging to the authenticated client, matched strictly to their verified account email. Requires a Clerk session.
 
  * @summary Get the signed-in client's account dashboard

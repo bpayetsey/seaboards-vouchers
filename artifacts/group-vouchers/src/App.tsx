@@ -225,7 +225,12 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/group-order" component={GroupOrder} />
       <Route path="/terms" component={Terms} />
-      <Route path="/menu" component={Menu} />
+      <Route path="/menu">
+        <Menu />
+      </Route>
+      <Route path="/menu/day-pass">
+        <Menu variant="day-pass" />
+      </Route>
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />

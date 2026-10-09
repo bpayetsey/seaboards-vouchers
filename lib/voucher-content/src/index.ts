@@ -307,6 +307,11 @@ export interface MenuItem {
   price?: string;
   /** True for vegetarian dishes (shown with a "V" marker). */
   veg?: boolean;
+  /**
+   * Extra charge on top of the package for this dish, e.g. "+ SCR 75".
+   * Used on the Day Pass menu where one main course is included.
+   */
+  supplement?: string;
 }
 
 /** A titled group of dishes on the dinner menu. */
@@ -330,7 +335,7 @@ export interface BreakfastStyle {
 }
 
 /** Headline shown at the top of the menu page. */
-export const MENU_TITLE = "Half Board & Day Pass Menu";
+export const MENU_TITLE = "Half Board Menu";
 
 /** Short epigraph printed on the resort's menu. */
 export const MENU_EPIGRAPH = {
@@ -341,7 +346,7 @@ export const MENU_EPIGRAPH = {
 
 /** Plain-language summary of what Half Board and Day Pass include. */
 export const MENU_INTRO =
-  "Half Board includes daily breakfast and a two-course dinner \u2014 a main course and a dessert \u2014 for the named adult occupants. Day Pass includes lunch with one choice of main course. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your package.";
+  "Half Board includes daily breakfast and a two-course dinner \u2014 a main course and a dessert \u2014 for the named adult occupants. Beverages are not included unless stated. Prices shown are \u00e0 la carte reference prices for additional or extra orders beyond your package.";
 
 /** Note explaining that the dessert selection changes each day. */
 export const DESSERT_NOTE = {
@@ -469,6 +474,147 @@ export const DINNER_SECTIONS: MenuSection[] = [
         name: "Tuna Wrap",
         description: "capsicum, cabbage, lettuce, onion",
       },
+    ],
+  },
+];
+
+/** Headline and intro for the dedicated Day Pass menu. */
+export const DAY_PASS_MENU_TITLE = "Day Pass Menu";
+
+export const DAY_PASS_MENU_INTRO =
+  "Day Pass \u2014 lunch with one choice of main course. Beverages are not included unless stated. Dishes shown with a supplement carry that extra charge on top of your package.";
+
+/** Dessert note on the Day Pass menu. */
+export const DAY_PASS_DESSERT_NOTE = {
+  title: "Dessert",
+  text: "A freshly prepared dessert menu is offered daily \u2014 please ask your server for today's selection.",
+} as const;
+
+/** Note about which Day Passes include breakfast (see the Day Pass terms). */
+export const DAY_PASS_BREAKFAST_NOTE =
+  "Breakfast is included with the Day Pass with Room and the Breakfast & Lunch pass.";
+
+/** Day Pass lunch menu, grouped by course. No prices \u2014 one main is included. */
+export const DAY_PASS_SECTIONS: MenuSection[] = [
+  {
+    title: "From the Land",
+    items: [
+      {
+        name: "Beef Steak",
+        description: "steak fries served with pepper sauce",
+        supplement: "+ SCR 75",
+      },
+      { name: "Chicken Curry", description: "served with rice and chutney" },
+      { name: "Buffalo Wings", description: "served with fries and salad" },
+      { name: "Honey Glazed Pork", description: "served with fries and salad" },
+      {
+        name: "Vegetable Curry",
+        description: "served with rice and chutney",
+        veg: true,
+      },
+    ],
+  },
+  {
+    title: "From the Ocean",
+    items: [
+      {
+        name: "Catch of the Day",
+        description:
+          "marinated in creole sauce, accompanied by buttered vegetables",
+      },
+      {
+        name: "Fish Trio",
+        description: "tuna, job, jack fish, with grilled vegetables",
+      },
+      { name: "Fish Curry", description: "served with rice and chutney" },
+      { name: "Prawns Curry", description: "served with rice and chutney" },
+      {
+        name: "Mixed Seafood Curry",
+        description: "prawns, calamari, mussels, crab stick, eggplant",
+      },
+      {
+        name: "Ocean Basket",
+        description: "prawns, calamari, fish, mussels served with fries",
+        supplement: "+ SCR 25",
+      },
+    ],
+  },
+  {
+    title: "Pasta & Burger",
+    items: [
+      { name: "Meat Tortellini", description: "in pomodoro sauce" },
+      {
+        name: "Cheesy Ravioli",
+        description: "cooked in white cream sauce",
+        veg: true,
+      },
+      {
+        name: "Spaghetti Black Mussel",
+        description: "onion, cream, white wine & parmigiano",
+      },
+      {
+        name: "Spaghetti Vongole",
+        description: "infused with garlic, clams, white wine",
+      },
+      {
+        name: "Tomato Penne",
+        description: "penne in tomato sauce",
+        veg: true,
+      },
+      {
+        name: "Classic Spaghetti Bolognese",
+        description: "spaghetti in bolognese sauce",
+      },
+      {
+        name: "Creamy Pesto Gnocchi",
+        description: "gnocchi, cream, pesto",
+        veg: true,
+      },
+      {
+        name: "The Seaboards Burger",
+        description:
+          "beef patty, eggs, bacon, tomato, onions, cheese, served with fries and salad",
+      },
+    ],
+  },
+  {
+    title: "Wraps & Tacos",
+    items: [
+      {
+        name: "Tacos",
+        description: "sizzling spiced pork, tomato salsa, guacamole",
+      },
+      {
+        name: "Vegetable Wrap",
+        description: "capsicum, cucumber, lettuce, onions, carrot",
+        veg: true,
+      },
+      {
+        name: "Chicken Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+      {
+        name: "Prawn Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+      {
+        name: "Tuna Wrap",
+        description: "capsicum, cabbage, lettuce, onion",
+      },
+    ],
+  },
+  {
+    title: "Kids",
+    items: [
+      { name: "Plain Pasta" },
+      { name: "Tomato Penne" },
+      { name: "Chicken Fingers or Fish Fingers" },
+      { name: "Ham & Cheese Sandwich" },
+      { name: "Spaghetti Bolognese" },
+      { name: "Cheese Burger" },
+      { name: "Chicken Wrap" },
+      { name: "Prawn Wrap" },
+      { name: "Tuna Wrap" },
     ],
   },
 ];

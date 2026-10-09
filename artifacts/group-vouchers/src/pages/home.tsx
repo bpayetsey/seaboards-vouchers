@@ -644,7 +644,14 @@ function Storefront({ config }: { config: StorefrontConfig }) {
           Spend the day at The Seaboards — pool, dining and more. To keep it
           intimate, a maximum of 10 guests at a time. Children 2–10 yrs pay the
           per-pass child rate shown below (incl. a kids-menu meal); ages 11+ pay
-          the adult rate.
+          the adult rate.{" "}
+          <Link
+            href="/menu/day-pass"
+            className="text-primary underline underline-offset-2 font-medium whitespace-nowrap"
+          >
+            See the Day Pass menu
+          </Link>
+          .
         </p>
         <div className="grid sm:grid-cols-3 gap-5">
           {config.day_passes.map((opt) => {

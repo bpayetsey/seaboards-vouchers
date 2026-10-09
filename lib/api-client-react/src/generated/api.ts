@@ -60,6 +60,7 @@ import type {
   GetAdminInboxParams,
   GetDayPassAvailabilityParams,
   GetEmailContactsParams,
+  GetMenuPdfParams,
   GetWhatsappContactsParams,
   GroupOrderCreated,
   GroupOrderInput,
@@ -123,22 +124,29 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export const getGetMenuPdfUrl = () => {
+export const getGetMenuPdfUrl = (params?: GetMenuPdfParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/menu/pdf`
+  return stringifiedParams.length > 0 ? `/api/menu/pdf?${stringifiedParams}` : `/api/menu/pdf`
 }
 
 /**
- * Generates an A4 PDF of the public Half Board & Day Pass menu on the fly from the shared voucher-content library (same single source of truth as the web menu page), so content changes are reflected automatically.
+ * Generates an A4 PDF of the public Half Board menu (default) or the Day Pass menu (type=day-pass) on the fly from the shared voucher-content library (same single source of truth as the web menu page), so content changes are reflected automatically.
 
- * @summary Download the Half Board & Day Pass menu as a branded PDF
+ * @summary Download the Half Board or Day Pass menu as a branded PDF
  */
-export const getMenuPdf = async ( options?: RequestInit): Promise<Blob> => {
+export const getMenuPdf = async (params?: GetMenuPdfParams, options?: RequestInit): Promise<Blob> => {
 
-  return customFetch<Blob>(getGetMenuPdfUrl(),
+  return customFetch<Blob>(getGetMenuPdfUrl(params),
   {
     ...options,
     method: 'GET'
@@ -151,23 +159,23 @@ export const getMenuPdf = async ( options?: RequestInit): Promise<Blob> => {
 
 
 
-export const getGetMenuPdfQueryKey = () => {
+export const getGetMenuPdfQueryKey = (params?: GetMenuPdfParams,) => {
     return [
-    `/api/menu/pdf`
+    `/api/menu/pdf`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetMenuPdfQueryOptions = <TData = Awaited<ReturnType<typeof getMenuPdf>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetMenuPdfQueryOptions = <TData = Awaited<ReturnType<typeof getMenuPdf>>, TError = ErrorType<ApiError>>(params?: GetMenuPdfParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMenuPdfQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetMenuPdfQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMenuPdf>>> = ({ signal }) => getMenuPdf({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMenuPdf>>> = ({ signal }) => getMenuPdf(params, { signal, ...requestOptions });
 
 
 
@@ -181,15 +189,15 @@ export type GetMenuPdfQueryError = ErrorType<ApiError>
 
 
 /**
- * @summary Download the Half Board & Day Pass menu as a branded PDF
+ * @summary Download the Half Board or Day Pass menu as a branded PDF
  */
 
 export function useGetMenuPdf<TData = Awaited<ReturnType<typeof getMenuPdf>>, TError = ErrorType<ApiError>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetMenuPdfParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMenuPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetMenuPdfQueryOptions(options)
+  const queryOptions = getGetMenuPdfQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
