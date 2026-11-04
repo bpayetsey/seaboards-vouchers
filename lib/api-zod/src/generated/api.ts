@@ -2117,9 +2117,8 @@ export const QuoteCorporateLunchResponse = zod.object({
   "complete": zod.boolean().describe('False until every course has its minimum dishes and guests are in range'),
   "issues": zod.array(zod.string()),
   "guests": zod.number(),
-  "set_menu_per_person": zod.number().describe('Set menu price per person (SCR), including any small-group supplement'),
+  "set_menu_per_person": zod.number().describe('Set menu price per person (SCR)'),
   "extras_per_person": zod.number(),
-  "small_group_fee_per_person": zod.number(),
   "price_per_person": zod.number(),
   "total": zod.number(),
   "extras": zod.array(zod.object({

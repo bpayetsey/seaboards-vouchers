@@ -33,7 +33,6 @@ export function quoteToApi(q: CorporateLunchQuote) {
     guests: q.guests,
     set_menu_per_person: q.setMenuPerPerson,
     extras_per_person: q.extrasPerPerson,
-    small_group_fee_per_person: q.smallGroupFeePerPerson,
     price_per_person: q.pricePerPerson,
     total: q.total,
     extras: q.extras.map((e) => ({ dish_id: e.dishId, name: e.name, price_per_person: e.pricePerPerson })),

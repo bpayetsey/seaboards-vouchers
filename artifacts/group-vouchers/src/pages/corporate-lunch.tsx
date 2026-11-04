@@ -368,11 +368,6 @@ export default function CorporateLunch() {
             {quote && !quote.complete && (
               <p className="mt-4 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">{quote.issues.join(" ")}</p>
             )}
-            {quote?.complete && quote.small_group_fee_per_person > 0 && (
-              <p className="mt-4 text-[12.5px] text-muted-foreground">
-                Includes a {scr(quote.small_group_fee_per_person)} pp supplement for groups under 15.
-              </p>
-            )}
             {quoteQuery.isError && (
               <p className="mt-4 text-[13px] text-destructive">We couldn't load the price. Please refresh the page.</p>
             )}

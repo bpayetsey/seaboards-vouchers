@@ -12,10 +12,9 @@ export interface CorporateLunchQuote {
   complete: boolean;
   issues: string[];
   guests: number;
-  /** Set menu price per person (SCR), including any small-group supplement */
+  /** Set menu price per person (SCR) */
   set_menu_per_person: number;
   extras_per_person: number;
-  small_group_fee_per_person: number;
   price_per_person: number;
   total: number;
   extras: CorporateLunchExtra[];

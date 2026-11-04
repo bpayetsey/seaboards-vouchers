@@ -5400,7 +5400,6 @@ components:
         - guests
         - set_menu_per_person
         - extras_per_person
-        - small_group_fee_per_person
         - price_per_person
         - total
         - extras
@@ -5417,10 +5416,8 @@ components:
           type: integer
         set_menu_per_person:
           type: integer
-          description: Set menu price per person (SCR), including any small-group supplement
+          description: Set menu price per person (SCR)
         extras_per_person:
-          type: integer
-        small_group_fee_per_person:
           type: integer
         price_per_person:
           type: integer

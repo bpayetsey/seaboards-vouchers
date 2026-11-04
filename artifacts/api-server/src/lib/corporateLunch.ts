@@ -48,8 +48,6 @@ export const CORPORATE_LUNCH_PRICING = {
   roundTo: 25,
   /** Food an extra dish adds, as a share of a full portion. */
   extraPortion: 0.5,
-  smallGroupUnder: 15,
-  smallGroupFee: 75,
   /** Fixed kitchen + service labour per event (4 staff x 6 h x SCR 90). */
   labourPerEvent: 2160,
 } as const;
@@ -68,7 +66,6 @@ export interface CorporateLunchQuote {
   guests: number;
   setMenuPerPerson: number;
   extrasPerPerson: number;
-  smallGroupFeePerPerson: number;
   pricePerPerson: number;
   total: number;
   extras: CorporateLunchExtra[];
@@ -148,13 +145,11 @@ export function quoteCorporateLunch(
   }
 
   const fixedPerPerson = P.wineCost + P.consumablesCost;
-  const smallGroupFeePerPerson = guests < P.smallGroupUnder ? P.smallGroupFee : 0;
-  // The set-menu price follows the dishes and group size but never drops
-  // below the advertised starting price.
+  // The set-menu price follows the dishes chosen but never drops below the
+  // advertised starting price.
   const setMenuPerPerson = Math.max(
     CORPORATE_LUNCH.startingPrice,
-    Math.ceil((includedFood * (1 + P.wastage) + fixedPerPerson) / P.targetFoodCost / P.roundTo) * P.roundTo +
-      smallGroupFeePerPerson,
+    Math.ceil((includedFood * (1 + P.wastage) + fixedPerPerson) / P.targetFoodCost / P.roundTo) * P.roundTo,
   );
   const pricePerPerson = setMenuPerPerson + extrasPerPerson;
   const safeGuests = Number.isFinite(guests) && guests > 0 ? guests : 0;
@@ -171,7 +166,6 @@ export function quoteCorporateLunch(
       guests: safeGuests,
       setMenuPerPerson,
       extrasPerPerson,
-      smallGroupFeePerPerson,
       pricePerPerson,
       total: revenue,
       extras,
