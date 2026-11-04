@@ -2098,3 +2098,134 @@ export const SendEmailCampaignResponse = zod.object({
 })
 
 
+/**
+ * Public. Prices a selection of dish ids for a number of guests. The most expensive picks in each course fill the set menu; further dishes are extras charged per person. Costs are never returned.
+
+ * @summary Price a corporate lunch buffet menu
+ */
+export const QuoteCorporateLunchBody = zod.object({
+  "guests": zod.number(),
+  "selection": zod.object({
+  "starters": zod.array(zod.string()),
+  "mains": zod.array(zod.string()),
+  "rice": zod.array(zod.string()),
+  "desserts": zod.array(zod.string())
+}).describe('Dish ids chosen per course.')
+})
+
+export const QuoteCorporateLunchResponse = zod.object({
+  "complete": zod.boolean().describe('False until every course has its minimum dishes and guests are in range'),
+  "issues": zod.array(zod.string()),
+  "guests": zod.number(),
+  "set_menu_per_person": zod.number().describe('Set menu price per person (SCR), including any small-group supplement'),
+  "extras_per_person": zod.number(),
+  "small_group_fee_per_person": zod.number(),
+  "price_per_person": zod.number(),
+  "total": zod.number(),
+  "extras": zod.array(zod.object({
+  "dish_id": zod.string(),
+  "name": zod.string(),
+  "price_per_person": zod.number()
+})),
+  "currency": zod.string()
+})
+
+
+/**
+ * Public. Re-prices the menu server-side, stores the request with a reference and notifies staff by email. Nothing is charged.
+
+ * @summary Send a corporate lunch buffet request
+ */
+export const CreateCorporateLunchRequestBody = zod.object({
+  "guests": zod.number(),
+  "selection": zod.object({
+  "starters": zod.array(zod.string()),
+  "mains": zod.array(zod.string()),
+  "rice": zod.array(zod.string()),
+  "desserts": zod.array(zod.string())
+}).describe('Dish ids chosen per course.'),
+  "company": zod.string(),
+  "contact_name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "event_date": zod.string().describe('Lunch date (YYYY-MM-DD)'),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary All corporate lunch requests with internal costing
+ */
+export const GetAdminCorporateLunchRequestsResponse = zod.object({
+  "requests": zod.array(zod.object({
+  "id": zod.string(),
+  "reference": zod.string(),
+  "company": zod.string(),
+  "contact_name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "event_date": zod.string(),
+  "guests": zod.number(),
+  "dishes": zod.array(zod.object({
+  "course": zod.string(),
+  "names": zod.array(zod.string())
+})).describe('Course name and dish names, in menu order'),
+  "extras": zod.array(zod.object({
+  "dish_id": zod.string(),
+  "name": zod.string(),
+  "price_per_person": zod.number()
+})),
+  "price_per_person": zod.number(),
+  "total": zod.number(),
+  "cost_per_person": zod.number().describe('Estimated food + wine + consumables per person (SCR)'),
+  "labour": zod.number(),
+  "profit": zod.number(),
+  "margin": zod.number(),
+  "notes": zod.string().nullable(),
+  "status": zod.string().describe('new | confirmed | declined | cancelled'),
+  "created_at": zod.string()
+}))
+})
+
+
+/**
+ * @summary Confirm, decline or cancel a corporate lunch request
+ */
+export const UpdateCorporateLunchRequestStatusParams = zod.object({
+  "requestId": zod.coerce.string()
+})
+
+export const UpdateCorporateLunchRequestStatusBody = zod.object({
+  "status": zod.enum(['new', 'confirmed', 'declined', 'cancelled'])
+})
+
+export const UpdateCorporateLunchRequestStatusResponse = zod.object({
+  "id": zod.string(),
+  "reference": zod.string(),
+  "company": zod.string(),
+  "contact_name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "event_date": zod.string(),
+  "guests": zod.number(),
+  "dishes": zod.array(zod.object({
+  "course": zod.string(),
+  "names": zod.array(zod.string())
+})).describe('Course name and dish names, in menu order'),
+  "extras": zod.array(zod.object({
+  "dish_id": zod.string(),
+  "name": zod.string(),
+  "price_per_person": zod.number()
+})),
+  "price_per_person": zod.number(),
+  "total": zod.number(),
+  "cost_per_person": zod.number().describe('Estimated food + wine + consumables per person (SCR)'),
+  "labour": zod.number(),
+  "profit": zod.number(),
+  "margin": zod.number(),
+  "notes": zod.string().nullable(),
+  "status": zod.string().describe('new | confirmed | declined | cancelled'),
+  "created_at": zod.string()
+})
+
+

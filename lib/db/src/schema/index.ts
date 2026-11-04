@@ -3,3 +3,4 @@ export * from "./storefront";
 export * from "./whatsapp";
 export * from "./inbox";
 export * from "./emailMarketing";
+export * from "./corporateLunch";

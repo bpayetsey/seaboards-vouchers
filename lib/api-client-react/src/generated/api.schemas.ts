@@ -1603,6 +1603,109 @@ export interface EmailCampaignDetail {
   recipients: EmailCampaignRecipient[];
 }
 
+/**
+ * Dish ids chosen per course.
+ */
+export interface CorporateLunchSelection {
+  starters: string[];
+  mains: string[];
+  rice: string[];
+  desserts: string[];
+}
+
+export interface CorporateLunchQuoteInput {
+  guests: number;
+  selection: CorporateLunchSelection;
+}
+
+export interface CorporateLunchExtra {
+  dish_id: string;
+  name: string;
+  price_per_person: number;
+}
+
+export interface CorporateLunchQuote {
+  /** False until every course has its minimum dishes and guests are in range */
+  complete: boolean;
+  issues: string[];
+  guests: number;
+  /** Set menu price per person (SCR), including any small-group supplement */
+  set_menu_per_person: number;
+  extras_per_person: number;
+  small_group_fee_per_person: number;
+  price_per_person: number;
+  total: number;
+  extras: CorporateLunchExtra[];
+  currency: string;
+}
+
+export interface CorporateLunchRequestInput {
+  guests: number;
+  selection: CorporateLunchSelection;
+  company: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  /** Lunch date (YYYY-MM-DD) */
+  event_date: string;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export interface CorporateLunchRequestCreated {
+  reference: string;
+  quote: CorporateLunchQuote;
+}
+
+export type AdminCorporateLunchRequestDishesItem = {
+  course: string;
+  names: string[];
+};
+
+export interface AdminCorporateLunchRequest {
+  id: string;
+  reference: string;
+  company: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  event_date: string;
+  guests: number;
+  /** Course name and dish names, in menu order */
+  dishes: AdminCorporateLunchRequestDishesItem[];
+  extras: CorporateLunchExtra[];
+  price_per_person: number;
+  total: number;
+  /** Estimated food + wine + consumables per person (SCR) */
+  cost_per_person: number;
+  labour: number;
+  profit: number;
+  margin: number;
+  /** @nullable */
+  notes: string | null;
+  /** new | confirmed | declined | cancelled */
+  status: string;
+  created_at: string;
+}
+
+export interface AdminCorporateLunchRequests {
+  requests: AdminCorporateLunchRequest[];
+}
+
+export type UpdateCorporateLunchStatusInputStatus = typeof UpdateCorporateLunchStatusInputStatus[keyof typeof UpdateCorporateLunchStatusInputStatus];
+
+
+export const UpdateCorporateLunchStatusInputStatus = {
+  new: 'new',
+  confirmed: 'confirmed',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
+
+export interface UpdateCorporateLunchStatusInput {
+  status: UpdateCorporateLunchStatusInputStatus;
+}
+
 export type GetMenuPdfParams = {
 /**
  * Which menu to render. Defaults to half-board.

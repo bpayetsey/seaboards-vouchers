@@ -26,6 +26,8 @@ tags:
     description: Object storage upload and serving endpoints
   - name: menu
     description: Public Half Board and Day Pass menu content
+  - name: corporate-lunch
+    description: Corporate lunch buffet menu builder and requests
 paths:
   /menu/pdf:
     get:
@@ -2949,6 +2951,139 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /corporate-lunch/quote:
+    post:
+      operationId: quoteCorporateLunch
+      tags: [corporate-lunch]
+      summary: Price a corporate lunch buffet menu
+      description: >
+        Public. Prices a selection of dish ids for a number of guests. The most
+        expensive picks in each course fill the set menu; further dishes are
+        extras charged per person. Costs are never returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorporateLunchQuoteInput"
+      responses:
+        "200":
+          description: Price for the menu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateLunchQuote"
+        "400":
+          description: Invalid selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /corporate-lunch/requests:
+    post:
+      operationId: createCorporateLunchRequest
+      tags: [corporate-lunch]
+      summary: Send a corporate lunch buffet request
+      description: >
+        Public. Re-prices the menu server-side, stores the request with a
+        reference and notifies staff by email. Nothing is charged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorporateLunchRequestInput"
+      responses:
+        "201":
+          description: Request received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateLunchRequestCreated"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/corporate-lunch/requests:
+    get:
+      operationId: getAdminCorporateLunchRequests
+      tags: [admin]
+      summary: All corporate lunch requests with internal costing
+      responses:
+        "200":
+          description: Requests, newest event first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCorporateLunchRequests"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/corporate-lunch/requests/{requestId}/status:
+    put:
+      operationId: updateCorporateLunchRequestStatus
+      tags: [admin]
+      summary: Confirm, decline or cancel a corporate lunch request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCorporateLunchStatusInput"
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCorporateLunchRequest"
+        "400":
+          description: Invalid status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -5218,3 +5353,202 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EmailCampaignRecipient"
+    CorporateLunchSelection:
+      type: object
+      description: Dish ids chosen per course.
+      required: [starters, mains, rice, desserts]
+      properties:
+        starters:
+          type: array
+          items:
+            type: string
+        mains:
+          type: array
+          items:
+            type: string
+        rice:
+          type: array
+          items:
+            type: string
+        desserts:
+          type: array
+          items:
+            type: string
+    CorporateLunchQuoteInput:
+      type: object
+      required: [guests, selection]
+      properties:
+        guests:
+          type: integer
+        selection:
+          $ref: "#/components/schemas/CorporateLunchSelection"
+    CorporateLunchExtra:
+      type: object
+      required: [dish_id, name, price_per_person]
+      properties:
+        dish_id:
+          type: string
+        name:
+          type: string
+        price_per_person:
+          type: integer
+    CorporateLunchQuote:
+      type: object
+      required:
+        - complete
+        - issues
+        - guests
+        - set_menu_per_person
+        - extras_per_person
+        - small_group_fee_per_person
+        - price_per_person
+        - total
+        - extras
+        - currency
+      properties:
+        complete:
+          type: boolean
+          description: False until every course has its minimum dishes and guests are in range
+        issues:
+          type: array
+          items:
+            type: string
+        guests:
+          type: integer
+        set_menu_per_person:
+          type: integer
+          description: Set menu price per person (SCR), including any small-group supplement
+        extras_per_person:
+          type: integer
+        small_group_fee_per_person:
+          type: integer
+        price_per_person:
+          type: integer
+        total:
+          type: integer
+        extras:
+          type: array
+          items:
+            $ref: "#/components/schemas/CorporateLunchExtra"
+        currency:
+          type: string
+    CorporateLunchRequestInput:
+      type: object
+      required: [guests, selection, company, contact_name, email, phone, event_date]
+      properties:
+        guests:
+          type: integer
+        selection:
+          $ref: "#/components/schemas/CorporateLunchSelection"
+        company:
+          type: string
+        contact_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        event_date:
+          type: string
+          description: Lunch date (YYYY-MM-DD)
+        notes:
+          type: ["string", "null"]
+    CorporateLunchRequestCreated:
+      type: object
+      required: [reference, quote]
+      properties:
+        reference:
+          type: string
+        quote:
+          $ref: "#/components/schemas/CorporateLunchQuote"
+    AdminCorporateLunchRequest:
+      type: object
+      required:
+        - id
+        - reference
+        - company
+        - contact_name
+        - email
+        - phone
+        - event_date
+        - guests
+        - dishes
+        - extras
+        - price_per_person
+        - total
+        - cost_per_person
+        - labour
+        - profit
+        - margin
+        - notes
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+        reference:
+          type: string
+        company:
+          type: string
+        contact_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        event_date:
+          type: string
+        guests:
+          type: integer
+        dishes:
+          type: array
+          description: Course name and dish names, in menu order
+          items:
+            type: object
+            required: [course, names]
+            properties:
+              course:
+                type: string
+              names:
+                type: array
+                items:
+                  type: string
+        extras:
+          type: array
+          items:
+            $ref: "#/components/schemas/CorporateLunchExtra"
+        price_per_person:
+          type: integer
+        total:
+          type: integer
+        cost_per_person:
+          type: number
+          description: Estimated food + wine + consumables per person (SCR)
+        labour:
+          type: integer
+        profit:
+          type: number
+        margin:
+          type: number
+        notes:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: new | confirmed | declined | cancelled
+        created_at:
+          type: string
+    AdminCorporateLunchRequests:
+      type: object
+      required: [requests]
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCorporateLunchRequest"
+    UpdateCorporateLunchStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [new, confirmed, declined, cancelled]

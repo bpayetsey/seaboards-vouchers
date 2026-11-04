@@ -31,6 +31,9 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
       <Link href="/menu" onClick={onNavigate} className={linkClass}>
         Menu
       </Link>
+      <Link href="/corporate-lunch" onClick={onNavigate} className={linkClass}>
+        Corporate Lunch
+      </Link>
       <Link href="/terms" onClick={onNavigate} className={linkClass}>
         Terms
       </Link>

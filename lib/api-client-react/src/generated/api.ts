@@ -24,6 +24,8 @@ import type {
   AdminCalendarResponse,
   AdminCatalogPriceItem,
   AdminCatalogPrices,
+  AdminCorporateLunchRequest,
+  AdminCorporateLunchRequests,
   AdminGroupOrders,
   AdminInbox,
   AdminOrders,
@@ -40,6 +42,10 @@ import type {
   CancelOrderResult,
   ChargeInstalmentsResult,
   CheckoutSession,
+  CorporateLunchQuote,
+  CorporateLunchQuoteInput,
+  CorporateLunchRequestCreated,
+  CorporateLunchRequestInput,
   CreateAudienceInput,
   CreateCampaignInput,
   CreateEmailCampaignInput,
@@ -95,6 +101,7 @@ import type {
   TrackResult,
   UpdateAudienceMembersInput,
   UpdateCatalogPriceInput,
+  UpdateCorporateLunchStatusInput,
   UpdateGalleryImageInput,
   UpdatePromoBannerInput,
   UpdateWhatsappConfirmationInput,
@@ -6690,5 +6697,300 @@ export const useSendEmailCampaign = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getSendEmailCampaignMutationOptions(options));
+    }
+
+export const getQuoteCorporateLunchUrl = () => {
+
+
+
+
+  return `/api/corporate-lunch/quote`
+}
+
+/**
+ * Public. Prices a selection of dish ids for a number of guests. The most expensive picks in each course fill the set menu; further dishes are extras charged per person. Costs are never returned.
+
+ * @summary Price a corporate lunch buffet menu
+ */
+export const quoteCorporateLunch = async (corporateLunchQuoteInput: CorporateLunchQuoteInput, options?: RequestInit): Promise<CorporateLunchQuote> => {
+
+  return customFetch<CorporateLunchQuote>(getQuoteCorporateLunchUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      corporateLunchQuoteInput,)
+  }
+);}
+
+
+
+
+export const getQuoteCorporateLunchMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quoteCorporateLunch>>, TError,{data: BodyType<CorporateLunchQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof quoteCorporateLunch>>, TError,{data: BodyType<CorporateLunchQuoteInput>}, TContext> => {
+
+const mutationKey = ['quoteCorporateLunch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof quoteCorporateLunch>>, {data: BodyType<CorporateLunchQuoteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  quoteCorporateLunch(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QuoteCorporateLunchMutationResult = NonNullable<Awaited<ReturnType<typeof quoteCorporateLunch>>>
+    export type QuoteCorporateLunchMutationBody = BodyType<CorporateLunchQuoteInput>
+    export type QuoteCorporateLunchMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Price a corporate lunch buffet menu
+ */
+export const useQuoteCorporateLunch = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quoteCorporateLunch>>, TError,{data: BodyType<CorporateLunchQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof quoteCorporateLunch>>,
+        TError,
+        {data: BodyType<CorporateLunchQuoteInput>},
+        TContext
+      > => {
+      return useMutation(getQuoteCorporateLunchMutationOptions(options));
+    }
+
+export const getCreateCorporateLunchRequestUrl = () => {
+
+
+
+
+  return `/api/corporate-lunch/requests`
+}
+
+/**
+ * Public. Re-prices the menu server-side, stores the request with a reference and notifies staff by email. Nothing is charged.
+
+ * @summary Send a corporate lunch buffet request
+ */
+export const createCorporateLunchRequest = async (corporateLunchRequestInput: CorporateLunchRequestInput, options?: RequestInit): Promise<CorporateLunchRequestCreated> => {
+
+  return customFetch<CorporateLunchRequestCreated>(getCreateCorporateLunchRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      corporateLunchRequestInput,)
+  }
+);}
+
+
+
+
+export const getCreateCorporateLunchRequestMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCorporateLunchRequest>>, TError,{data: BodyType<CorporateLunchRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCorporateLunchRequest>>, TError,{data: BodyType<CorporateLunchRequestInput>}, TContext> => {
+
+const mutationKey = ['createCorporateLunchRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCorporateLunchRequest>>, {data: BodyType<CorporateLunchRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCorporateLunchRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCorporateLunchRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createCorporateLunchRequest>>>
+    export type CreateCorporateLunchRequestMutationBody = BodyType<CorporateLunchRequestInput>
+    export type CreateCorporateLunchRequestMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Send a corporate lunch buffet request
+ */
+export const useCreateCorporateLunchRequest = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCorporateLunchRequest>>, TError,{data: BodyType<CorporateLunchRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCorporateLunchRequest>>,
+        TError,
+        {data: BodyType<CorporateLunchRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCorporateLunchRequestMutationOptions(options));
+    }
+
+export const getGetAdminCorporateLunchRequestsUrl = () => {
+
+
+
+
+  return `/api/admin/corporate-lunch/requests`
+}
+
+/**
+ * @summary All corporate lunch requests with internal costing
+ */
+export const getAdminCorporateLunchRequests = async ( options?: RequestInit): Promise<AdminCorporateLunchRequests> => {
+
+  return customFetch<AdminCorporateLunchRequests>(getGetAdminCorporateLunchRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCorporateLunchRequestsQueryKey = () => {
+    return [
+    `/api/admin/corporate-lunch/requests`
+    ] as const;
+    }
+
+
+export const getGetAdminCorporateLunchRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCorporateLunchRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>> = ({ signal }) => getAdminCorporateLunchRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCorporateLunchRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>>
+export type GetAdminCorporateLunchRequestsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary All corporate lunch requests with internal costing
+ */
+
+export function useGetAdminCorporateLunchRequests<TData = Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCorporateLunchRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateCorporateLunchRequestStatusUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/admin/corporate-lunch/requests/${requestId}/status`
+}
+
+/**
+ * @summary Confirm, decline or cancel a corporate lunch request
+ */
+export const updateCorporateLunchRequestStatus = async (requestId: string,
+    updateCorporateLunchStatusInput: UpdateCorporateLunchStatusInput, options?: RequestInit): Promise<AdminCorporateLunchRequest> => {
+
+  return customFetch<AdminCorporateLunchRequest>(getUpdateCorporateLunchRequestStatusUrl(requestId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateCorporateLunchStatusInput,)
+  }
+);}
+
+
+
+
+export const getUpdateCorporateLunchRequestStatusMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>, TError,{requestId: string;data: BodyType<UpdateCorporateLunchStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>, TError,{requestId: string;data: BodyType<UpdateCorporateLunchStatusInput>}, TContext> => {
+
+const mutationKey = ['updateCorporateLunchRequestStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>, {requestId: string;data: BodyType<UpdateCorporateLunchStatusInput>}> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  updateCorporateLunchRequestStatus(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCorporateLunchRequestStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>>
+    export type UpdateCorporateLunchRequestStatusMutationBody = BodyType<UpdateCorporateLunchStatusInput>
+    export type UpdateCorporateLunchRequestStatusMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Confirm, decline or cancel a corporate lunch request
+ */
+export const useUpdateCorporateLunchRequestStatus = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>, TError,{requestId: string;data: BodyType<UpdateCorporateLunchStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCorporateLunchRequestStatus>>,
+        TError,
+        {requestId: string;data: BodyType<UpdateCorporateLunchStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCorporateLunchRequestStatusMutationOptions(options));
     }
 

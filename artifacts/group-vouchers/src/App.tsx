@@ -15,6 +15,7 @@ import PayLine from "@/pages/pay";
 import PayDone from "@/pages/pay-done";
 import Terms from "@/pages/terms";
 import Menu from "@/pages/menu";
+import CorporateLunch from "@/pages/corporate-lunch";
 import Dashboard from "@/pages/dashboard";
 import AdminOverview from "@/pages/admin/overview";
 import AdminOrders from "@/pages/admin/orders";
@@ -29,6 +30,7 @@ import AdminWhatsappCampaigns from "@/pages/admin/whatsapp-campaigns";
 import { AdminInbox } from "@/pages/admin/inbox";
 import AdminEmailAudiences from "@/pages/admin/email-audiences";
 import AdminEmailCampaigns from "@/pages/admin/email-campaigns";
+import AdminCorporateLunch from "@/pages/admin/corporate-lunch";
 
 const queryClient = new QueryClient();
 
@@ -231,6 +233,7 @@ function Router() {
       <Route path="/menu/day-pass">
         <Menu variant="day-pass" />
       </Route>
+      <Route path="/corporate-lunch" component={CorporateLunch} />
       <Route path="/group/:statusToken" component={GroupDashboard} />
       <Route path="/pay/:payToken" component={PayLine} />
       <Route path="/pay/:payToken/done" component={PayDone} />
@@ -299,6 +302,11 @@ function Router() {
       <Route path="/admin/email/campaigns">
         <ProtectedAdmin>
           <AdminEmailCampaigns />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/corporate-lunch">
+        <ProtectedAdmin>
+          <AdminCorporateLunch />
         </ProtectedAdmin>
       </Route>
       <Route path="/sign-in/*?" component={SignInPage} />

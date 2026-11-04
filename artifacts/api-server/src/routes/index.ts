@@ -13,6 +13,7 @@ import whatsappRouter from "./whatsapp";
 import inboxRouter from "./inbox";
 import emailRouter from "./email";
 import menuRouter from "./menu";
+import corporateLunchRouter from "./corporateLunch";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(whatsappRouter);
 router.use(inboxRouter);
 router.use(emailRouter);
 router.use(menuRouter);
+router.use(corporateLunchRouter);
 
 export default router;
