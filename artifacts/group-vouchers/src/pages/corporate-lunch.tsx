@@ -179,8 +179,7 @@ export default function CorporateLunch() {
                       {course.name}
                     </h2>
                     <span className="text-[13px] text-muted-foreground">
-                      {course.included} included · each extra +{scr(course.extraPrice)}
-                      {course.extraPremiumPrice ? ` (premium +${scr(course.extraPremiumPrice)})` : ""} pp ·{" "}
+                      {course.included} included · extra dishes from +{scr(course.extraPrice)} pp ·{" "}
                       <span className={short ? "text-destructive font-semibold" : "text-primary font-semibold"}>
                         {picked.length} selected
                       </span>
@@ -215,11 +214,6 @@ export default function CorporateLunch() {
                           <span className="min-w-0">
                             <span className="font-medium text-foreground">
                               {dish.name}
-                              {dish.premium && (
-                                <span className="ml-2 align-middle text-[10.5px] font-semibold uppercase tracking-[0.12em] text-accent">
-                                  Premium
-                                </span>
-                              )}
                             </span>
                             <span className="block text-[13px] text-muted-foreground">{dish.description}</span>
                             {on && extraPrice !== undefined && (
