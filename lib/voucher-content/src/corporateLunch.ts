@@ -38,6 +38,8 @@ export const CORPORATE_LUNCH = {
   minGuests: 10,
   maxGuests: 20,
   currency: "SCR",
+  /** Lowest set-menu price per person (SCR). No quote ever falls below this. */
+  startingPrice: 550,
   inclusions: [
     "Buffet set-up and service",
     "1 glass of house wine per guest",

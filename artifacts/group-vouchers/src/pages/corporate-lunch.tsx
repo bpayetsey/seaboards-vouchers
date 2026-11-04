@@ -151,7 +151,12 @@ export default function CorporateLunch() {
             {CORPORATE_LUNCH.title}
           </h1>
           <div className="mt-4 flex flex-wrap gap-2 text-[13px]">
-            {[CORPORATE_LUNCH.service, `${CORPORATE_LUNCH.minGuests}–${CORPORATE_LUNCH.maxGuests} guests`, ...CORPORATE_LUNCH.inclusions].map(
+            {[
+              `From ${CORPORATE_LUNCH.currency} ${CORPORATE_LUNCH.startingPrice} per person`,
+              CORPORATE_LUNCH.service,
+              `${CORPORATE_LUNCH.minGuests}–${CORPORATE_LUNCH.maxGuests} guests`,
+              ...CORPORATE_LUNCH.inclusions,
+            ].map(
               (t) => (
                 <span key={t} className="rounded-full border border-accent/50 px-3 py-1 text-muted-foreground">
                   {t}

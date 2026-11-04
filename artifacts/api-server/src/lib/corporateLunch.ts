@@ -149,9 +149,13 @@ export function quoteCorporateLunch(
 
   const fixedPerPerson = P.wineCost + P.consumablesCost;
   const smallGroupFeePerPerson = guests < P.smallGroupUnder ? P.smallGroupFee : 0;
-  const setMenuPerPerson =
+  // The set-menu price follows the dishes and group size but never drops
+  // below the advertised starting price.
+  const setMenuPerPerson = Math.max(
+    CORPORATE_LUNCH.startingPrice,
     Math.ceil((includedFood * (1 + P.wastage) + fixedPerPerson) / P.targetFoodCost / P.roundTo) * P.roundTo +
-    smallGroupFeePerPerson;
+      smallGroupFeePerPerson,
+  );
   const pricePerPerson = setMenuPerPerson + extrasPerPerson;
   const safeGuests = Number.isFinite(guests) && guests > 0 ? guests : 0;
 
