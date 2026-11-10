@@ -11,6 +11,7 @@ import {
   CORPORATE_LUNCH,
   CORPORATE_LUNCH_COURSES,
   CORPORATE_LUNCH_DEFAULT_SELECTION,
+  corporateLunchExtraPrice,
   RESORT,
   type CorporateLunchCourseId,
 } from "@workspace/voucher-content";
@@ -179,7 +180,7 @@ export default function CorporateLunch() {
                       {course.name}
                     </h2>
                     <span className="text-[13px] text-muted-foreground">
-                      {course.included} included · extra dishes from +{scr(course.extraPrice)} pp ·{" "}
+                      {course.included} included · extra dishes from +{scr(Math.min(...course.dishes.map((d) => corporateLunchExtraPrice(course, d))))} pp ·{" "}
                       <span className={short ? "text-destructive font-semibold" : "text-primary font-semibold"}>
                         {picked.length} selected
                       </span>
@@ -190,8 +191,7 @@ export default function CorporateLunch() {
                       const on = picked.includes(dish.id);
                       const extraPrice = extraIds.get(dish.id);
                       const wouldBeExtra = !on && picked.length >= course.included;
-                      const addPrice =
-                        dish.premium && course.extraPremiumPrice ? course.extraPremiumPrice : course.extraPrice;
+                      const addPrice = corporateLunchExtraPrice(course, dish);
                       return (
                         <button
                           key={dish.id}

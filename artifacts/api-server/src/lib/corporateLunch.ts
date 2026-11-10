@@ -1,6 +1,7 @@
 import {
   CORPORATE_LUNCH,
   CORPORATE_LUNCH_COURSES,
+  corporateLunchExtraPrice,
   type CorporateLunchCourseId,
 } from "@workspace/voucher-content";
 
@@ -138,7 +139,7 @@ export function quoteCorporateLunch(
     }
     for (const d of additional) {
       extraFood += (DISH_COST_SCR[d.id] ?? 0) * P.extraPortion;
-      const price = d.premium && course.extraPremiumPrice ? course.extraPremiumPrice : course.extraPrice;
+      const price = corporateLunchExtraPrice(course, d);
       extrasPerPerson += price;
       extras.push({ dishId: d.id, name: d.name, pricePerPerson: price });
     }

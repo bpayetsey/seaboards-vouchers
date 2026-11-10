@@ -16,6 +16,8 @@ export interface CorporateLunchDish {
   description: string;
   /** Premium mains carry a higher extra-dish price. */
   premium?: boolean;
+  /** Price per person (SCR) when this dish is an extra, overriding the course price. */
+  extraPrice?: number;
 }
 
 export interface CorporateLunchCourse {
@@ -82,7 +84,7 @@ export const CORPORATE_LUNCH_COURSES: CorporateLunchCourse[] = [
       { id: "honey-glazed-pork", name: "Honey Glazed Pork", description: "Pork belly, honey, soy, ginger" },
       { id: "pasta-ravioli", name: "Pasta Ravioli", description: "Ravioli with tomato and pesto", premium: true },
       { id: "roast-beef", name: "Roast Beef", description: "With gravy", premium: true },
-      { id: "chicken-mushroom", name: "Chicken in Mushroom Sauce", description: "Chicken breast, mushroom cream sauce" },
+      { id: "chicken-mushroom", name: "Chicken in Mushroom Sauce", description: "Chicken breast, mushroom cream sauce", extraPrice: 50 },
       { id: "octopus-curry", name: "Octopus Curry", description: "Octopus in coconut curry", premium: true },
     ],
   },
@@ -118,6 +120,19 @@ export const CORPORATE_LUNCH_DEFAULT_SELECTION: Record<CorporateLunchCourseId, s
   rice: ["white-rice"],
   desserts: ["ice-cream"],
 };
+
+/**
+ * Price per person (SCR) when `dish` is chosen beyond the dishes included in
+ * the set menu: the dish's own price if it has one, else the course's premium
+ * or standard extra price.
+ */
+export function corporateLunchExtraPrice(
+  course: CorporateLunchCourse,
+  dish: CorporateLunchDish,
+): number {
+  if (dish.extraPrice !== undefined) return dish.extraPrice;
+  return dish.premium && course.extraPremiumPrice ? course.extraPremiumPrice : course.extraPrice;
+}
 
 /** Look up a dish by id across every course. */
 export function findCorporateLunchDish(
