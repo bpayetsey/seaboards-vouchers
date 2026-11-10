@@ -102,7 +102,7 @@ export const CORPORATE_LUNCH_COURSES: CorporateLunchCourse[] = [
     name: "Desserts",
     included: 1,
     min: 1,
-    extraPrice: 50,
+    extraPrice: 35,
     dishes: [
       { id: "ice-cream", name: "Ice Cream", description: "Chocolate, strawberry, vanilla" },
       { id: "banana-caramel", name: "Banana Caramel", description: "Caramelised banana, cream" },
