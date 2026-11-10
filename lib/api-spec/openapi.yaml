@@ -1409,6 +1409,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /admin/cash-bookings:
+    post:
+      operationId: createCashBooking
+      tags: [admin]
+      summary: Record a cash day-pass booking
+      description: Staff-only. Records a day pass paid in cash - creates a paid order flagged as cash, holds calendar capacity for the visit date, issues an active voucher and emails the PDF when an email address is given.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashBookingInput"
+      responses:
+        "200":
+          description: Booking recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashBookingResult"
+        "400":
+          description: Invalid request or date not bookable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Not enough capacity on that date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/vouchers:
     post:
       operationId: issueVoucher
@@ -4479,6 +4522,9 @@ components:
           type: integer
         status:
           type: string
+        payment_method:
+          type: string
+          description: Payment method - cash for staff-recorded cash sales, otherwise card
         created_at:
           type: string
         first_payment:
@@ -4623,6 +4669,52 @@ components:
           type: string
         cancelled_instalments:
           type: integer
+    CashBookingInput:
+      type: object
+      required: [product_id, name]
+      properties:
+        product_id:
+          type: string
+        adults:
+          type: ["integer", "null"]
+        children:
+          type: ["integer", "null"]
+        visit_date:
+          type: ["string", "null"]
+          description: YYYY-MM-DD (per-person passes only)
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        total_minor:
+          type: ["integer", "null"]
+          description: Optional negotiated total in minor units; defaults to the catalog price
+    CashBookingResult:
+      type: object
+      required: [ok, order_id, voucher_code, total_minor, currency, product_name, pax, emailed]
+      properties:
+        ok:
+          type: boolean
+        order_id:
+          type: string
+        order_number:
+          type: ["string", "null"]
+        voucher_code:
+          type: string
+        total_minor:
+          type: integer
+        currency:
+          type: string
+        product_name:
+          type: string
+        pax:
+          type: integer
+        visit_date:
+          type: ["string", "null"]
+        emailed:
+          type: boolean
     IssueVoucherInput:
       type: object
       required: [value_minor, currency, expires_at]

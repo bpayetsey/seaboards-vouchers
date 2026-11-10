@@ -287,6 +287,7 @@ export async function getAdminOrdersDetailed() {
       installments: order.installments,
       paid_instalments: order.paidInstalments,
       status: order.status,
+      payment_method: order.stripeCustomerId === "cash" ? "cash" : "card",
       created_at: order.createdAt.toISOString(),
       first_payment: {
         id: `${order.id}:first`,

@@ -34,6 +34,8 @@ export * from './blockedDate';
 export * from './bookingResult';
 export * from './cancelBookingResult';
 export * from './cancelOrderResult';
+export * from './cashBookingInput';
+export * from './cashBookingResult';
 export * from './chargeInstalmentsResult';
 export * from './checkoutSession';
 export * from './corporateLunchExtra';

@@ -898,6 +898,7 @@ export const GetAdminOrdersDetailedResponse = zod.object({
   "installments": zod.number(),
   "paid_instalments": zod.number(),
   "status": zod.string(),
+  "payment_method": zod.string().optional().describe('Payment method - cash for staff-recorded cash sales, otherwise card'),
   "created_at": zod.string(),
   "first_payment": zod.object({
   "id": zod.string(),
@@ -1006,6 +1007,35 @@ export const GetAdminGroupOrdersResponse = zod.object({
   "credit_code": zod.string().nullish().describe('Residual store credit issued when a paid share expires')
 }))
 }))
+})
+
+
+/**
+ * Staff-only. Records a day pass paid in cash - creates a paid order flagged as cash, holds calendar capacity for the visit date, issues an active voucher and emails the PDF when an email address is given.
+ * @summary Record a cash day-pass booking
+ */
+export const CreateCashBookingBody = zod.object({
+  "product_id": zod.string(),
+  "adults": zod.number().nullish(),
+  "children": zod.number().nullish(),
+  "visit_date": zod.string().nullish().describe('YYYY-MM-DD (per-person passes only)'),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "total_minor": zod.number().nullish().describe('Optional negotiated total in minor units; defaults to the catalog price')
+})
+
+export const CreateCashBookingResponse = zod.object({
+  "ok": zod.boolean(),
+  "order_id": zod.string(),
+  "order_number": zod.string().nullish(),
+  "voucher_code": zod.string(),
+  "total_minor": zod.number(),
+  "currency": zod.string(),
+  "product_name": zod.string(),
+  "pax": zod.number(),
+  "visit_date": zod.string().nullish(),
+  "emailed": zod.boolean()
 })
 
 

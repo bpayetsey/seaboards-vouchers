@@ -169,10 +169,10 @@ export type ReserveReason =
   | "blocked"
   | "full";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Non-capacity reasons a date can't be booked. Capacity is checked separately. */
-async function dateClosedReason(
+export async function dateClosedReason(
   tx: Tx,
   dateStr: string,
 ): Promise<ReserveReason | null> {
@@ -192,7 +192,7 @@ async function dateClosedReason(
  * date (excluding one booking id, used when moving a booking). Must run inside a
  * transaction so the lock is held until commit.
  */
-async function lockAndCountDate(
+export async function lockAndCountDate(
   tx: Tx,
   dateStr: string,
   excludeBookingId?: string,

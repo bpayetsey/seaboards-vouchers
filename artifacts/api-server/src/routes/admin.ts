@@ -11,6 +11,8 @@ import {
   ResendVoucherParams,
   ResendVoucherResponse,
   IssueVoucherBody,
+  CreateCashBookingBody,
+  CreateCashBookingResponse,
   IssueVoucherResponse,
   LookupVoucherParams,
   LookupVoucherResponse,
@@ -76,6 +78,7 @@ import {
   fetchApprovedTemplates,
 } from "../lib/whatsappClient";
 import { getVisitorAnalytics } from "../lib/analytics";
+import { createCashBooking } from "../lib/cashBooking";
 
 const router: IRouter = Router();
 
@@ -200,6 +203,41 @@ router.post("/admin/vouchers", requireStaff, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to issue voucher");
     return res.status(500).json({ error: "Could not issue the voucher." });
+  }
+});
+
+router.post("/admin/cash-bookings", requireStaff, async (req, res) => {
+  const parsed = CreateCashBookingBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.message });
+  }
+  try {
+    const result = await createCashBooking(parsed.data);
+    if ("error" in result) {
+      const messages: Record<string, string> = {
+        invalid_buyer: "Enter the guest's name.",
+        invalid_email: "That email address doesn't look right.",
+        invalid_phone: "That phone number doesn't look right.",
+        invalid_selection: "That pass / guest combination isn't valid.",
+        invalid_total: "Enter a valid total.",
+        date_required: "Choose the visit date.",
+        invalid_date: "That date isn't valid.",
+        past: "That date is in the past.",
+        closed_tuesday: "The resort doesn't run day passes on Tuesdays.",
+        blocked: "That date is blocked for day passes.",
+        full:
+          result.remaining != null
+            ? `Not enough places left that day (${result.remaining} remaining).`
+            : "That day is full.",
+      };
+      return res
+        .status(result.error === "full" ? 409 : 400)
+        .json({ error: messages[result.error] ?? "Could not record the booking." });
+    }
+    return res.json(CreateCashBookingResponse.parse(result));
+  } catch (err) {
+    req.log.error({ err }, "Failed to record cash booking");
+    return res.status(500).json({ error: "Could not record the booking." });
   }
 });
 

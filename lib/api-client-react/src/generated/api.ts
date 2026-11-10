@@ -40,6 +40,8 @@ import type {
   BookingResult,
   CancelBookingResult,
   CancelOrderResult,
+  CashBookingInput,
+  CashBookingResult,
   ChargeInstalmentsResult,
   CheckoutSession,
   CorporateLunchQuote,
@@ -3294,6 +3296,78 @@ export function useGetAdminGroupOrders<TData = Awaited<ReturnType<typeof getAdmi
 
 
 
+
+export const getCreateCashBookingUrl = () => {
+
+
+
+
+  return `/api/admin/cash-bookings`
+}
+
+/**
+ * Staff-only. Records a day pass paid in cash - creates a paid order flagged as cash, holds calendar capacity for the visit date, issues an active voucher and emails the PDF when an email address is given.
+ * @summary Record a cash day-pass booking
+ */
+export const createCashBooking = async (cashBookingInput: CashBookingInput, options?: RequestInit): Promise<CashBookingResult> => {
+
+  return customFetch<CashBookingResult>(getCreateCashBookingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      cashBookingInput,)
+  }
+);}
+
+
+
+
+export const getCreateCashBookingMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashBooking>>, TError,{data: BodyType<CashBookingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCashBooking>>, TError,{data: BodyType<CashBookingInput>}, TContext> => {
+
+const mutationKey = ['createCashBooking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCashBooking>>, {data: BodyType<CashBookingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCashBooking(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCashBookingMutationResult = NonNullable<Awaited<ReturnType<typeof createCashBooking>>>
+    export type CreateCashBookingMutationBody = BodyType<CashBookingInput>
+    export type CreateCashBookingMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Record a cash day-pass booking
+ */
+export const useCreateCashBooking = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashBooking>>, TError,{data: BodyType<CashBookingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCashBooking>>,
+        TError,
+        {data: BodyType<CashBookingInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCashBookingMutationOptions(options));
+    }
 
 export const getIssueVoucherUrl = () => {
 

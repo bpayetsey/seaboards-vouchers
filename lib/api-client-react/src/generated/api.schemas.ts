@@ -967,6 +967,8 @@ export interface AdminOrder {
   installments: number;
   paid_instalments: number;
   status: string;
+  /** Payment method - cash for staff-recorded cash sales, otherwise card */
+  payment_method?: string;
   created_at: string;
   first_payment: AdminInstalment;
   /** Scheduled instalments 2..N (excludes the first payment) */
@@ -1065,6 +1067,44 @@ export interface RetryInstalmentResult {
 export interface CancelOrderResult {
   status: string;
   cancelled_instalments: number;
+}
+
+export interface CashBookingInput {
+  product_id: string;
+  /** @nullable */
+  adults?: number | null;
+  /** @nullable */
+  children?: number | null;
+  /**
+     * YYYY-MM-DD (per-person passes only)
+     * @nullable
+     */
+  visit_date?: string | null;
+  name: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /**
+     * Optional negotiated total in minor units; defaults to the catalog price
+     * @nullable
+     */
+  total_minor?: number | null;
+}
+
+export interface CashBookingResult {
+  ok: boolean;
+  order_id: string;
+  /** @nullable */
+  order_number?: string | null;
+  voucher_code: string;
+  total_minor: number;
+  currency: string;
+  product_name: string;
+  pax: number;
+  /** @nullable */
+  visit_date?: string | null;
+  emailed: boolean;
 }
 
 export interface IssueVoucherInput {

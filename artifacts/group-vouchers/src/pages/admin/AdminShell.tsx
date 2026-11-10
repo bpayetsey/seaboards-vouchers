@@ -24,6 +24,7 @@ import {
   CalendarDays,
   Megaphone,
   UtensilsCrossed,
+  Banknote,
 } from "lucide-react";
 
 const NAV = [
@@ -32,6 +33,7 @@ const NAV = [
   { href: "/admin/group-orders", label: "Group Orders", icon: Users },
   { href: "/admin/calendar", label: "Day-Pass Calendar", icon: CalendarDays },
   { href: "/admin/corporate-lunch", label: "Corporate Lunch", icon: UtensilsCrossed },
+  { href: "/admin/cash-booking", label: "Cash Booking", icon: Banknote },
   { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
   { href: "/admin/pricing", label: "Pricing", icon: Tag },
   { href: "/admin/site-content", label: "Promo Banner", icon: Megaphone },

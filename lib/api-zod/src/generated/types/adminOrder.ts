@@ -28,6 +28,8 @@ export interface AdminOrder {
   installments: number;
   paid_instalments: number;
   status: string;
+  /** Payment method - cash for staff-recorded cash sales, otherwise card */
+  payment_method?: string;
   created_at: string;
   first_payment: AdminInstalment;
   /** Scheduled instalments 2..N (excludes the first payment) */

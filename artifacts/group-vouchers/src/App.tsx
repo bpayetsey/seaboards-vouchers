@@ -22,6 +22,7 @@ import AdminOrders from "@/pages/admin/orders";
 import AdminGroupOrders from "@/pages/admin/group-orders";
 import AdminCalendar from "@/pages/admin/calendar";
 import AdminVouchers from "@/pages/admin/vouchers";
+import AdminCashBooking from "@/pages/admin/cash-booking";
 import AdminPricing from "@/pages/admin/pricing";
 import AdminSiteContent from "@/pages/admin/site-content";
 import AdminGallery from "@/pages/admin/gallery";
@@ -257,6 +258,11 @@ function Router() {
       <Route path="/admin/calendar">
         <ProtectedAdmin>
           <AdminCalendar />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/cash-booking">
+        <ProtectedAdmin>
+          <AdminCashBooking />
         </ProtectedAdmin>
       </Route>
       <Route path="/admin/vouchers">

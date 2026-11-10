@@ -164,6 +164,11 @@ function OrderCard({ order, onChanged }: { order: OrderRow; onChanged: () => voi
               <Badge variant="outline" className={statusTone(order.status)}>
                 {order.status}
               </Badge>
+              {order.payment_method === "cash" ? (
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  Cash
+                </Badge>
+              ) : null}
               {order.order_number ? (
                 <span className="font-mono text-xs text-muted-foreground">
                   {order.order_number}
