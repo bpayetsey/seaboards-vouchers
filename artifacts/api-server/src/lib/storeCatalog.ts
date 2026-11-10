@@ -324,12 +324,31 @@ export async function getEffectiveDayPasses(): Promise<DayPassOption[]> {
   return DAY_PASSES.map((opt) => {
     const o = overrides[opt.id];
     if (!o) return opt;
+    const childRate = o.childRate ?? opt.childRate;
     return {
       ...opt,
       rate: o.rate,
-      childRate: o.childRate ?? opt.childRate,
+      childRate,
+      feat: opt.feat.map((line) => withChildRate(line, childRate)),
     };
   });
+}
+
+/**
+ * Child-price bullet lines carry a hard-coded amount in the built-in catalog.
+ * When staff override the child rate in the admin, rewrite that amount so the
+ * displayed description always matches what is actually charged.
+ */
+function withChildRate(line: string, childRate: number): string {
+  if (!/child/i.test(line) || !/SCR\s*[\d,]+\s*each/i.test(line)) return line;
+  if (childRate <= 0) {
+    return line.replace(/at SCR\s*[\d,]+\s*each/i, "at no extra charge")
+      .replace(/:\s*SCR\s*[\d,]+\s*each/i, ": no extra charge");
+  }
+  return line.replace(
+    /SCR\s*[\d,]+(\s*each)/i,
+    `SCR ${childRate.toLocaleString("en-US")}$1`,
+  );
 }
 
 /** Validate an incoming order against the catalog so the price can't be tampered with. */
