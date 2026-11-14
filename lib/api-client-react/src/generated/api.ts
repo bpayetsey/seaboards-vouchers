@@ -24,6 +24,7 @@ import type {
   AdminCalendarResponse,
   AdminCatalogPriceItem,
   AdminCatalogPrices,
+  AdminCorporateLunchCalendar,
   AdminCorporateLunchRequest,
   AdminCorporateLunchRequests,
   AdminGroupOrders,
@@ -44,6 +45,7 @@ import type {
   CashBookingResult,
   ChargeInstalmentsResult,
   CheckoutSession,
+  CorporateLunchClosedDates,
   CorporateLunchQuote,
   CorporateLunchQuoteInput,
   CorporateLunchRequestCreated,
@@ -65,6 +67,7 @@ import type {
   GalleryImage,
   GalleryImageList,
   GetAdminCalendarParams,
+  GetAdminCorporateLunchCalendarParams,
   GetAdminInboxParams,
   GetDayPassAvailabilityParams,
   GetEmailContactsParams,
@@ -6917,6 +6920,308 @@ export const useCreateCorporateLunchRequest = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getCreateCorporateLunchRequestMutationOptions(options));
+    }
+
+export const getGetCorporateLunchClosedDatesUrl = () => {
+
+
+
+
+  return `/api/corporate-lunch/closed-dates`
+}
+
+/**
+ * @summary Dates closed for corporate lunch (public)
+ */
+export const getCorporateLunchClosedDates = async ( options?: RequestInit): Promise<CorporateLunchClosedDates> => {
+
+  return customFetch<CorporateLunchClosedDates>(getGetCorporateLunchClosedDatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCorporateLunchClosedDatesQueryKey = () => {
+    return [
+    `/api/corporate-lunch/closed-dates`
+    ] as const;
+    }
+
+
+export const getGetCorporateLunchClosedDatesQueryOptions = <TData = Awaited<ReturnType<typeof getCorporateLunchClosedDates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorporateLunchClosedDates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCorporateLunchClosedDatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCorporateLunchClosedDates>>> = ({ signal }) => getCorporateLunchClosedDates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCorporateLunchClosedDates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCorporateLunchClosedDatesQueryResult = NonNullable<Awaited<ReturnType<typeof getCorporateLunchClosedDates>>>
+export type GetCorporateLunchClosedDatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Dates closed for corporate lunch (public)
+ */
+
+export function useGetCorporateLunchClosedDates<TData = Awaited<ReturnType<typeof getCorporateLunchClosedDates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorporateLunchClosedDates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCorporateLunchClosedDatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminCorporateLunchCalendarUrl = (params: GetAdminCorporateLunchCalendarParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/corporate-lunch/calendar?${stringifiedParams}` : `/api/admin/corporate-lunch/calendar`
+}
+
+/**
+ * @summary Corporate lunch calendar with requests for a date range
+ */
+export const getAdminCorporateLunchCalendar = async (params: GetAdminCorporateLunchCalendarParams, options?: RequestInit): Promise<AdminCorporateLunchCalendar> => {
+
+  return customFetch<AdminCorporateLunchCalendar>(getGetAdminCorporateLunchCalendarUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminCorporateLunchCalendarQueryKey = (params?: GetAdminCorporateLunchCalendarParams,) => {
+    return [
+    `/api/admin/corporate-lunch/calendar`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminCorporateLunchCalendarQueryOptions = <TData = Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>, TError = ErrorType<ApiError>>(params: GetAdminCorporateLunchCalendarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminCorporateLunchCalendarQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>> = ({ signal }) => getAdminCorporateLunchCalendar(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminCorporateLunchCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>>
+export type GetAdminCorporateLunchCalendarQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Corporate lunch calendar with requests for a date range
+ */
+
+export function useGetAdminCorporateLunchCalendar<TData = Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>, TError = ErrorType<ApiError>>(
+ params: GetAdminCorporateLunchCalendarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminCorporateLunchCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminCorporateLunchCalendarQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getBlockCorporateLunchDateUrl = () => {
+
+
+
+
+  return `/api/admin/corporate-lunch/blocked-dates`
+}
+
+/**
+ * @summary Close a date for corporate lunch
+ */
+export const blockCorporateLunchDate = async (blockDateInput: BlockDateInput, options?: RequestInit): Promise<BlockedDate> => {
+
+  return customFetch<BlockedDate>(getBlockCorporateLunchDateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      blockDateInput,)
+  }
+);}
+
+
+
+
+export const getBlockCorporateLunchDateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockCorporateLunchDate>>, TError,{data: BodyType<BlockDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockCorporateLunchDate>>, TError,{data: BodyType<BlockDateInput>}, TContext> => {
+
+const mutationKey = ['blockCorporateLunchDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockCorporateLunchDate>>, {data: BodyType<BlockDateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  blockCorporateLunchDate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockCorporateLunchDateMutationResult = NonNullable<Awaited<ReturnType<typeof blockCorporateLunchDate>>>
+    export type BlockCorporateLunchDateMutationBody = BodyType<BlockDateInput>
+    export type BlockCorporateLunchDateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Close a date for corporate lunch
+ */
+export const useBlockCorporateLunchDate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockCorporateLunchDate>>, TError,{data: BodyType<BlockDateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof blockCorporateLunchDate>>,
+        TError,
+        {data: BodyType<BlockDateInput>},
+        TContext
+      > => {
+      return useMutation(getBlockCorporateLunchDateMutationOptions(options));
+    }
+
+export const getUnblockCorporateLunchDateUrl = (date: string,) => {
+
+
+
+
+  return `/api/admin/corporate-lunch/blocked-dates/${date}`
+}
+
+/**
+ * @summary Reopen a date for corporate lunch
+ */
+export const unblockCorporateLunchDate = async (date: string, options?: RequestInit): Promise<OkResult> => {
+
+  return customFetch<OkResult>(getUnblockCorporateLunchDateUrl(date),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getUnblockCorporateLunchDateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockCorporateLunchDate>>, TError,{date: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockCorporateLunchDate>>, TError,{date: string}, TContext> => {
+
+const mutationKey = ['unblockCorporateLunchDate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockCorporateLunchDate>>, {date: string}> = (props) => {
+          const {date} = props ?? {};
+
+          return  unblockCorporateLunchDate(date,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockCorporateLunchDateMutationResult = NonNullable<Awaited<ReturnType<typeof unblockCorporateLunchDate>>>
+
+    export type UnblockCorporateLunchDateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Reopen a date for corporate lunch
+ */
+export const useUnblockCorporateLunchDate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockCorporateLunchDate>>, TError,{date: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unblockCorporateLunchDate>>,
+        TError,
+        {date: string},
+        TContext
+      > => {
+      return useMutation(getUnblockCorporateLunchDateMutationOptions(options));
     }
 
 export const getGetAdminCorporateLunchRequestsUrl = () => {

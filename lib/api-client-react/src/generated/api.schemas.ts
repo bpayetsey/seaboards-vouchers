@@ -815,6 +815,32 @@ export interface CancelBookingResult {
   currency: string;
 }
 
+export interface CorporateLunchClosedDates {
+  dates: string[];
+}
+
+export interface AdminCorporateLunchCalendarRequest {
+  id: string;
+  reference: string;
+  company: string;
+  contact_name: string;
+  guests: number;
+  total: number;
+  status: string;
+}
+
+export interface AdminCorporateLunchCalendarDay {
+  date: string;
+  blocked: boolean;
+  /** @nullable */
+  blocked_reason: string | null;
+  requests: AdminCorporateLunchCalendarRequest[];
+}
+
+export interface AdminCorporateLunchCalendar {
+  days: AdminCorporateLunchCalendarDay[];
+}
+
 export interface BlockedDate {
   date: string;
   /** @nullable */
@@ -1801,5 +1827,10 @@ audienceId?: string;
 export type GetEmailContactsParams = {
 search?: string;
 audienceId?: string;
+};
+
+export type GetAdminCorporateLunchCalendarParams = {
+from: string;
+to: string;
 };
 

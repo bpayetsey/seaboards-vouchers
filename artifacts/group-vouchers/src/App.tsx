@@ -32,6 +32,7 @@ import { AdminInbox } from "@/pages/admin/inbox";
 import AdminEmailAudiences from "@/pages/admin/email-audiences";
 import AdminEmailCampaigns from "@/pages/admin/email-campaigns";
 import AdminCorporateLunch from "@/pages/admin/corporate-lunch";
+import AdminLunchCalendar from "@/pages/admin/lunch-calendar";
 
 const queryClient = new QueryClient();
 
@@ -313,6 +314,11 @@ function Router() {
       <Route path="/admin/corporate-lunch">
         <ProtectedAdmin>
           <AdminCorporateLunch />
+        </ProtectedAdmin>
+      </Route>
+      <Route path="/admin/lunch-calendar">
+        <ProtectedAdmin>
+          <AdminLunchCalendar />
         </ProtectedAdmin>
       </Route>
       <Route path="/sign-in/*?" component={SignInPage} />

@@ -50,3 +50,14 @@ export const corporateLunchRequests = pgTable(
 );
 
 export type CorporateLunchRequest = typeof corporateLunchRequests.$inferSelect;
+
+/**
+ * Admin-closed corporate lunch dates. A date with a row here cannot be chosen
+ * on the public request form and is rejected server-side (e.g. resort closed,
+ * private event, kitchen fully committed).
+ */
+export const corporateLunchBlockedDates = pgTable("corporate_lunch_blocked_date", {
+  date: date("date", { mode: "string" }).primaryKey(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

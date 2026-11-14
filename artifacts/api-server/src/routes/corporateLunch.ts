@@ -7,6 +7,13 @@ import {
   UpdateCorporateLunchRequestStatusParams,
   UpdateCorporateLunchRequestStatusBody,
   UpdateCorporateLunchRequestStatusResponse,
+  GetCorporateLunchClosedDatesResponse,
+  GetAdminCorporateLunchCalendarQueryParams,
+  GetAdminCorporateLunchCalendarResponse,
+  BlockCorporateLunchDateBody,
+  BlockCorporateLunchDateResponse,
+  UnblockCorporateLunchDateParams,
+  UnblockCorporateLunchDateResponse,
 } from "@workspace/api-zod";
 import { requireStaff } from "../middlewares/requireStaff";
 import { rateLimit } from "../lib/rateLimit";
@@ -16,8 +23,12 @@ import {
   quoteCorporateLunch,
 } from "../lib/corporateLunch";
 import {
+  blockLunchDate,
   createCorporateLunchRequest,
+  getLunchCalendar,
   listCorporateLunchRequests,
+  listLunchClosedDates,
+  unblockLunchDate,
   quoteToApi,
   setCorporateLunchStatus,
 } from "../lib/corporateLunchRequests";
@@ -70,6 +81,57 @@ router.post("/corporate-lunch/requests", async (req, res) => {
     if (err instanceof CorporateLunchInputError) return res.status(400).json({ error: err.message });
     req.log.error({ err }, "Failed to save corporate lunch request");
     return res.status(500).json({ error: "We couldn't send your request. Please try again or contact us by phone." });
+  }
+});
+
+// Public: dates staff have closed, so the request form can grey them out.
+router.get("/corporate-lunch/closed-dates", async (req, res) => {
+  try {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Indian/Mahe" }).format(new Date());
+    const dates = await listLunchClosedDates(today);
+    return res.json(GetCorporateLunchClosedDatesResponse.parse({ dates }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load closed lunch dates");
+    return res.status(500).json({ error: "Could not load available dates." });
+  }
+});
+
+router.get("/admin/corporate-lunch/calendar", requireStaff, async (req, res) => {
+  const parsed = GetAdminCorporateLunchCalendarQueryParams.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid range." });
+  try {
+    const days = await getLunchCalendar(parsed.data.from, parsed.data.to);
+    if (!days) return res.status(400).json({ error: "Invalid range." });
+    return res.json(GetAdminCorporateLunchCalendarResponse.parse({ days }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to load corporate lunch calendar");
+    return res.status(500).json({ error: "Could not load the calendar." });
+  }
+});
+
+router.post("/admin/corporate-lunch/blocked-dates", requireStaff, async (req, res) => {
+  const parsed = BlockCorporateLunchDateBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request." });
+  try {
+    const row = await blockLunchDate(parsed.data.date, parsed.data.reason ?? null);
+    if (!row) return res.status(400).json({ error: "Invalid date." });
+    return res.json(BlockCorporateLunchDateResponse.parse(row));
+  } catch (err) {
+    req.log.error({ err }, "Failed to close lunch date");
+    return res.status(500).json({ error: "Could not close that date." });
+  }
+});
+
+router.delete("/admin/corporate-lunch/blocked-dates/:date", requireStaff, async (req, res) => {
+  const parsed = UnblockCorporateLunchDateParams.safeParse(req.params);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid date." });
+  try {
+    const ok = await unblockLunchDate(parsed.data.date);
+    if (!ok) return res.status(400).json({ error: "Invalid date." });
+    return res.json(UnblockCorporateLunchDateResponse.parse({ ok: true }));
+  } catch (err) {
+    req.log.error({ err }, "Failed to reopen lunch date");
+    return res.status(500).json({ error: "Could not reopen that date." });
   }
 });
 

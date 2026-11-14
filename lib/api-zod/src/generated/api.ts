@@ -2183,6 +2183,66 @@ export const CreateCorporateLunchRequestBody = zod.object({
 
 
 /**
+ * @summary Dates closed for corporate lunch (public)
+ */
+export const GetCorporateLunchClosedDatesResponse = zod.object({
+  "dates": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Corporate lunch calendar with requests for a date range
+ */
+export const GetAdminCorporateLunchCalendarQueryParams = zod.object({
+  "from": zod.coerce.string(),
+  "to": zod.coerce.string()
+})
+
+export const GetAdminCorporateLunchCalendarResponse = zod.object({
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "blocked": zod.boolean(),
+  "blocked_reason": zod.string().nullable(),
+  "requests": zod.array(zod.object({
+  "id": zod.string(),
+  "reference": zod.string(),
+  "company": zod.string(),
+  "contact_name": zod.string(),
+  "guests": zod.number(),
+  "total": zod.number(),
+  "status": zod.string()
+}))
+}))
+})
+
+
+/**
+ * @summary Close a date for corporate lunch
+ */
+export const BlockCorporateLunchDateBody = zod.object({
+  "date": zod.string().describe('Calendar day (YYYY-MM-DD) to block'),
+  "reason": zod.string().nullish()
+})
+
+export const BlockCorporateLunchDateResponse = zod.object({
+  "date": zod.string(),
+  "reason": zod.string().nullable()
+})
+
+
+/**
+ * @summary Reopen a date for corporate lunch
+ */
+export const UnblockCorporateLunchDateParams = zod.object({
+  "date": zod.coerce.string()
+})
+
+export const UnblockCorporateLunchDateResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary All corporate lunch requests with internal costing
  */
 export const GetAdminCorporateLunchRequestsResponse = zod.object({

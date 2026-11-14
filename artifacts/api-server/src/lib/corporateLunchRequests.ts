@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, ne } from "drizzle-orm";
 import {
   db,
   corporateLunchRequests,
+  corporateLunchBlockedDates,
   newOrderNumber,
   type CorporateLunchRequest,
 } from "@workspace/db";
@@ -81,6 +82,15 @@ export async function createCorporateLunchRequest(input: NewCorporateLunchReques
   if (input.eventDate <= todayInMahe()) {
     throw new CorporateLunchInputError("Choose a date from tomorrow onwards.");
   }
+  const [blocked] = await db
+    .select()
+    .from(corporateLunchBlockedDates)
+    .where(eq(corporateLunchBlockedDates.date, input.eventDate));
+  if (blocked) {
+    throw new CorporateLunchInputError(
+      "Sorry, we can't host a corporate lunch on that date. Please choose another day.",
+    );
+  }
   const phoneResult = normalizePhone(input.phone, "SC");
   if (!phoneResult.ok) throw new CorporateLunchInputError("Enter a valid phone number.");
 
@@ -109,6 +119,89 @@ export async function createCorporateLunchRequest(input: NewCorporateLunchReques
 
   void notify(request!, quote);
   return { request: request!, quote };
+}
+
+// ── Calendar: closable dates ─────────────────────────────────────────────────
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const validDay = (d: string) => DAY_RE.test(d) && !Number.isNaN(Date.parse(d));
+
+/** Closed dates from `from` onwards (public: no reasons). */
+export async function listLunchClosedDates(from: string) {
+  const rows = await db
+    .select({ date: corporateLunchBlockedDates.date })
+    .from(corporateLunchBlockedDates)
+    .where(gte(corporateLunchBlockedDates.date, from))
+    .orderBy(corporateLunchBlockedDates.date);
+  return rows.map((r) => r.date);
+}
+
+export async function blockLunchDate(date: string, reason: string | null) {
+  if (!validDay(date)) return null;
+  const clean = reason?.trim().slice(0, 300) || null;
+  const [row] = await db
+    .insert(corporateLunchBlockedDates)
+    .values({ date, reason: clean })
+    .onConflictDoUpdate({ target: corporateLunchBlockedDates.date, set: { reason: clean } })
+    .returning();
+  return { date: row!.date, reason: row!.reason };
+}
+
+export async function unblockLunchDate(date: string) {
+  if (!validDay(date)) return false;
+  await db.delete(corporateLunchBlockedDates).where(eq(corporateLunchBlockedDates.date, date));
+  return true;
+}
+
+/** Every day in [from, to] with its closed state and the requests booked on it. */
+export async function getLunchCalendar(from: string, to: string) {
+  if (!validDay(from) || !validDay(to) || to < from) return null;
+  const spanDays = (Date.parse(to) - Date.parse(from)) / 86_400_000;
+  if (spanDays > 400) return null;
+  const [blocked, requests] = await Promise.all([
+    db
+      .select()
+      .from(corporateLunchBlockedDates)
+      .where(and(gte(corporateLunchBlockedDates.date, from), lte(corporateLunchBlockedDates.date, to))),
+    db
+      .select()
+      .from(corporateLunchRequests)
+      .where(
+        and(
+          gte(corporateLunchRequests.eventDate, from),
+          lte(corporateLunchRequests.eventDate, to),
+          ne(corporateLunchRequests.status, "cancelled"),
+          ne(corporateLunchRequests.status, "declined"),
+        ),
+      )
+      .orderBy(corporateLunchRequests.createdAt),
+  ]);
+  const blockedBy = new Map(blocked.map((b) => [b.date, b.reason]));
+  const byDate = new Map<string, CorporateLunchRequest[]>();
+  for (const r of requests) {
+    const list = byDate.get(r.eventDate) ?? [];
+    list.push(r);
+    byDate.set(r.eventDate, list);
+  }
+  const days = [];
+  for (let t = Date.parse(from); t <= Date.parse(to); t += 86_400_000) {
+    const date = new Date(t).toISOString().slice(0, 10);
+    days.push({
+      date,
+      blocked: blockedBy.has(date),
+      blocked_reason: blockedBy.get(date) ?? null,
+      requests: (byDate.get(date) ?? []).map((r) => ({
+        id: r.id,
+        reference: r.reference,
+        company: r.company,
+        contact_name: r.contactName,
+        guests: r.guests,
+        total: r.total,
+        status: r.status,
+      })),
+    });
+  }
+  return days;
 }
 
 export async function listCorporateLunchRequests() {

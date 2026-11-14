@@ -3055,6 +3055,125 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /corporate-lunch/closed-dates:
+    get:
+      operationId: getCorporateLunchClosedDates
+      tags: [corporate-lunch]
+      summary: Dates closed for corporate lunch (public)
+      responses:
+        "200":
+          description: Closed dates from today onwards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorporateLunchClosedDates"
+  /admin/corporate-lunch/calendar:
+    get:
+      operationId: getAdminCorporateLunchCalendar
+      tags: [admin]
+      summary: Corporate lunch calendar with requests for a date range
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Calendar days
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCorporateLunchCalendar"
+        "400":
+          description: Invalid range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/corporate-lunch/blocked-dates:
+    post:
+      operationId: blockCorporateLunchDate
+      tags: [admin]
+      summary: Close a date for corporate lunch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockDateInput"
+      responses:
+        "200":
+          description: Date closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedDate"
+        "400":
+          description: Invalid date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/corporate-lunch/blocked-dates/{date}:
+    delete:
+      operationId: unblockCorporateLunchDate
+      tags: [admin]
+      summary: Reopen a date for corporate lunch
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Date reopened
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not approved staff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /admin/corporate-lunch/requests:
     get:
       operationId: getAdminCorporateLunchRequests
@@ -4232,6 +4351,54 @@ components:
           type: integer
         currency:
           type: string
+    CorporateLunchClosedDates:
+      type: object
+      required: [dates]
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+    AdminCorporateLunchCalendarRequest:
+      type: object
+      required: [id, reference, company, contact_name, guests, total, status]
+      properties:
+        id:
+          type: string
+        reference:
+          type: string
+        company:
+          type: string
+        contact_name:
+          type: string
+        guests:
+          type: integer
+        total:
+          type: integer
+        status:
+          type: string
+    AdminCorporateLunchCalendarDay:
+      type: object
+      required: [date, blocked, blocked_reason, requests]
+      properties:
+        date:
+          type: string
+        blocked:
+          type: boolean
+        blocked_reason:
+          type: ["string", "null"]
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCorporateLunchCalendarRequest"
+    AdminCorporateLunchCalendar:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCorporateLunchCalendarDay"
     BlockedDate:
       type: object
       required: [date, reason]

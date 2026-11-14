@@ -4,6 +4,8 @@ import { Check, Loader2, Minus, Plus } from "lucide-react";
 import {
   quoteCorporateLunch,
   useCreateCorporateLunchRequest,
+  useGetCorporateLunchClosedDates,
+  type DayAvailability,
   type CorporateLunchQuote,
   type CorporateLunchRequestCreated,
 } from "@workspace/api-client-react";
@@ -16,6 +18,7 @@ import {
   type CorporateLunchCourseId,
 } from "@workspace/voucher-content";
 import { Layout } from "@/components/layout";
+import { DayPassCalendar } from "@/components/day-pass-date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +30,12 @@ const scr = (n: number) => `SCR ${Math.round(n).toLocaleString("en-US")}`;
 function tomorrowInMahe(): string {
   const now = new Date(Date.now() + 24 * 60 * 60 * 1000);
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Indian/Mahe" }).format(now);
+}
+
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -52,6 +61,28 @@ export default function CorporateLunch() {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<CorporateLunchRequestCreated | null>(null);
+
+  const minDate = useMemo(() => tomorrowInMahe(), []);
+  const maxDate = useMemo(() => addDays(minDate, 365), [minDate]);
+  const closedQuery = useGetCorporateLunchClosedDates();
+  const availability = useMemo(() => {
+    const closed = new Set(closedQuery.data?.dates ?? []);
+    const map = new Map<string, DayAvailability>();
+    for (let d = minDate; d <= maxDate; d = addDays(d, 1)) {
+      const isClosed = closed.has(d);
+      map.set(d, {
+        date: d,
+        capacity: 1,
+        used: 0,
+        remaining: 1,
+        closed: isClosed,
+        blocked: isClosed,
+        blocked_reason: null,
+        bookable: !isClosed,
+      });
+    }
+    return map;
+  }, [closedQuery.data, minDate, maxDate]);
 
   const quoteQuery = useQuery({
     queryKey: ["corporate-lunch-quote", guests, selection],
@@ -82,6 +113,10 @@ export default function CorporateLunch() {
     setFormError(null);
     if (!quote?.complete) {
       setFormError(quote?.issues.join(" ") || "Complete your menu first.");
+      return;
+    }
+    if (!form.event_date) {
+      setFormError("Choose the date of your lunch from the calendar.");
       return;
     }
     createRequest.mutate(
@@ -261,15 +296,29 @@ export default function CorporateLunch() {
                     />
                   </div>
                 ))}
-                <div className="grid gap-1.5">
-                  <Label htmlFor="cl-event_date">Date of lunch</Label>
-                  <Input
-                    id="cl-event_date"
-                    type="date"
-                    required
-                    min={tomorrowInMahe()}
-                    value={form.event_date}
-                    onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))}
+                <div className="grid gap-1.5 sm:col-span-2">
+                  <Label>
+                    Date of lunch
+                    {form.event_date && (
+                      <span className="ml-2 font-normal text-muted-foreground">
+                        {new Date(form.event_date + "T00:00:00").toLocaleDateString("en-GB", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </Label>
+                  <DayPassCalendar
+                    availability={availability}
+                    selected={form.event_date}
+                    onSelect={(iso) => setForm((f) => ({ ...f, event_date: iso }))}
+                    from={minDate}
+                    to={maxDate}
+                    isLoading={closedQuery.isLoading}
+                    openLabel={() => null}
+                    closedLegend="Unavailable"
                   />
                 </div>
                 <div className="grid gap-1.5 sm:col-span-2">

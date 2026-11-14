@@ -68,6 +68,14 @@ export interface DayPassCalendarProps {
    * closed) is reflected in the cell styling and a richer legend is shown.
    */
   adminMode?: boolean;
+  /**
+   * Text under the day number for an open day. Defaults to "N left"; return
+   * null to show nothing. Lets other calendars (e.g. corporate lunch) reuse
+   * the grid without a places-left count.
+   */
+  openLabel?: (day: DayAvailability) => string | null;
+  /** Legend text for unavailable days on the public variant. */
+  closedLegend?: string;
 }
 
 /**
@@ -87,7 +95,11 @@ export function DayPassCalendar({
   disabled = false,
   isLoading = false,
   adminMode = false,
+  openLabel,
+  closedLegend = "Closed / full",
 }: DayPassCalendarProps) {
+  const labelFor = (day: DayAvailability): string | null =>
+    openLabel ? openLabel(day) : `${day.remaining} left`;
   const fromDate = isoToDate(from);
   const toDate = isoToDate(to);
 
@@ -196,7 +208,7 @@ export function DayPassCalendar({
                   ? "Closed"
                   : status === "full"
                     ? "Full"
-                    : `${day!.remaining} left`;
+                    : (labelFor(day!) ?? "Open");
 
             return (
               <button
@@ -274,7 +286,7 @@ export function DayPassCalendar({
                 weekday: "long",
                 day: "numeric",
                 month: "long",
-              })} — ${day!.remaining} place${day!.remaining === 1 ? "" : "s"} left`}
+              })} — ${openLabel ? "available" : `${day!.remaining} place${day!.remaining === 1 ? "" : "s"} left`}`}
               className={cn(
                 "flex aspect-square flex-col items-center justify-center rounded-lg border text-sm transition-colors",
                 isSelected
@@ -283,16 +295,18 @@ export function DayPassCalendar({
               )}
             >
               <span className="font-medium leading-none">{date.getDate()}</span>
-              <span
-                className={cn(
-                  "mt-0.5 text-[0.6rem] leading-none",
-                  isSelected
-                    ? "text-primary-foreground/80"
-                    : "text-muted-foreground",
-                )}
-              >
-                {day!.remaining} left
-              </span>
+              {labelFor(day!) !== null && (
+                <span
+                  className={cn(
+                    "mt-0.5 text-[0.6rem] leading-none",
+                    isSelected
+                      ? "text-primary-foreground/80"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {labelFor(day!)}
+                </span>
+              )}
             </button>
           );
         })}
@@ -330,7 +344,7 @@ export function DayPassCalendar({
             </span>
             <span className="flex items-center gap-1.5">
               <span className="text-muted-foreground/50 line-through">00</span>
-              Closed / full
+              {closedLegend}
             </span>
           </>
         )}
