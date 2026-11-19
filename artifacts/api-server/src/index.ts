@@ -5,6 +5,7 @@ import { getStripeSync } from "./lib/stripeClient";
 import { dispatchDueCampaigns } from "./lib/whatsappCampaigns";
 import { releaseStaleReservedCredit } from "./lib/storefront";
 import { sendDueVisitReminders } from "./lib/dayPass";
+import { ensureChatOrderSchema } from "./lib/chatOrders";
 
 const rawPort = process.env["PORT"];
 
@@ -57,6 +58,14 @@ async function initStripe(): Promise<void> {
 }
 
 await initStripe();
+
+// Chat orders (WhatsApp assistant) store their Stripe Checkout session on the
+// order; the column is added here so a deploy needs no manual migration.
+try {
+  if (process.env.DATABASE_URL) await ensureChatOrderSchema();
+} catch (err) {
+  logger.error({ err }, "Could not ensure the chat-order schema");
+}
 
 app.listen(port, (err) => {
   if (err) {

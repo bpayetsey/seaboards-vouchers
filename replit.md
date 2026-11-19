@@ -22,7 +22,7 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/lib/chatOrders.ts` + `routes/chatOrders.ts`: vouchers and day passes sold from the WhatsApp assistant (`POST /api/chat/orders`, `/confirm`, `/cancel`, public `/done` page). Bearer `CHAT_ORDER_TOKEN`; pays on a hosted Stripe Checkout page in full and then runs the normal `processPaidIntent` pipeline. Adds `store_order.checkout_session_id` at startup.
 
 ## Architecture decisions
 

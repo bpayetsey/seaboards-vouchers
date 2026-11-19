@@ -14,6 +14,7 @@ import inboxRouter from "./inbox";
 import emailRouter from "./email";
 import menuRouter from "./menu";
 import corporateLunchRouter from "./corporateLunch";
+import chatOrdersRouter from "./chatOrders";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(inboxRouter);
 router.use(emailRouter);
 router.use(menuRouter);
 router.use(corporateLunchRouter);
+router.use(chatOrdersRouter);
 
 export default router;

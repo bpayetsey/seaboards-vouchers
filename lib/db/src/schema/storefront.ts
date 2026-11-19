@@ -53,6 +53,11 @@ export const storeOrders = pgTable(
     creditAppliedMinor: bigint("credit_applied_minor", { mode: "number" })
       .notNull()
       .default(0),
+    // Hosted Stripe Checkout session for orders started from the WhatsApp
+    // assistant (chat orders pay on Stripe's page instead of the embedded
+    // Payment Element). Null for storefront orders. The column is added at
+    // startup by ensureChatOrderSchema() so no manual migration is needed.
+    checkoutSessionId: text("checkout_session_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
