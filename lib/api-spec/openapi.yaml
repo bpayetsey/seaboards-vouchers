@@ -4848,7 +4848,7 @@ components:
           type: ["integer", "null"]
         visit_date:
           type: ["string", "null"]
-          description: YYYY-MM-DD (per-person passes only)
+          description: YYYY-MM-DD (per-person passes only). Optional; omit for an undated voucher.
         name:
           type: string
         email:

@@ -81,7 +81,6 @@ export default function AdminCashBooking() {
     e.preventDefault();
     if (!pass) { toast({ title: "Choose a pass", variant: "destructive" }); return; }
     if (!name.trim()) { toast({ title: "Enter the guest's name", variant: "destructive" }); return; }
-    if (datable && !visitDate) { toast({ title: "Choose the visit date", variant: "destructive" }); return; }
     if (customTotal.trim() !== "" && !(customMajor && customMajor > 0)) {
       toast({ title: "Enter a valid custom total", variant: "destructive" });
       return;
@@ -92,7 +91,7 @@ export default function AdminCashBooking() {
           product_id: pass.id,
           adults: pass.pricing === "flat" ? undefined : Number(adults),
           children: childCount,
-          visit_date: datable ? visitDate : undefined,
+          visit_date: datable && visitDate ? visitDate : undefined,
           name: name.trim(),
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
@@ -133,7 +132,7 @@ export default function AdminCashBooking() {
               <span className="text-muted-foreground">Pass</span>
               <span>{done.product_name}</span>
               <span className="text-muted-foreground">Visit date</span>
-              <span>{done.visit_date ?? "Undated"}</span>
+              <span>{done.visit_date ?? "Undated — client to call and choose a date"}</span>
               <span className="text-muted-foreground">Guests</span>
               <span>{done.pax}</span>
               <span className="text-muted-foreground">Cash received</span>
@@ -192,8 +191,13 @@ export default function AdminCashBooking() {
                 ) : null}
                 {datable ? (
                   <div className="space-y-1.5">
-                    <Label htmlFor="date">Visit date</Label>
+                    <Label htmlFor="date">Visit date <span className="font-normal text-muted-foreground">(optional)</span></Label>
                     <Input id="date" type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} />
+                    {!visitDate ? (
+                      <p className="text-xs text-muted-foreground">
+                        Leave empty to issue an undated voucher — the client calls us to choose the date.
+                      </p>
+                    ) : null}
                     {visitDate && day ? (
                       <p className={`text-xs ${day.bookable ? "text-muted-foreground" : "text-destructive"}`}>
                         {day.closed

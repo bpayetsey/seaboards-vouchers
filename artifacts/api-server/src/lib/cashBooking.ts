@@ -33,7 +33,7 @@ export interface CashBookingInput {
   product_id: string;
   adults?: number | null;
   children?: number | null;
-  /** YYYY-MM-DD. Only used for the per-person passes. */
+  /** YYYY-MM-DD. Optional: omit to issue an undated voucher (client calls to choose a date). */
   visit_date?: string | null;
   name: string;
   email?: string | null;
@@ -113,7 +113,7 @@ export async function createCashBooking(
 
   const datable = isDatableDayPass(input.product_id);
   const visitDate = datable ? (input.visit_date ?? null) : null;
-  if (datable && !visitDate) return { error: "date_required" };
+  // No date is fine: the voucher is issued undated and the client calls to pick one.
 
   const productName = nameFor(sel);
   const currency = SETTINGS.currency;

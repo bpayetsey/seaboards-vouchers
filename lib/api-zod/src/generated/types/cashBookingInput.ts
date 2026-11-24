@@ -13,7 +13,7 @@ export interface CashBookingInput {
   /** @nullable */
   children?: number | null;
   /**
-     * YYYY-MM-DD (per-person passes only)
+     * YYYY-MM-DD (per-person passes only). Optional; omit for an undated voucher.
      * @nullable
      */
   visit_date?: string | null;

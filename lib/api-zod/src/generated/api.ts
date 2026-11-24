@@ -1018,7 +1018,7 @@ export const CreateCashBookingBody = zod.object({
   "product_id": zod.string(),
   "adults": zod.number().nullish(),
   "children": zod.number().nullish(),
-  "visit_date": zod.string().nullish().describe('YYYY-MM-DD (per-person passes only)'),
+  "visit_date": zod.string().nullish().describe('YYYY-MM-DD (per-person passes only). Optional; omit for an undated voucher.'),
   "name": zod.string(),
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
